@@ -1,0 +1,34 @@
+version: '2.1'
+
+services:
+
+  users-db:
+    container_name: users-db
+    build: ./services/users/src/db
+    ports:
+      - '5433:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: exit 0
+
+  users-service:
+    container_name: users-service
+    build: ./services/users/
+    volumes:
+      - './services/users:/usr/src/app'
+      - './services/users/package.json:/usr/src/package.json'
+      - './services/users/node_modules:/usr/src/node_modules'
+    ports:
+      - '3001:3001'
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@users-db:5432/users_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@users-db:5432/users_test
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+    depends_on:
+      users-db:
+        condition: service_healthy
+    links:
+      - users-db
