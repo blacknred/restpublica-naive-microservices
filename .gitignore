@@ -1,0 +1,18 @@
+# dependencies
+node_modules
+
+# testing
+coverage
+.travis.yml
+
+# production
+build
+
+# misc
+.DS_Store
+.env
+npm-debug.log
+_ignore
+
+#ide
+.vscode
