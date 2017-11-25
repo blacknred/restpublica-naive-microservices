@@ -12,6 +12,17 @@ services:
       - POSTGRES_PASSWORD=postgres
     healthcheck:
       test: exit 0
+  
+  posts-db:
+    container_name: posts-db
+    build: ./services/posts/src/db
+    ports:
+      - '5434:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: exit 0
 
   users-service:
     container_name: users-service
@@ -32,3 +43,26 @@ services:
         condition: service_healthy
     links:
       - users-db
+
+  posts-service:
+    container_name: posts-service
+    build: ./services/posts/
+    volumes:
+      - './services/posts:/usr/src/app'
+      - './services/posts/package.json:/usr/src/package.json'
+      - './services/posts/node_modules:/usr/src/node_modules'
+    ports:
+      - '3002:3002'
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@posts-db:5432/posts_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@posts-db:5432/posts_test
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+    depends_on:
+      posts-db:
+        condition: service_healthy
+      users-service:
+        condition: service_started
+    links:
+      - posts-db
+      - users-service

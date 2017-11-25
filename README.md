@@ -30,7 +30,28 @@
 | /api/v1/users/subscriptions     | GET         | READ        | get a user` subscriptions |
 | /api/v1/users/subscription/:id  | GET         | READ        | check a user` subscription|
 | /api/v1/users/subscription      | POST        | CREATE      | create a new subscription |
-| /api/v1/users/subscription/:id  | DELETE      | UPDATE      | delete subscription       |
+| /api/v1/users/subscription/:id  | DELETE      | DELETE      | delete subscription       |
+
+##### (2) Posts API - http://localhost:3002
+
+| Endpoint                   | HTTP Method | CRUD Method | Result                    |
+|----------------------------|-------------|-------------|---------------------------|
+| /api/v1/posts/status       | GET         | READ        | `ok`                      |
+| /api/v1/posts/dashboard    | GET         | READ        | get all dashboard posts   |
+| /api/v1/posts/user/:id     | GET         | READ        | get all posts by user     |
+| /api/v1/posts/search       | GET         | READ        | get posts by search       |
+| /api/v1/posts/popular      | GET         | READ        | get all popular posts     |
+| /api/v1/posts/             | POST        | CREATE      | add a single post to user |
+| /api/v1/posts/:id          | GET         | READ        | get a single post         |
+| /api/v1/posts/:id          | PUT         | UPDATE      | update a single post      |
+| /api/v1/posts/:id          | DELETE      | DELETE      | delete a single post      |
+| /api/v1/posts/:id/comments | GET         | READ        | get all post` comments    |
+| /api/v1/posts/:id/comment  | POST        | CREATE      | create a post` comment    |
+| /api/v1/posts/comments/:id | UPDATE      | UPDATE      | update a post` comment    |
+| /api/v1/posts/comments/:id | DELETE      | DELETE      | delete a post` comment    |
+| /api/v1/posts/:id/likes    | GET         | READ        | get all post` likes       |
+| /api/v1/posts/:id/like     | POST        | CREATE      | create a post` like       |
+| /api/v1/posts/like/:id     | DELETE      | DELETE      | delete a post` like       |
 
 
 ## Run the project
