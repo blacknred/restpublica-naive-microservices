@@ -25,7 +25,7 @@ function comparePass(userPassword, databasePassword) {
 
 function findUserByName(name) {
     return knex('users')
-        .select(['id', 'password'])
+        .select(['id', 'password', 'avatar'])
         .where('name', name)
         .first();
 }
@@ -35,22 +35,6 @@ function findUserByEmail(email) {
         .select('id')
         .where('email', email)
         .first();
-}
-
-function dbValidation(req, res, next) {
-    let message = null;
-    findUserByName(req.body.username)
-        .then((user) => {
-            if (user != null) message = `This name ${req.body.username} is already in use`;
-            return findUserByEmail(req.body.email);
-        })
-        .then((user) => {
-            if (user != null && message == null) message = `This email ${req.body.email} is already in use`;
-            return message != null ? res.status(500).json({
-                status: 'error',
-                message
-            }) : next();
-        });
 }
 
 /* eslint-disable consistent-return */
@@ -87,16 +71,16 @@ function createUser(newUser) {
     const salt = bcrypt.genSaltSync();
     const hash = bcrypt.hashSync(newUser.password, salt);
     return createAvatar(newUser.name)
-        .then((avatar) => {
+        .then((ava) => {
             return knex('users')
                 .insert({
                     name: newUser.name,
                     fullname: newUser.fullname,
                     password: hash,
                     email: newUser.email,
-                    avatar
+                    avatar: ava
                 })
-                .returning('*');
+                .returning(['id', 'name', 'avatar']);
         });
 }
 
@@ -179,7 +163,6 @@ module.exports = {
     comparePass,
     findUserByName,
     findUserByEmail,
-    dbValidation,
     ensureAuthenticated,
     createUser,
     updateUser,

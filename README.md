@@ -54,6 +54,25 @@
 | /api/v1/posts/like/:id     | DELETE      | DELETE      | delete a post` like       |
 
 
+##### (3) Web (React client SPA) - http://localhost:3000
+
+| Endpoint   | HTTP Method | CRUD Method | Result                            |
+|------------|-------------|-------------|-----------------------------------|
+| /          | GET         | READ        | render landing page               |
+| /login     | GET         | READ        | login form on landing page        |
+| /register  | GET         | READ        | register form on landing page     |
+| /logout    | GET         | READ        | log a user out                    |
+| /dashboard | GET         | READ        | render dashboard page             |
+| /popular   | GET         | READ        | render popular posts page         |
+| /search    | GET         | READ        | render search posts page          |
+| /mine      | GET         | READ        | render user posts & stats page    |
+| /u/:name   | GET         | READ        | render other user page            |
+| /p/:id     | GET         | READ        | render post page                  |
+| /profile   | GET         | READ        | render profile settings page      |
+| /newpost   | GET         | READ        | render post creation or edit page |
+
+
+
 ## Run the project
 
 ### Setup
@@ -97,6 +116,14 @@ With the apps up, run:
 
 ```sh
 $ sh init_db.sh
+```
+
+#### Posts Database and Users Database
+
+To access, get the container id from `docker ps` and then open `psql`:
+
+```sh
+$ docker exec -ti <container-id> psql -U postgres
 ```
 
 #### Commands

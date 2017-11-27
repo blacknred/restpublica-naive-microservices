@@ -1,11 +1,11 @@
 const moment = require('moment');
 const jwt = require('jwt-simple');
 
-function encodeToken(user) {
+function encodeToken(userId) {
   const playload = {
     exp: moment().add(14, 'days').unix(),
     iat: moment().unix(),
-    sub: user.id,
+    sub: userId,
   };
   return jwt.encode(playload, process.env.TOKEN_SECRET);
 }

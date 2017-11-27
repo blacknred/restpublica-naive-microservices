@@ -66,3 +66,23 @@ services:
     links:
       - posts-db
       - users-service
+
+  web-service:
+    container_name: web-service
+    build: ./services/web/
+    volumes:
+      - './services/web:/usr/src/app'
+      - './services/web/package.json:/usr/src/package.json'
+      - '/services/web/node_modules:/usr/src/node_modules'
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      users-service:
+        condition: service_started
+      posts-service:
+        condition: service_started
+    links:
+      - users-service
+      - posts-service

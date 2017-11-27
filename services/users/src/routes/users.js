@@ -13,61 +13,115 @@ router.get('/status', (req, res) => {
 
 /* auth */
 
-router.post('/register', validate.validateUserLogin,
-    authHelpers.dbValidation, (req, res) => {
+router.post('/register', validate.validateUser, (req, res) => {
         const newUser = {
             name: req.body.username,
             fullname: req.body.fullname,
             email: req.body.email,
             password: req.body.password
         };
-        return authHelpers.createUser(newUser)
-            .then((user) => {
-                return localAuth.encodeToken(user[0]);
+        const user = { name: req.body.username };
+        const errors = [];
+        return authHelpers.findUserByName(newUser.name)
+            .then((response) => {
+                if (response) {
+                    errors.push({
+                        param: 'username',
+                        msg: `Name ${newUser.name} is already in use`
+                    });
+                    throw new Error(`Name ${newUser.name} is already in use`);
+                }
+                return authHelpers.findUserByEmail(newUser.email);
+            })
+            .then((response) => {
+                if (response) {
+                    errors.push({
+                        param: 'email',
+                        msg: `Email ${newUser.email} is already in use`
+                    });
+                    throw new Error(`Email ${newUser.email} is already in use`);
+                }
+                return authHelpers.createUser(newUser);
+            })
+            .then((response) => {
+                user.id = response[0].id;
+                user.avatar = response[0].avatar.toString('base64');
+                return localAuth.encodeToken(response[0].id);
             })
             .then((token) => {
+                user.token = token;
                 res.status(200).json({
                     status: 'success',
-                    token
+                    user
                 });
             })
             .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
+                if (errors.length) {
+                    res.status(200).json({
+                        status: 'Validation failed',
+                        failures: errors
+                    });
+                } else {
+                    res.status(500).json({
+                        status: 'error',
+                        message: err.message
+                    });
+                }
             });
     });
 
 router.post('/login', validate.validateUserLogin, (req, res) => {
     const name = req.body.username;
     const password = req.body.password;
+    const user = { name: req.body.username };
+    const errors = [];
     return authHelpers.findUserByName(name)
         .then((response) => {
+            if (!response) {
+                errors.push({
+                    param: 'username',
+                    msg: `Name ${name} is not in use`
+                });
+                throw new Error(`Name ${name} is not in use`);
+            }
             if (!authHelpers.comparePass(password, response.password)) {
+                errors.push({
+                    param: 'password',
+                    msg: 'Incorrect password'
+                });
                 throw new Error('Incorrect password');
             }
-            return response;
+            user.id = response.id;
+            user.avatar = response.avatar.toString('base64');
+            return response.id;
         })
         .then((response) => {
             return localAuth.encodeToken(response);
         })
         .then((token) => {
+            user.token = token;
             res.status(200).json({
                 status: 'success',
-                token
+                user
             });
         })
         .catch((err) => {
-            res.status(500).json({
-                status: 'error',
-                message: err
-            });
+            if (errors.length) {
+                res.status(200).json({
+                    status: 'Validation failed',
+                    failures: errors
+                });
+            } else {
+                res.status(500).json({
+                    status: 'error',
+                    message: err.message
+                });
+            }
         });
 });
 
 router.put('/update', validate.validateUser, authHelpers.ensureAuthenticated,
-    authHelpers.dbValidation, (req, res) => {
+    (req, res) => {
         const newUser = {
             name: req.body.name,
             fullname: req.body.fullname,
@@ -85,7 +139,7 @@ router.put('/update', validate.validateUser, authHelpers.ensureAuthenticated,
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
@@ -102,7 +156,7 @@ router.get('/current', authHelpers.ensureAuthenticated,
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
@@ -120,7 +174,7 @@ router.get('/user/:username', validate.validateUserLogin,
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
@@ -138,7 +192,7 @@ router.get('/concise', authHelpers.ensureAuthenticated,
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
@@ -157,7 +211,7 @@ router.get('/subscriptions',
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
@@ -175,7 +229,7 @@ router.get('/subscription/:id', validate.validateUserSubscriptions,
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
@@ -192,7 +246,7 @@ router.post('/subscription', validate.validateUserSubscriptions,
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
@@ -209,7 +263,7 @@ router.delete('/subscription/:id', validate.validateUserSubscriptions,
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });

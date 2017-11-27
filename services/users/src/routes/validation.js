@@ -7,24 +7,16 @@ function validateUser(req, res, next) {
             .notEmpty()
             .withMessage('Full name cannot be empty');
         req.checkBody('email')
-            .notEmpty()
-            .withMessage('Full name cannot be empty')
             .isEmail()
             .withMessage('Must be an valid email');
         req.checkBody('password')
-            .isLength({ min: 5 })
-            .matches(/\d/)
-            .withMessage('passwords must be at least 5 chars long and contain one number');
+            .matches(/.{5,}\d/)
+            .withMessage('Password must be at least 5 chars long and contain at least one number');
     } else if (req.method === 'PUT') {
-        req.checkBody('name')
-            .notEmpty()
-            .withMessage('Name cannot be empty');
         req.checkBody('fullname')
             .notEmpty()
             .withMessage('Full name cannot be empty');
         req.checkBody('email')
-            .notEmpty()
-            .withMessage('Full name cannot be empty')
             .isEmail()
             .withMessage('Must be an valid email');
         req.checkBody('avatar')
@@ -33,8 +25,8 @@ function validateUser(req, res, next) {
     }
     const errors = req.validationErrors();
     if (errors) {
-        return res.status(400)
-            .json({ message: `Validation failed`, failures: errors });
+        return res.status(200)
+            .json({ status: `Validation failed`, failures: errors });
     }
     return next();
 }
@@ -49,14 +41,14 @@ function validateUserLogin(req, res, next) {
             .notEmpty()
             .withMessage('Name cannot be empty');
         req.checkBody('password')
-            .isLength({ min: 5 })
-            .matches(/\d/)
-            .withMessage('passwords must be at least 5 chars long and contain one number');
+            .matches(/^.*(?=.{5,})(?=.*\d)(?=.*[a-zA-Z]).*$/)
+            .withMessage(`Password must be at least 5 chars 
+            long and contain at least one number`);
     }
     const errors = req.validationErrors();
     if (errors) {
-        return res.status(400)
-            .json({ message: `Validation failed`, failures: errors });
+        return res.status(200)
+            .json({ status: `Validation failed`, failures: errors });
     }
     return next();
 }
@@ -64,14 +56,13 @@ function validateUserLogin(req, res, next) {
 function validateUsersNames(req, res, next) {
     if (req.method === 'POST') {
         req.checkBody('users')
-            .notEmpty()
             .isInt()
-            .withMessage('Name cannot be empty');
+            .withMessage('Name cannot be integer');
     }
     const errors = req.validationErrors();
     if (errors) {
         return res.status(400)
-            .json({ message: `Validation failed`, failures: errors });
+            .json({ status: `Validation failed`, failures: errors });
     }
     return next();
 }
@@ -79,19 +70,17 @@ function validateUsersNames(req, res, next) {
 function validateUserSubscriptions(req, res, next) {
     if (req.method === 'GET') {
         req.checkParams('id')
-            .notEmpty()
             .isInt()
-            .withMessage('Must be valid');
+            .withMessage('Must be integer');
     } else if (req.method === 'POST') {
         req.checkBody('id')
-            .notEmpty()
             .isInt()
-            .withMessage('Must be valid');
+            .withMessage('Must be integer');
     }
     const errors = req.validationErrors();
     if (errors) {
         return res.status(400)
-            .json({ message: `Validation failed`, failures: errors });
+            .json({ status: `Validation failed`, failures: errors });
     }
     return next();
 }
