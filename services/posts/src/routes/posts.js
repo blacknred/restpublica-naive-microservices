@@ -1,7 +1,7 @@
 // import { error } from 'util';
 
 const express = require('express');
-const userQueries = require('../db/queries.js');
+const postQueries = require('../db/queries.js');
 const routeHelpers = require('./_helpers');
 const newPost = require('./_new_post');
 const validate = require('./validation');
@@ -23,7 +23,7 @@ router.get('/dashboard', routeHelpers.ensureAuthenticated,
                 ? req.query.offset : 0;
         return routeHelpers.getSubscriptions(req, next)
             .then((subscriptionsArr) => {
-                return userQueries.getDashboard(subscriptionsArr, offset);
+                return postQueries.getDashboard(subscriptionsArr, offset);
             })
             .then((posts) => {
                 res.status(200).json({
@@ -45,7 +45,7 @@ router.get('/search', routeHelpers.ensureAuthenticated,
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
                 ? req.query.offset : 0;
         if (!req.query.q) { throw new Error('Search pattern is empty'); }
-        return userQueries.getSearchedPosts(req.query.q, offset)
+        return postQueries.getSearchedPosts(req.query.q, offset)
             .then((posts) => {
                 res.json({
                     status: 'success',
@@ -66,7 +66,7 @@ router.get('/popular', routeHelpers.ensureAuthenticated,
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
                 ? req.query.offset : 0;
-        return userQueries.getPopularPosts(offset)
+        return postQueries.getPopularPosts(offset)
             .then((posts) => {
                 res.json({
                     status: 'success',
@@ -81,13 +81,15 @@ router.get('/popular', routeHelpers.ensureAuthenticated,
             });
     });
 
-/* eslint-disable no-param-reassign */
-router.get('/user/:id', routeHelpers.ensureAuthenticated,
-    validate.validatePost, (req, res) => {
+router.get('/user/:name', routeHelpers.ensureAuthenticated,
+    (req, res, next) => {
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
                 ? req.query.offset : 0;
-        return userQueries.getUserPosts(req.params.id, offset)
+        return routeHelpers.getUserId(req, next)
+            .then((id) => {
+                return postQueries.getUserPosts(id, offset);
+            })
             .then((posts) => {
                 res.json({
                     status: 'success',
@@ -97,18 +99,16 @@ router.get('/user/:id', routeHelpers.ensureAuthenticated,
             .catch((err) => {
                 res.status(500).json({
                     status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
-/* eslint-enable no-param-reassign */
-
 
 /* post */
 
 router.get('/:id', routeHelpers.ensureAuthenticated,
     validate.validatePost, (req, res) => {
-        return userQueries.getPost(req.params.id)
+        return postQueries.getPost(req.params.id)
             .then((post) => {
                 res.json({
                     status: 'success',
@@ -126,7 +126,7 @@ router.get('/:id', routeHelpers.ensureAuthenticated,
 router.post('/:type', routeHelpers.ensureAuthenticated,
     validate.validatePost, (req, res) => {
         const post = newPost.createPost(req);
-        return userQueries.addPost(post)
+        return postQueries.addPost(post)
             .then(() => {
                 res.json({
                     status: 'success',
@@ -146,7 +146,7 @@ router.put('/:id', routeHelpers.ensureAuthenticated,
         const updatedPost = {
             description: req.body.description
         };
-        return userQueries.updatePost(req.params.id, updatedPost)
+        return postQueries.updatePost(req.params.id, updatedPost)
             .then((post) => {
                 res.json({
                     status: 'success',
@@ -163,7 +163,7 @@ router.put('/:id', routeHelpers.ensureAuthenticated,
 
 router.delete('/:id', routeHelpers.ensureAuthenticated,
     validate.validatePost, (req, res) => {
-        return userQueries.deletePost(req.params.id)
+        return postQueries.deletePost(req.params.id)
             .then((status) => {
                 if (!status) console.log('Files not found!');
                 res.json({
@@ -186,7 +186,7 @@ router.get('/:id/comments', routeHelpers.ensureAuthenticated,
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
                 ? req.query.offset : 0;
-        return userQueries.getPostComments(req.params.id, offset)
+        return postQueries.getPostComments(req.params.id, offset)
             .then((comments) => {
                 const usersIds = comments.map((user) => {
                     return user.user_id;
@@ -227,7 +227,7 @@ router.post('/:id/comment', routeHelpers.ensureAuthenticated,
             user_id: req.user,
             comment: req.body.comment
         };
-        return userQueries.addPostComment(newComment)
+        return postQueries.addPostComment(newComment)
             .then(() => {
                 res.json({
                     status: 'success',
@@ -244,7 +244,7 @@ router.post('/:id/comment', routeHelpers.ensureAuthenticated,
 
 router.put('/comment/:id', routeHelpers.ensureAuthenticated,
     validate.validateComments, (req, res) => {
-        return userQueries.updatePostComment(req.params.id, req.body.comment)
+        return postQueries.updatePostComment(req.params.id, req.body.comment)
             .then((post) => {
                 res.json({
                     status: 'success',
@@ -261,7 +261,7 @@ router.put('/comment/:id', routeHelpers.ensureAuthenticated,
 
 router.delete('/comment/:id', routeHelpers.ensureAuthenticated,
     validate.validateComments, (req, res) => {
-        return userQueries.deletePostComment(req.params.id)
+        return postQueries.deletePostComment(req.params.id)
             .then(() => {
                 res.json({
                     status: 'success',
@@ -281,9 +281,9 @@ router.delete('/comment/:id', routeHelpers.ensureAuthenticated,
 router.get('/:id/likes', routeHelpers.ensureAuthenticated,
     validate.validateLikes, (req, res, next) => {
         const offset =
-        req.query.offset && /^\+?\d+$/.test(req.query.offset)
-            ? req.query.offset : 0;
-        return userQueries.getPostLikes(req.params.id, offset)
+            req.query.offset && /^\+?\d+$/.test(req.query.offset)
+                ? req.query.offset : 0;
+        return postQueries.getPostLikes(req.params.id, offset)
             .then((likes) => {
                 const usersIds = likes.map((user) => {
                     return user.user_id;
@@ -307,7 +307,7 @@ router.get('/:id/likes', routeHelpers.ensureAuthenticated,
 
 router.post('/like', routeHelpers.ensureAuthenticated,
     validate.validateLikes, (req, res) => {
-        return userQueries.addPostLike(req.body.postId, req.user)
+        return postQueries.addPostLike(req.body.postId, req.user)
             .then(() => {
                 res.json({
                     status: 'success',
@@ -324,7 +324,7 @@ router.post('/like', routeHelpers.ensureAuthenticated,
 
 router.delete('/like/:id', routeHelpers.ensureAuthenticated,
     validate.validateLikes, (req, res) => {
-        return userQueries.deletePostLike(req.params.id)
+        return postQueries.deletePostLike(req.params.id)
             .then(() => {
                 res.json({
                     status: 'success',

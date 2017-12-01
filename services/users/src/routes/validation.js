@@ -10,18 +10,19 @@ function validateUser(req, res, next) {
             .isEmail()
             .withMessage('Must be an valid email');
         req.checkBody('password')
-            .matches(/.{5,}\d/)
-            .withMessage('Password must be at least 5 chars long and contain at least one number');
+            .matches(/^.*(?=.{5,})(?=.*\d)(?=.*[a-zA-Z]).*$/)
+            .withMessage(`Password must be at least 5 chars 
+            long and contain at least one number`);
     } else if (req.method === 'PUT') {
+        req.checkBody('username')
+            .notEmpty()
+            .withMessage('Name cannot be empty');
         req.checkBody('fullname')
             .notEmpty()
             .withMessage('Full name cannot be empty');
         req.checkBody('email')
             .isEmail()
             .withMessage('Must be an valid email');
-        req.checkBody('avatar')
-            .notEmpty()
-            .withMessage('Full name cannot be empty');
     }
     const errors = req.validationErrors();
     if (errors) {

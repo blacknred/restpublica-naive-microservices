@@ -9,3 +9,20 @@ const NewPost = () => (
 )
 
 export default NewPost 
+
+// saveNewPost(movie) {
+//     const options = {
+//         url: 'http://localhost:3002/posts/dashboard',
+//         method: 'post',
+//         data: {
+//             title: movie
+//         },
+//         headers: {
+//             'Content-Type': 'application/json',
+//             Authorization: `Bearer ${window.localStorage.authToken}`
+//         }
+//     };
+//     return axios(options)
+//         .then((res) => { this.getPosts() })
+//         .catch((error) => { console.log(error); })
+// }

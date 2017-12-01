@@ -28,7 +28,7 @@ const createPost = (knex, i) => {
                 .then(() => {
                     return knex('posts')
                         .insert({
-                            user_id: Math.floor((Math.random() * 10) + 1),
+                            user_id: Math.floor((Math.random() * 20) + 1),
                             description: faker.lorem.sentences(),
                             content_type: 'image/png',
                             file: image,
@@ -45,7 +45,7 @@ exports.seed = (knex, Promise) => {
     return knex('posts').del()
         .then(() => {
             const records = [];
-            for (let i = 1; i < 30; i++) {
+            for (let i = 1; i < 60; i++) {
                 records.push(createPost(knex, i));
             }
             return Promise.all(records);

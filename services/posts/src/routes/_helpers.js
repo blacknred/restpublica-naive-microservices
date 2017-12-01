@@ -15,7 +15,7 @@ function ensureAuthenticated(req, res, next) {
     }
     const options = {
         method: 'GET',
-        uri: 'http://users-service:3001/api/v1/users/current',
+        uri: 'http://users-service:3001/api/v1/users/check',
         json: true,
         headers: {
             'Content-Type': 'application/json',
@@ -24,8 +24,28 @@ function ensureAuthenticated(req, res, next) {
     };
     return request(options)
         .then((response) => {
-            req.user = response.user[0].id;
+            req.user = response.id;
             return next();
+        })
+        .catch((err) => {
+            return next(err);
+        });
+}
+
+function getUserId(req, next) {
+    const options = {
+        method: 'GET',
+        uri: `http://users-service:3001/api/v1/users/user/${req.params.name}`,
+        json: true,
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${req.headers.authorization.split(' ')[1]}`,
+        },
+    };
+    return request(options)
+        .then((response) => {
+            console.log(response);
+            return response.user[0].id;
         })
         .catch((err) => {
             return next(err);
@@ -89,6 +109,7 @@ function removePostFiles(paths) {
 
 module.exports = {
     ensureAuthenticated,
+    getUserId,
     getSubscriptions,
     getUsersConciseData,
     removePostFiles

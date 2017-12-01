@@ -1,5 +1,5 @@
 {
-    "name": "dasher-users-api-microservice",
+    "name": "restpublica-users-api-microservice",
     "version": "0.0.0",
     "scripts": {
         "start": "gulp --gulpfile app/gulpfile.js",
@@ -12,6 +12,7 @@
         "debug": "~2.6.6",
         "dotenv": "~4.0.0",
         "express": "~4.15.2",
+        "express-fileupload": "^0.3.0",
         "express-validator": "^2.21.0",
         "faker": "*",
         "jwt-simple": "^0.5.0",
@@ -21,7 +22,8 @@
         "node-fetch": "^2.0.0-alpha.9",
         "pg": "^6.1.4",
         "request": "^2.81.0",
-        "request-promise": "^4.2.0"
+        "request-promise": "^4.2.0",
+        "sharp": "^0.18.4"
     },
     "devDependencies": {
         "chai": "^3.5.0",

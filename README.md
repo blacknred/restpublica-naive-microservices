@@ -21,14 +21,15 @@
 | Endpoint                        | HTTP Method | CRUD Method | Result                    |
 |---------------------------------|-------------|-------------|---------------------------|
 | /api/v1/users/status            | GET         | READ        | `ok`                      |
+| /api/v1/users/check             | GET         | READ        | jwt check returns user id |
 | /api/v1/users/register          | POST        | CREATE      | add a user                |
 | /api/v1/users/login             | POST        | CREATE      | log in a user             |
 | /api/v1/users/update            | PUT         | UPDATE      | update logged user info   |
-| /api/v1/users/current           | GET         | READ        | get full logged user info |
-| /api/v1/users/user/:username    | GET         | READ        | get free user info        |
-| /api/v1/users/concise           | GET         | READ        | get users` names & avatars|
+| /api/v1/users/update/userpic    | PUT         | UPDATE      | update logged user pic    |
+| /api/v1/users/profile           | GET         | READ        | get full logged user info |
+| /api/v1/users/u/:username       | GET         | READ        | get user` non secure info |
+| /api/v1/users/users             | GET         | READ        | get users` base info      |
 | /api/v1/users/subscriptions     | GET         | READ        | get a user` subscriptions |
-| /api/v1/users/subscription/:id  | GET         | READ        | check a user` subscription|
 | /api/v1/users/subscription      | POST        | CREATE      | create a new subscription |
 | /api/v1/users/subscription/:id  | DELETE      | DELETE      | delete subscription       |
 
@@ -69,7 +70,7 @@
 | /u/:name   | GET         | READ        | render other user page            |
 | /p/:id     | GET         | READ        | render post page                  |
 | /profile   | GET         | READ        | render profile settings page      |
-| /newpost   | GET         | READ        | render post creation or edit page |
+| /post      | GET         | READ        | render post creation or edit page |
 
 
 

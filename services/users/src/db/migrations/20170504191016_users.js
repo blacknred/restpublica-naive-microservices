@@ -2,8 +2,9 @@ exports.up = (knex) => {
     return knex.schema
         .createTable('users', (table) => {
             table.increments();
-            table.string('name').unique().notNullable();
+            table.string('username').unique().notNullable();
             table.string('fullname').notNullable();
+            table.text('description');
             table.string('password').notNullable();
             table.string('email').unique().notNullable();
             table.binary('avatar').notNullable();

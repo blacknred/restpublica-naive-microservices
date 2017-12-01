@@ -1,29 +1,122 @@
 
+
+
+
+
+.posts{
+    margin: 6vh auto;
+    width: 90%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+}
+.post-card{
+    width: 15%;
+    height: auto;
+    background: #eee;
+    padding: 1em;
+    vertical-align: top;
+    margin: 1em;
+    transition: .8s opacity;
+}
+
+
+
+
 body{
     font-family: sans-serif;
+    margin: 0;
+    /* background-color: #F5F5F5; */
 }
-.error-text {
-  color: red;
+a{
+    text-decoration: none;
+    color: inherit;
+}
+form input[type=file]{
+    display: none;
+}
+.container{
+    margin: 4vh auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.dynamic-block{
+    min-height: 25vh;
+    max-width: 800px;
 }
 
-.panel {
-  height: 455px;
-  overflow: hidden;
+/*  */
+.profile{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 600px;
+    background: #fafafa;
+}
+.subscriptions-block{
+
+}
+.subscriptions-block li{
+    
+}
+.subscriptions-block li img{
+    width: 60px;
+}
+.subscriptions-block li label{
+}
+.subscriptions-block li button{
 }
 
-.panel-body img {
-  max-width: 90%;
-  width: auto;
-  height: 90%;
-  max-height: 330px;
+/*  */
+.user-block{
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+}
+.user-block-left{
+    width: 16%;
+}
+.user-block-right{
+    width: 70%;
+}
+.user-block-right p:first-of-type{
+    display: flex;
+    justify-content: space-between;
+}
+.user-block img{
+    width: 100%;
+    border-radius: 5%;
 }
 
-.search-bar {
-  margin: 40px auto;
-  max-width: 40%;
+/*  */
+
+
+.alert-danger,
+.alert-warning,
+.alert-info,
+.alert-success{
+    position: fixed;
 }
 
-.search-bar input {
-  width: 50%;
-  margin: auto;
+
+
+/* .app-header{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
 }
+.app-header-popup{
+     position: absolute;
+     min-height: 100px;
+     min-width: 100px;
+
+} */

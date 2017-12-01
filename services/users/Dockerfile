@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM node:latest
 
 # set working directory
 RUN mkdir -p /usr/src/app

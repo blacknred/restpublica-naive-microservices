@@ -6,8 +6,8 @@ const localAuth = require('./local');
 
 /* auth */
 
-function createAvatar(name) {
-    return fetch(`https://api.adorable.io/avatars/285/${name}.png`)
+function createAvatar(username) {
+    return fetch(`https://api.adorable.io/avatars/285/${username}.png`)
         .then((res) => {
             return res.buffer();
         })
@@ -23,10 +23,10 @@ function comparePass(userPassword, databasePassword) {
     return bcrypt.compareSync(userPassword, databasePassword);
 }
 
-function findUserByName(name) {
+function findUserByName(username) {
     return knex('users')
         .select(['id', 'password', 'avatar'])
-        .where('name', name)
+        .where('username', username)
         .first();
 }
 
@@ -53,7 +53,8 @@ function ensureAuthenticated(req, res, next) {
                 status: 'Token has expired'
             });
         }
-        return knex('users').where({ id: parseInt(payload.sub, 10) }).first()
+        return knex('users')
+            .where({ id: parseInt(payload.sub, 10) }).first()
             .then((user) => {
                 req.user = user.id;
                 return next();
@@ -74,13 +75,13 @@ function createUser(newUser) {
         .then((ava) => {
             return knex('users')
                 .insert({
-                    name: newUser.name,
+                    username: newUser.username,
                     fullname: newUser.fullname,
                     password: hash,
                     email: newUser.email,
                     avatar: ava
                 })
-                .returning(['id', 'name', 'avatar']);
+                .returning(['id', 'username', 'avatar']);
         });
 }
 
@@ -88,50 +89,84 @@ function updateUser(userId, userObj) {
     return knex('users')
         .update(userObj)
         .where('id', userId)
-        .returning('*');
+        .returning(['username', 'fullname', 'email']);
 }
 
-function getUser(userId) {
+function updateUserPic(userId, userPic) {
     return knex('users')
-        .select(['id', 'name', 'fullname', 'email', 'avatar'])
-        .where('id', userId);
+        .update('avatar', userPic)
+        .where('id', userId)
+        .returning('avatar');
 }
 
-function getUserByName(userName) {
+function getProfileData(userId) {
     return knex('users')
-        .select(['id', 'name', 'fullname', 'avatar'])
-        .where('name', userName);
+        .select(['username', 'fullname', 'description', 'email', 'avatar'])
+        .where('id', userId)
+        .first();
 }
 
-function getConciseUsers(usersIdsArr) {
+function getUserData(userId, userName) {
+    const result = {};
     return knex('users')
-        .select(['id as user_id', 'name', 'avatar'])
+        .select(['id', 'username', 'fullname', 'description', 'avatar'])
+        .where('username', userName)
+        .first()
+        .then((rows) => {
+            if (!rows) throw new Error();
+            result.data = rows;
+            return knex('subscriptions')
+                .count('* as followers_count')
+                .where('user_id', userId)
+                .first();
+        })
+        .then((rows) => {
+            result.data.followers_count = rows.followers_count;
+            return knex('subscriptions')
+                .count('* as followin_count')
+                .where('sub_user_id', userId)
+                .first();
+        })
+        .then((rows) => {
+            result.data.followin_count = rows.followin_count;
+            return knex('subscriptions')
+                .select('id')
+                .where({ user_id: result.data.id, sub_user_id: userId })
+                .first();
+        })
+        .then((rows) => {
+            if (rows) {
+                result.data.is_followed = true;
+                result.data.subscription_id = rows.id;
+            } else {
+                result.data.is_followed = false;
+                result.data.subscription_id = null;
+            }
+            console.log(result.data);
+            return result.data;
+        })
+        .catch(() => {
+            return null;
+        });
+}
+
+//
+function getUsersData(userId, usersIdsArr) {
+    return knex('users')
+        .select(['id as user_id', 'username', 'avatar'])
         .whereIn('id', usersIdsArr);
+    // in_substrictions
 }
+//
 
 /* subscriptions */
 
 function getSubscriptions(userId) {
     return knex('subscriptions')
-        .select(['sub_user_id', 'name', 'avatar'])
+        .select(['subscriptions.id', 'user_id', 'username', 'avatar'])
         .from('subscriptions')
-        .rightJoin('users', 'users.id', 'subscriptions.sub_user_id')
-        .where('user_id', userId);
-}
-
-function checkSubscription(userId, subUserId) {
-    return knex('subscriptions')
-        .where({
-            user_id: userId,
-            sub_user_id: subUserId
-        })
-        .first()
-        .then((match) => {
-            return match ? 'true' : 'false';
-        })
-        .catch(() => {
-            return 'false';
-        });
+        .rightJoin('users', 'users.id', 'subscriptions.user_id')
+        .where('sub_user_id', userId);
 }
 
 function createSubscription(userId, subUserId) {
@@ -143,19 +178,20 @@ function createSubscription(userId, subUserId) {
     const insert = knex('subscriptions').insert(data);
     const update = knex('subscriptions').update(data);
     const query = util.format(
-        '%s ON CONFLICT (user_id, sub_user_id) DO UPDATE SET %s',
+        '%s ON CONFLICT (user_id, sub_user_id) DO UPDATE SET %s RETURNING id',
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query);
+    return knex.raw(query)
+        .then((rows) => {
+            return rows.rows[0].id;
+        });
 }
 
-function deleteSubscription(userId, subUserId) {
+function deleteSubscription(id) {
     return knex('subscriptions').del()
-        .where({
-            user_id: userId,
-            sub_user_id: subUserId
-        });
+        .where('id', id)
+        .returning('id');
 }
 
 module.exports = {
@@ -166,11 +202,11 @@ module.exports = {
     ensureAuthenticated,
     createUser,
     updateUser,
-    getUser,
-    getUserByName,
-    getConciseUsers,
+    updateUserPic,
+    getProfileData,
+    getUserData,
+    getUsersData,
     getSubscriptions,
-    checkSubscription,
     createSubscription,
     deleteSubscription
 };

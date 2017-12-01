@@ -2,18 +2,19 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 
-class LoginForm extends Component {
+class RegisterForm extends Component {
     constructor(props) {
         super(props);
         this.state = {
             errors: [],
             username: '',
+            fullname: '',
+            email: '',
             password: ''
         };
-        this.handleInputChange = this.handleInputChange.bind(this);
-        this.loginSubmit = this.loginSubmit.bind(this);
     }
-    handleInputChange(event) {
+    /* eslint-disable */
+    handleInputChange = (event) => {
         const target = event.target;
         const value = target.type === 'checkbox' ? target.checked : target.value;
         const name = target.name;
@@ -21,30 +22,34 @@ class LoginForm extends Component {
             [name]: value
         });
     }
-    loginSubmit(event) {
+    registerSubmit = (event) => {
         event.preventDefault();
         const userData = {
             'username': this.state.username,
+            'fullname': this.state.fullname,
+            'email': this.state.email,
             'password': this.state.password
         };
-        return axios.post('http://localhost:3001/api/v1/users/login', userData)
+        return axios.post('http://localhost:3001/api/v1/users/register', userData)
             .then((res) => {
                 console.log(res)
                 res.data.status === 'Validation failed'
                     ? this.setState({ errors: res.data.failures })
-                    : this.props.authUser(res.data.user, 'logged in')
+                    : this.props.authUser(res.data.user, 'registered')
             })
             .catch((error) => {
                 this.props.createFlashMessage(error.message, 'error');
             })
     }
+    /* eslint-enable */
+
     render() {
         return (
             <div>
-                <h1>Login</h1>
+                <h2>Register</h2>
                 <hr /><br />
                 <form
-                    onSubmit={(event) => { this.loginSubmit(event) }}>
+                    onSubmit={this.registerSubmit}>
                     <div>
                         <label>Username</label>
                         <div>
@@ -54,6 +59,30 @@ class LoginForm extends Component {
                                 id='username'
                                 name='username'
                                 value={this.state.username}
+                                onChange={this.handleInputChange} />
+                        </div>
+                    </div>
+                    <div>
+                        <label>Fullname</label>
+                        <div>
+                            <input
+                                type='text'
+                                className='form-control'
+                                id='fullname'
+                                name='fullname'
+                                value={this.state.fullname}
+                                onChange={this.handleInputChange} />
+                        </div>
+                    </div>
+                    <div>
+                        <label>Email</label>
+                        <div>
+                            <input
+                                type='email'
+                                className='form-control'
+                                id='email'
+                                name='email'
+                                value={this.state.email}
                                 onChange={this.handleInputChange} />
                         </div>
                     </div>
@@ -72,7 +101,7 @@ class LoginForm extends Component {
                     <div>
                         {
                             this.state.errors.map((error) => {
-                                return <div key={'d' + error.param}>{error.msg}</div>
+                                return <div key={'t' + error.param}>{error.msg}</div>
                             })
                         }
                     </div>
@@ -80,10 +109,10 @@ class LoginForm extends Component {
                         <div>
                             <button
                                 type='submit'>
-                                Log in
-                        </button>&nbsp;
-                        <Link to='/'>Cancel</Link>
-                            <p>Need to <Link to='/register'>register</Link>?</p>
+                                Sign up
+                                </button>&nbsp;
+                                <Link to='/'>Cancel</Link>
+                            <p>Already registered? <Link to='/login'>Log in</Link></p>
                         </div>
                     </div>
                 </form>
@@ -92,4 +121,4 @@ class LoginForm extends Component {
     }
 }
 
-export default LoginForm
+export default RegisterForm

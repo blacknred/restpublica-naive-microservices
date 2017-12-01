@@ -9,8 +9,8 @@ exports.seed = (knex, Promise) => {
     return knex('subscriptions').del()
         .then(() => {
             const records = [];
-            for (let i = 1; i < 10; i++) {
-                for (let y = i + 1; y < 10; y++) {
+            for (let i = 1; i < 20; i++) {
+                for (let y = i + 1; y < 20; y++) {
                     records.push(createSubscription(knex, i, y));
                 }
             }
