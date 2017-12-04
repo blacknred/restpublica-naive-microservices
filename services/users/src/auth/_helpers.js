@@ -106,7 +106,7 @@ function getProfileData(userId) {
         .first();
 }
 
-function getUserData(userId, userName) {
+function getUserData(userName, authUserId) {
     const result = {};
     return knex('users')
         .select(['id', 'username', 'fullname', 'description', 'avatar'])
@@ -117,32 +117,30 @@ function getUserData(userId, userName) {
             result.data = rows;
             return knex('subscriptions')
                 .count('* as followers_count')
-                .where('user_id', userId)
+                .where('user_id', result.data.id)
                 .first();
         })
         .then((rows) => {
             result.data.followers_count = rows.followers_count;
             return knex('subscriptions')
                 .count('* as followin_count')
-                .where('sub_user_id', userId)
+                .where('sub_user_id', result.data.id)
                 .first();
         })
         .then((rows) => {
             result.data.followin_count = rows.followin_count;
-            return knex('subscriptions')
-                .select('id')
-                .where({ user_id: result.data.id, sub_user_id: userId })
-                .first();
+            return authUserId === null ? null :
+                knex('subscriptions')
+                    .select('id')
+                    .where({ user_id: result.data.id, sub_user_id: authUserId })
+                    .first();
         })
         .then((rows) => {
-            if (rows) {
-                result.data.is_followed = true;
+            if (authUserId !== null && rows) {
                 result.data.subscription_id = rows.id;
             } else {
-                result.data.is_followed = false;
                 result.data.subscription_id = null;
             }
-            console.log(result.data);
             return result.data;
         })
         .catch(() => {

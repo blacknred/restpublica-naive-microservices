@@ -27,11 +27,12 @@
 | /api/v1/users/update            | PUT         | UPDATE      | update logged user info   |
 | /api/v1/users/update/userpic    | PUT         | UPDATE      | update logged user pic    |
 | /api/v1/users/profile           | GET         | READ        | get full logged user info |
-| /api/v1/users/u/:username       | GET         | READ        | get user` non secure info |
+| /api/v1/users/user/:username       | GET         | READ        | get user` non secure info |
 | /api/v1/users/users             | GET         | READ        | get users` base info      |
 | /api/v1/users/subscriptions     | GET         | READ        | get a user` subscriptions |
 | /api/v1/users/subscription      | POST        | CREATE      | create a new subscription |
 | /api/v1/users/subscription/:id  | DELETE      | DELETE      | delete subscription       |
+
 
 ##### (2) Posts API - http://localhost:3002
 

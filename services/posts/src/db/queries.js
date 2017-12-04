@@ -1,7 +1,7 @@
 const knex = require('./connection');
 const routeHelpers = require('../routes/_helpers');
 
-const limit = 10;
+const limit = 20;
 const today = new Date();
 const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
 

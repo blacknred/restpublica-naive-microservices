@@ -1,5 +1,3 @@
-// import { error } from 'util';
-
 const express = require('express');
 const postQueries = require('../db/queries.js');
 const routeHelpers = require('./_helpers');
@@ -61,8 +59,7 @@ router.get('/search', routeHelpers.ensureAuthenticated,
             });
     });
 
-router.get('/popular', routeHelpers.ensureAuthenticated,
-    (req, res) => {
+router.get('/popular', (req, res) => {
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
                 ? req.query.offset : 0;
@@ -81,8 +78,7 @@ router.get('/popular', routeHelpers.ensureAuthenticated,
             });
     });
 
-router.get('/user/:name', routeHelpers.ensureAuthenticated,
-    (req, res, next) => {
+router.get('/user/:username', (req, res, next) => {
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
                 ? req.query.offset : 0;

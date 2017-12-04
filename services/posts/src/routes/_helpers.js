@@ -33,19 +33,21 @@ function ensureAuthenticated(req, res, next) {
 }
 
 function getUserId(req, next) {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (req.headers && req.headers.authorization) {
+        headers.Authorization = `Bearer ${req.headers.authorization.split(' ')[1]}`;
+    }
     const options = {
         method: 'GET',
-        uri: `http://users-service:3001/api/v1/users/user/${req.params.name}`,
+        uri: `http://users-service:3001/api/v1/users/user/${req.params.username}`,
         json: true,
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${req.headers.authorization.split(' ')[1]}`,
-        },
+        headers
     };
     return request(options)
         .then((response) => {
-            console.log(response);
-            return response.user[0].id;
+            return response.user.id;
         })
         .catch((err) => {
             return next(err);

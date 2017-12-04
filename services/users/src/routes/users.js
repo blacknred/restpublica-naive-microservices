@@ -81,7 +81,7 @@ router.post('/register', validate.validateUser, (req, res) => {
 router.post('/login', validate.validateUserLogin, (req, res) => {
     const name = req.body.username;
     const password = req.body.password;
-    const user = { name: req.body.username };
+    const user = { username: req.body.username };
     const errors = [];
     return authHelpers.findUserByName(name)
         .then((response) => {
@@ -185,9 +185,8 @@ router.get('/profile', authHelpers.ensureAuthenticated,
     (req, res) => {
         return authHelpers.getProfileData(req.user)
             .then((user) => {
-                /* eslint-disable */
+                // eslint-disable-next-line
                 user.avatar = user.avatar.toString('base64');
-                /* eslint-enable */
                 res.status(200).json({
                     status: 'success',
                     user
@@ -202,26 +201,29 @@ router.get('/profile', authHelpers.ensureAuthenticated,
     }
 );
 
-router.get('/u/:username', validate.validateUserLogin,
-    authHelpers.ensureAuthenticated, (req, res) => {
-        return authHelpers.getUserData(req.user, req.params.username)
-            .then((user) => {
-                if (user == null) throw Error(`Username ${req.params.username} not in use`);
-                /* eslint-disable */
-                user.avatar = user.avatar.toString('base64');
-                /* eslint-enable */
-                res.status(200).json({
-                    status: 'success',
-                    user
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err.message
-                });
-            });
+router.get('/user/:username', validate.validateUserLogin, (req, res, next) => {
+    if (!(req.headers && req.headers.authorization)) {
+        req.user = null;
+    } else {
+        authHelpers.ensureAuthenticated(req, res, next);
     }
+    return authHelpers.getUserData(req.params.username, req.user)
+        .then((user) => {
+            if (user == null) throw Error(`Username ${req.params.username} not in use`);
+            // eslint-disable-next-line
+            user.avatar = user.avatar.toString('base64');
+            res.status(200).json({
+                status: 'success',
+                user
+            });
+        })
+        .catch((err) => {
+            res.status(500).json({
+                status: 'error',
+                message: err.message
+            });
+        });
+}
 );
 
 router.get('/users', authHelpers.ensureAuthenticated, (req, res) => {
@@ -248,9 +250,8 @@ router.get('/subscriptions',
     authHelpers.ensureAuthenticated, (req, res) => {
         return authHelpers.getSubscriptions(req.user)
             .then((users) => {
-                /* eslint-disable */
+                // eslint-disable-next-line
                 users.forEach(user => user.avatar = user.avatar.toString('base64'));
-                /* eslint-enable */
                 res.status(200).json({
                     status: 'success',
                     subscriptions: users

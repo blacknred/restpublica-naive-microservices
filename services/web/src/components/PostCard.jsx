@@ -1,11 +1,13 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const MovieCard = (props) => {
     const post = props.post
     return (
         <div className='post-card'>
-        <p>{post.description}</p>
-            {/* <div className='panel panel-info'>
+            <Link to={{ pathname: `/p/${post.id}`, state: { modal: true } }}>
+                <p>{post.description}</p>
+                {/* <div className='panel panel-info'>
                 <div className='panel-heading'>
                     <h3 className='panel-title'>{props.title}</h3>
                 </div>
@@ -16,8 +18,9 @@ const MovieCard = (props) => {
                     className='btn btn-primary btn-sm'
                     onClick={() => props.saveMovie(props.title)}
                 >Add to Collection
-        </button>
-            </div> */}
+                </button>
+                    </div> */}
+            </Link>
         </div>
     )
 }
