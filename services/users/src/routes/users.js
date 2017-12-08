@@ -14,7 +14,7 @@ router.get('/status', (req, res) => {
 
 /* auth */
 
-router.get('/check', validate.validateUserLogin, (req, res) => {
+router.get('/check', authHelpers.ensureAuthenticated, (req, res) => {
     return res.status(200).json({
         status: 'success',
         id: req.user
@@ -201,34 +201,30 @@ router.get('/profile', authHelpers.ensureAuthenticated,
     }
 );
 
-router.get('/user/:username', validate.validateUserLogin, (req, res, next) => {
-    if (!(req.headers && req.headers.authorization)) {
-        req.user = null;
-    } else {
-        authHelpers.ensureAuthenticated(req, res, next);
+router.get('/user/:username', validate.validateUserLogin,
+    authHelpers.ensureAuthenticated, (req, res) => {
+        return authHelpers.getUserData(req.params.username, req.user)
+            .then((user) => {
+                if (user === null) throw Error(`Username ${req.params.username} not in use`);
+                // eslint-disable-next-line
+                user.avatar = user.avatar.toString('base64');
+                res.status(200).json({
+                    status: 'success',
+                    user
+                });
+            })
+            .catch((err) => {
+                res.status(500).json({
+                    status: 'error',
+                    message: err.message
+                });
+            });
     }
-    return authHelpers.getUserData(req.params.username, req.user)
-        .then((user) => {
-            if (user == null) throw Error(`Username ${req.params.username} not in use`);
-            // eslint-disable-next-line
-            user.avatar = user.avatar.toString('base64');
-            res.status(200).json({
-                status: 'success',
-                user
-            });
-        })
-        .catch((err) => {
-            res.status(500).json({
-                status: 'error',
-                message: err.message
-            });
-        });
-}
 );
 
-router.get('/users', authHelpers.ensureAuthenticated, (req, res) => {
+router.get('/concise', authHelpers.ensureAuthenticated, (req, res) => {
     const usersIdsArr = req.query.ids.split(',') || [];
-    return authHelpers.getUsersData(usersIdsArr)
+    return authHelpers.getUsersConciseData(usersIdsArr)
         .then((usersdata) => {
             res.status(200).json({
                 status: 'success',
@@ -246,9 +242,33 @@ router.get('/users', authHelpers.ensureAuthenticated, (req, res) => {
 
 /* subscriptions */
 
-router.get('/subscriptions',
+router.get('/followers/:id', validate.validateUserSubscriptions,
     authHelpers.ensureAuthenticated, (req, res) => {
-        return authHelpers.getSubscriptions(req.user)
+        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset)
+            ? req.query.offset : 0;
+        return authHelpers.getFollowers(req.params.id, offset, req.user)
+            .then((users) => {
+                // eslint-disable-next-line
+                users.forEach(user => user.avatar = user.avatar.toString('base64'));
+                res.status(200).json({
+                    status: 'success',
+                    subscriptions: users
+                });
+            })
+            .catch((err) => {
+                res.status(500).json({
+                    status: 'error',
+                    message: err.message
+                });
+            });
+    }
+);
+
+router.get('/followin/:id', validate.validateUserSubscriptions,
+    authHelpers.ensureAuthenticated, (req, res) => {
+        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset)
+            ? req.query.offset : 0;
+        return authHelpers.getFollowin(req.params.id, offset, req.user)
             .then((users) => {
                 // eslint-disable-next-line
                 users.forEach(user => user.avatar = user.avatar.toString('base64'));

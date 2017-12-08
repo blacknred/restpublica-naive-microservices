@@ -32,6 +32,25 @@ function ensureAuthenticated(req, res, next) {
         });
 }
 
+function getSubscriptions(req, next) {
+    const options = {
+        method: 'GET',
+        uri: `http://users-service:3001/api/v1/users/followin/${req.user}`,
+        json: true,
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${req.headers.authorization.split(' ')[1]}`,
+        }
+    };
+    return request(options)
+        .then((response) => {
+            return response;
+        })
+        .catch((err) => {
+            return next(err);
+        });
+}
+
 function getUserId(req, next) {
     const headers = {
         'Content-Type': 'application/json'
@@ -48,27 +67,6 @@ function getUserId(req, next) {
     return request(options)
         .then((response) => {
             return response.user.id;
-        })
-        .catch((err) => {
-            return next(err);
-        });
-}
-
-function getSubscriptions(req, next) {
-    const options = {
-        method: 'GET',
-        uri: 'http://users-service:3001/api/v1/users/subscriptions',
-        json: true,
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${req.headers.authorization.split(' ')[1]}`,
-        },
-    };
-    return request(options)
-        .then((response) => {
-            return response.subscriptions.map((sub) => {
-                return sub.sub_user_id;
-            });
         })
         .catch((err) => {
             return next(err);

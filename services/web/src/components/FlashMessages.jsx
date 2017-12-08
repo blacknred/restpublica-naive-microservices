@@ -1,37 +1,33 @@
+/* eslint-disable no-undef */
 import React from 'react';
+
+import Snackbar from 'material-ui/Snackbar';
 
 function alertClass(type = 'success') {
     let classes = {
-        error: 'alert-danger',
-        alert: 'alert-warning',
-        notice: 'alert-info',
-        success: 'alert-success'
+        error: { background: 'red' },
+        notice: { background: 'black' },
+        success: { background: 'green' }
     };
     return classes[type];
 }
 
-const Alert = ({ message, deleteFlashMessage }) => {
-    const alertClassName = `alert ${alertClass(message.type)} fade in`;
-    return (
-        <div className={alertClassName} role='alert'>
-            <button
-                className='close'
-                onClick={deleteFlashMessage}
-                data-dismiss='alert'>
-                &times;
-      </button>
-            {message.text}
-        </div>
-    )
-}
-
 const FlashMessages = ({ messages, deleteFlashMessage }) => {
+    const closeHandler = (index) => {
+        deleteFlashMessage(index)
+    }
     const Alerts = messages.map((message, index) => {
         return (
-            <Alert
+            <Snackbar
                 key={index}
-                deleteFlashMessage={() => deleteFlashMessage(index)}
-                message={message} />
+                bodyStyle={alertClass(message.type)}
+                open={true}
+                message={message.text}
+                autoHideDuration={4000}
+                action="Close"
+                // onActionClick={() => closeHandler(index)}
+                onRequestClose={() => closeHandler(index)}
+            />
         )
     })
     return (

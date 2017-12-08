@@ -64,7 +64,7 @@ class Header extends Component {
                                         hintText="Search"
                                         id='searchField'
                                         style={{
-                                            width: '400px', height: '36px', lineHeight: '36px',
+                                            width: '450px', height: '36px', lineHeight: '36px',
                                             background: '#eee', padding: '0 1em', marginLeft: '30px'
                                         }}
                                         underlineShow={false}
@@ -136,7 +136,11 @@ class Header extends Component {
                                 </div>
 
                                 <IconMenu
-                                    iconButtonElement={<Avatar src={`data:image/png;base64, ${user.pic}`} />}
+                                    iconButtonElement={
+                                        <IconButton style={{ margin: '0', padding: '0px' }}>
+                                            <Avatar src={`data:image/png;base64, ${user.pic}`} />
+                                        </IconButton>
+                                    }
                                     anchorOrigin={{ horizontal: 'middle', vertical: 'bottom' }}
                                     targetOrigin={{ horizontal: 'middle', vertical: 'top' }}
                                     style={{ margin: '0 1.5em', cursor: 'pointer' }} >

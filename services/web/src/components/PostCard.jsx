@@ -1,27 +1,29 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import { Card, CardActions, CardHeader, CardMedia, CardTitle, CardText } from 'material-ui/Card';
+import FlatButton from 'material-ui/FlatButton';
+
 const MovieCard = (props) => {
     const post = props.post
     return (
-        <div className='post-card'>
-            <Link to={{ pathname: `/p/${post.id}`, state: { modal: true } }}>
-                <p>{post.description}</p>
-                {/* <div className='panel panel-info'>
-                <div className='panel-heading'>
-                    <h3 className='panel-title'>{props.title}</h3>
-                </div>
-                <div className='panel-body'>
-                    <img src={props.posterUrl} alt='Presentation' />
-                </div>
-                <button
-                    className='btn btn-primary btn-sm'
-                    onClick={() => props.saveMovie(props.title)}
-                >Add to Collection
-                </button>
-                    </div> */}
-            </Link>
-        </div>
+        <Card className='post-card'>
+            <CardHeader
+                title={<Link to={`/u/${post.username}`}>{post.username}</Link>}
+                subtitle="Subtitle"
+                avatar={`data:image/png;base64, ${post.avatar}`}
+            />
+            <CardMedia>
+                <Link to={{ pathname: `/p/${post.post_id}`, state: { modal: true } }}>
+                    <img src={post.thumbnail} alt="" />
+                </Link>
+            </CardMedia>
+            <CardText>{post.description}</CardText>
+            <CardActions>
+                <FlatButton label="Action1" />
+                <FlatButton label="Action2" />
+            </CardActions>
+        </Card>
     )
 }
 

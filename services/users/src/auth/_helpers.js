@@ -4,6 +4,8 @@ const fetch = require('node-fetch');
 const knex = require('../db/connection');
 const localAuth = require('./local');
 
+const limit = 20;
+
 /* auth */
 
 function createAvatar(username) {
@@ -39,7 +41,11 @@ function findUserByEmail(email) {
 
 /* eslint-disable consistent-return */
 function ensureAuthenticated(req, res, next) {
-    if (!(req.headers && req.headers.authorization)) {
+    if (!req.headers.authorization) {
+        if (req.params.username) {
+            req.user = null;
+            return next();
+        }
         return res.status(400).json({
             status: 'Please log in'
         });
@@ -82,6 +88,9 @@ function createUser(newUser) {
                     avatar: ava
                 })
                 .returning(['id', 'username', 'avatar']);
+        })
+        .catch(() => {
+            return null;
         });
 }
 
@@ -136,7 +145,7 @@ function getUserData(userName, authUserId) {
                     .first();
         })
         .then((rows) => {
-            if (authUserId !== null && rows) {
+            if (authUserId !== null && rows !== undefined) {
                 result.data.subscription_id = rows.id;
             } else {
                 result.data.subscription_id = null;
@@ -148,23 +157,85 @@ function getUserData(userName, authUserId) {
         });
 }
 
-//
-function getUsersData(userId, usersIdsArr) {
+function getUsersConciseData(authUserId, usersIdsArr) {
     return knex('users')
         .select(['id as user_id', 'username', 'avatar'])
-        .whereIn('id', usersIdsArr);
-    // in_substrictions
+        .whereIn('id', usersIdsArr)
+        .map((_row) => {
+            const r = _row;
+            return knex('subscriptions')
+                .select('id')
+                .where({ user_id: _row.user_id, sub_user_id: authUserId })
+                .first()
+                .then((row) => {
+                    r.my_subscription_id = row ? row.id : null;
+                    return r;
+                });
+        })
+        .then((rows) => {
+            return rows;
+        })
+        .catch(() => {
+            return null;
+        });
 }
-//
 
 /* subscriptions */
 
-function getSubscriptions(userId) {
+function getFollowers(userId, offset, authUserId) {
     return knex('subscriptions')
-        .select(['subscriptions.id', 'user_id', 'username', 'avatar'])
-        .from('subscriptions')
+        .select(['subscriptions.id as subscription_id', 'sub_user_id as user_id',
+            'username', 'fullname', 'avatar'])
+        .rightJoin('users', 'users.id', 'subscriptions.sub_user_id')
+        .where('user_id', userId)
+        .andWhere('sub_user_id', '!=', authUserId)
+        .limit(limit)
+        .offset(offset)
+        .map((_row) => {
+            const r = _row;
+            return knex('subscriptions')
+                .select('id')
+                .where({ user_id: _row.user_id, sub_user_id: authUserId })
+                .first()
+                .then((row) => {
+                    r.my_subscription_id = row ? row.id : null;
+                    return r;
+                });
+        })
+        .then((rows) => {
+            return rows;
+        })
+        .catch(() => {
+            return null;
+        });
+}
+
+function getFollowin(userId, offset, authUserId) {
+    return knex('subscriptions')
+        .select(['subscriptions.id as subscription_id', 'user_id',
+            'username', 'fullname', 'avatar'])
         .rightJoin('users', 'users.id', 'subscriptions.user_id')
-        .where('sub_user_id', userId);
+        .where('sub_user_id', userId)
+        .andWhere('user_id', '!=', authUserId)
+        .limit(limit)
+        .offset(offset)
+        .map((_row) => {
+            const r = _row;
+            return knex('subscriptions')
+                .select('id')
+                .where({ user_id: _row.user_id, sub_user_id: authUserId })
+                .first()
+                .then((row) => {
+                    r.my_subscription_id = row ? row.id : null;
+                    return r;
+                });
+        })
+        .then((rows) => {
+            return rows;
+        })
+        .catch(() => {
+            return null;
+        });
 }
 
 function createSubscription(userId, subUserId) {
@@ -183,6 +254,9 @@ function createSubscription(userId, subUserId) {
     return knex.raw(query)
         .then((rows) => {
             return rows.rows[0].id;
+        })
+        .catch(() => {
+            return null;
         });
 }
 
@@ -203,8 +277,9 @@ module.exports = {
     updateUserPic,
     getProfileData,
     getUserData,
-    getUsersData,
-    getSubscriptions,
+    getUsersConciseData,
+    getFollowers,
+    getFollowin,
     createSubscription,
     deleteSubscription
 };

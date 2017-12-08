@@ -27,9 +27,10 @@
 | /api/v1/users/update            | PUT         | UPDATE      | update logged user info   |
 | /api/v1/users/update/userpic    | PUT         | UPDATE      | update logged user pic    |
 | /api/v1/users/profile           | GET         | READ        | get full logged user info |
-| /api/v1/users/user/:username       | GET         | READ        | get user` non secure info |
-| /api/v1/users/users             | GET         | READ        | get users` base info      |
-| /api/v1/users/subscriptions     | GET         | READ        | get a user` subscriptions |
+| /api/v1/users/user/:username    | GET         | READ        | get user  non secure info |
+| /api/v1/users/concise           | GET         | READ        | get users  concise info   |
+| /api/v1/users/followers/:id     | GET         | READ        | get a user subscriptions  |
+| /api/v1/users/followin/:id      | GET         | READ        | get a user subscriptions  |
 | /api/v1/users/subscription      | POST        | CREATE      | create a new subscription |
 | /api/v1/users/subscription/:id  | DELETE      | DELETE      | delete subscription       |
 
@@ -47,13 +48,13 @@
 | /api/v1/posts/:id          | GET         | READ        | get a single post         |
 | /api/v1/posts/:id          | PUT         | UPDATE      | update a single post      |
 | /api/v1/posts/:id          | DELETE      | DELETE      | delete a single post      |
-| /api/v1/posts/:id/comments | GET         | READ        | get all post` comments    |
-| /api/v1/posts/:id/comment  | POST        | CREATE      | create a post` comment    |
-| /api/v1/posts/comments/:id | UPDATE      | UPDATE      | update a post` comment    |
-| /api/v1/posts/comments/:id | DELETE      | DELETE      | delete a post` comment    |
-| /api/v1/posts/:id/likes    | GET         | READ        | get all post` likes       |
-| /api/v1/posts/:id/like     | POST        | CREATE      | create a post` like       |
-| /api/v1/posts/like/:id     | DELETE      | DELETE      | delete a post` like       |
+| /api/v1/posts/:id/comments | GET         | READ        | get all post  comments    |
+| /api/v1/posts/:id/comment  | POST        | CREATE      | create a post  comment    |
+| /api/v1/posts/comments/:id | UPDATE      | UPDATE      | update a post  comment    |
+| /api/v1/posts/comments/:id | DELETE      | DELETE      | delete a post  comment    |
+| /api/v1/posts/:id/likes    | GET         | READ        | get all post  likes       |
+| /api/v1/posts/:id/like     | POST        | CREATE      | create a post  like       |
+| /api/v1/posts/like/:id     | DELETE      | DELETE      | delete a post  like       |
 
 
 ##### (3) Web (React client SPA) - http://localhost:3000

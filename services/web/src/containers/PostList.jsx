@@ -16,10 +16,11 @@ class PostList extends Component {
 
     getPosts(mode) {
         const headers = {
-            'Content-Type': 'application/json'
+            headers: { 'Content-Type': 'application/json' }
         }
-        window.localStorage.authToken ?
-            headers.Authorization = `Bearer ${window.localStorage.authToken}` : null;
+        if (window.localStorage.authToken) {
+            headers.headers.Authorization = `Bearer ${window.localStorage.authToken}`;
+        };
         return axios.get(`http://localhost:3002/api/v1/posts/${mode}`, headers)
             .then((res) => {
                 console.log(res)
@@ -28,6 +29,7 @@ class PostList extends Component {
             .catch((err) => { console.log(err); })
     }
     componentDidMount() {
+        console.log('dashboard mounted')
         this.getPosts(this.props.mode)
     }
     render() {
@@ -38,7 +40,7 @@ class PostList extends Component {
                         this.state.posts.length
                             ? this.state.posts.map(post => (
                                 <PostCard
-                                    key={post.id}
+                                    key={post.post_id}
                                     post={post}
                                 />))
                             : <CircularProgress />

@@ -20,8 +20,19 @@ router.get('/dashboard', routeHelpers.ensureAuthenticated,
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
                 ? req.query.offset : 0;
         return routeHelpers.getSubscriptions(req, next)
-            .then((subscriptionsArr) => {
-                return postQueries.getDashboard(subscriptionsArr, offset);
+            .then((response) => {
+                return Promise.all([
+                    postQueries.getDashboard(
+                        response.subscriptions.map((sub) => { return sub.user_id; }), offset),
+                    response.subscriptions
+                ]);
+            })
+            .then((arrs) => {
+                const [usersData, posts] = arrs;
+                const finaleArr = usersData.map((x) => {
+                    return Object.assign(x, posts.find(y => y.user_id === x.user_id));
+                });
+                return finaleArr;
             })
             .then((posts) => {
                 res.status(200).json({

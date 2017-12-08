@@ -10,6 +10,8 @@ const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate()
 
 function getDashboard(subscriptionsArr, offset) {
     return knex('posts')
+        .select(['id as post_id', 'user_id', 'thumbnail', 'views', 'comments', 'created_at'])
+        .select(knex.raw('left (description, 50) as description'))
         .whereIn('user_id', subscriptionsArr)
         .orderBy('created_at', 'desc')
         .limit(limit)
@@ -67,20 +69,20 @@ function deletePost(postId) {
         .then((status) => {
             if (!status) return false;
             return knex.transaction((trx) => {
-                    knex('posts').transacting(trx).where('id', postId).del()
-                        .then(() => {
-                            return knex('comments')
-                                .where('post_id', postId)
-                                .del();
-                        })
-                        .then(() => {
-                            return knex('likes')
-                                .where('post_id', postId)
-                                .del();
-                        })
-                        .then(trx.commit)
-                        .catch(trx.rollback);
-                    });
+                knex('posts').transacting(trx).where('id', postId).del()
+                    .then(() => {
+                        return knex('comments')
+                            .where('post_id', postId)
+                            .del();
+                    })
+                    .then(() => {
+                        return knex('likes')
+                            .where('post_id', postId)
+                            .del();
+                    })
+                    .then(trx.commit)
+                    .catch(trx.rollback);
+            });
         });
 }
 

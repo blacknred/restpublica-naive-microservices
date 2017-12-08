@@ -1,6 +1,10 @@
+/*eslint-disable no-undef */
 import React, { Component } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+
+import TextField from 'material-ui/TextField';
+import FlatButton from 'material-ui/FlatButton';
 
 class LoginForm extends Component {
     constructor(props) {
@@ -8,11 +12,11 @@ class LoginForm extends Component {
         this.state = {
             errors: [],
             username: '',
-            password: ''
+            usernameError: '',
+            password: '',
+            passwordError: ''
         };
     }
-
-    /* eslint-disable */
     handleInputChange = (event) => {
         const target = event.target;
         const value = target.type === 'checkbox' ? target.checked : target.value;
@@ -21,8 +25,7 @@ class LoginForm extends Component {
             [name]: value
         });
     }
-    
-    loginSubmit = (event) => { 
+    loginSubmit = (event) => {
         event.preventDefault();
         const userData = {
             'username': this.state.username,
@@ -31,66 +34,45 @@ class LoginForm extends Component {
         return axios.post('http://localhost:3001/api/v1/users/login', userData)
             .then((res) => {
                 console.log(res)
-                res.data.status === 'Validation failed'
-                    ? this.setState({ errors: res.data.failures })
+                res.data.status === 'Validation failed' ?
+                    res.data.failures.forEach((failure) => {
+                        const name = `${failure.param}Error`
+                        this.setState({ [name]: failure.msg });
+                    })
                     : this.props.authUser(res.data.user, 'logged in')
             })
             .catch((error) => {
                 this.props.createFlashMessage(error.message, 'error');
             })
     }
-    /* eslint-enable */
-    
+
     render() {
         return (
-            <div>
-                <h2>Login</h2>
-                <hr /><br />
-                <form
-                    onSubmit={this.loginSubmit}>
-                    <div>
-                        <label>Username</label>
-                        <div>
-                            <input
-                                type='text'
-                                className='form-control'
-                                id='username'
-                                name='username'
-                                value={this.state.username}
-                                onChange={this.handleInputChange} />
-                        </div>
-                    </div>
-                    <div>
-                        <label>Password</label>
-                        <div>
-                            <input
-                                type='text'
-                                className='form-control'
-                                id='password'
-                                name='password'
-                                value={this.state.password}
-                                onChange={this.handleInputChange} />
-                        </div>
-                    </div>
-                    <div>
-                        {
-                            this.state.errors.map((error) => {
-                                return <div key={'d' + error.param}>{error.msg}</div>
-                            })
-                        }
-                    </div>
-                    <div>
-                        <div>
-                            <button
-                                type='submit'>
-                                Log in
-                        </button>&nbsp;
-                        <Link to='/'>Cancel</Link>
-                            <p>Need to <Link to='/register'>register</Link>?</p>
-                        </div>
-                    </div>
-                </form>
-            </div>
+            <form
+                onSubmit={this.loginSubmit} >
+                <TextField
+                    id='username'
+                    name='username'
+                    value={this.state.username}
+                    floatingLabelText="Username"
+                    hintText="Username Field"
+                    onChange={this.handleInputChange}
+                    errorText={this.state.usernameError}
+                /><br />
+                <TextField
+                    id='password'
+                    name='password'
+                    type="password"
+                    hintText="Password Field"
+                    value={this.state.password}
+                    floatingLabelText="Password"
+                    onChange={this.handleInputChange}
+                    errorText={this.state.passwordError}
+                /><br /><br />
+                <FlatButton type='submit' label='Log in' secondary={true} />
+                <FlatButton label={<Link to='/register'>Need to register?</Link>} />
+                <br /><br />
+            </form>
         )
     }
 }

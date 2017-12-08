@@ -3,12 +3,15 @@ import { Route, Redirect, Switch } from 'react-router-dom'
 // import axios from 'axios';
 
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import Drawer from 'material-ui/Drawer';
+import Paper from 'material-ui/Paper';
+import IconButton from 'material-ui/IconButton';
+import NavigationCloseIcon from 'material-ui/svg-icons/navigation/close';
 
 import './App.css';
 
 import NotFound from '../components/NotFound';
 import FlashMessages from '../components/FlashMessages';
+import AppDrawer from '../components/Drawer';
 
 import LandingIntro from '../components/LandingIntro';
 import RegisterForm from './RegisterForm';
@@ -170,14 +173,11 @@ class App extends Component {
         const OpenSubscriptions = ({ match }) => (
             isAuthenticated ?
                 <div>
-                    <Route path="/u/:username/followers" render={() => (
-                        <Subscriptions user={match.params.username}
-                            createFlashMessage={this.createFlashMessage}
-                        />
-                    )} />
-                    <Route path="/u/:username/followin" render={() => (
+                    <h3>{match.params.username}</h3>
+                    <Route path="/u/:username/:mode(followers|followin)" render={() => (
                         <Subscriptions
                             user={match.params.username}
+                            mode={match.params.mode}
                             createFlashMessage={this.createFlashMessage}
                         />
                     )} />
@@ -205,6 +205,7 @@ class App extends Component {
                     <Route path="/u/:username" render={() => (<PostList mode={`user/${match.params.username}`} />)} />
                 </div>
             </div>);
+
         const AuthFrame = ({ match }) => (
             isAuthenticated ?
                 <div>
@@ -227,27 +228,27 @@ class App extends Component {
 
 
 
-        const Modal = ({ match, history }) => {
+        const Modal = ({ match, history, location }) => {
             const back = (e) => {
                 e.stopPropagation()
                 history.goBack()
             }
             return (
-                <div className='modal' onClick={back} >
-                    <button type='button' onClick={back}>
-                        Close
-                        </button>
-                    <div>
+                <div className='modal'>
+                    <Paper zDepth={1}>
+                        <IconButton onClick={back} >
+                            <NavigationCloseIcon />
+                        </IconButton>
                         <Route path="/p/:id" render={() => (<Post id={match.params.id} />)} />
                         <Route path="/post" component={PostEditor} />
-                        <Route path="/u/:username/followers" render={() => (
-                            <Subscriptions user={match.params.username} />
+                        <Route path="/u/:username/:mode(followers|followin)" render={() => (
+                            <Subscriptions
+                                user={location.state.userid || match.params.username}
+                                mode={match.params.mode}
+                                createFlashMessage={this.createFlashMessage} />
                         )} />
-                        <Route path="/u/:username/followin" render={() => (
-                            <Subscriptions user={match.params.username} />
-                        )} />
-                    </div>
-                </div>
+                    </Paper>
+                </div >
             );
         }
 
@@ -263,10 +264,7 @@ class App extends Component {
                         redirect={this.redirect}
                         logoutUser={this.logoutUser}
                         drawerToggle={this.drawerToggle} />
-                    <Drawer
-                        open={this.state.drawer}
-                        containerStyle={{ background: '#fafafa', width: '235px', boxShadow: 'none' }} />
-
+                    <AppDrawer open={this.state.drawer} />
                     <div
                         className='frame'
                         style={{ marginLeft: this.state.drawer ? '235px' : '0px' }} >
@@ -288,22 +286,23 @@ class App extends Component {
                                             isAuthenticated ? <Redirect to='/' /> : landing)} />
                                         <Route path='/login' render={() => (
                                             isAuthenticated ? <Redirect to='/' /> : landing)} />
-                                        /* non auth paths */
-                                        <Route path='/popular' component={Frame} />
-                                        <Route path='/u/:username' component={Frame} />
-                                        <Route path='/p/:id' component={OpenPost} />
                                         /* auth paths */
                                         <Route path='/dashboard' component={AuthFrame} />
                                         <Route path='/search/:searchParam?' component={AuthFrame} />
                                         <Route path='/mine' component={AuthFrame} />
                                         <Route path='/profile' render={() => (
                                             isAuthenticated ? profile : <Redirect to='/' />)} />
-
-                                        <Route path='/u/:username/followers' component={OpenSubscriptions} />
-                                        <Route path='/u/:username/followin' component={OpenSubscriptions} />
+                                        <Route path='/u/:username/:mode(followers|followin)'
+                                            component={OpenSubscriptions} />
                                         <Route path='/post' render={() => (<Redirect to='/' />)} />
-                                        <Route component={NotFound}/>
+                                        /* non auth paths */
+                                        <Route path='/popular' component={Frame} />
+                                        <Route path='/u/:username' component={Frame} />
+                                        <Route path='/p/:id' component={OpenPost} />
+                                        /* 404 */
+                                        <Route component={NotFound} />
                                     </Switch>
+                                    {/* /u/:username(.+/followers|.+/followin) */}
                                     {
                                         isModal ?
                                             // Modal switch routing
@@ -312,8 +311,7 @@ class App extends Component {
                                                 <Route path='/p/:id' component={Modal} />
                                                 /* auth paths */
                                                 <Route path='/post' component={Modal} />
-                                                <Route path='/u/:username/followers' component={Modal} />
-                                                <Route path='/u/:username/followin' component={Modal} />
+                                                <Route path='/u/:username/:mode(followers|followin)' component={Modal} />
                                             </Switch>
                                             : null
                                     }

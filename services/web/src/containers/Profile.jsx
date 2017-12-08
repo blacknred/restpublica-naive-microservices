@@ -4,17 +4,24 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 import CircularProgress from 'material-ui/CircularProgress';
+import Subheader from 'material-ui/Subheader';
+import Divider from 'material-ui/Divider';
+import TextField from 'material-ui/TextField';
+import FlatButton from 'material-ui/FlatButton';
+import Avatar from 'material-ui/Avatar';
 
 class Profile extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            errors: [],
-            subscriptions: [],
             username: '',
+            usernameError: '',
             fullname: '',
+            fullnameError: '',
             description: '',
+            descriptionError: '',
             email: '',
+            emailError: '',
             userpic: ''
         };
     }
@@ -36,7 +43,7 @@ class Profile extends Component {
     userPicSibmit = (event) => {
         event.preventDefault();
         const userPic = event.target.querySelector('#userPic').files[0];
-        if (!userPic) return this.props.createFlashMessage('Select image at first', 'error')
+        if (!userPic) return this.props.createFlashMessage('Select image at first', 'notice')
         const formData = new FormData();
         formData.append('userPic', userPic);
         return axios.put('http://localhost:3001/api/v1/users/update/userpic', formData, {
@@ -75,16 +82,18 @@ class Profile extends Component {
         })
             .then((res) => {
                 console.log(res)
-                const user = res.data.user;
-                res.data.status === 'Validation failed'
-                    ? this.setState({ errors: res.data.failures })
-                    : this.props.updateUser(user.username)
+                res.data.status === 'Validation failed' ?
+                    res.data.failures.forEach((failure) => {
+                        const name = `${failure.param}Error`
+                        this.setState({ [name]: failure.msg });
+                    }) :
+                    this.props.updateUser(res.data.user.username)
             })
             .catch((error) => {
                 this.props.createFlashMessage(error.message, 'error');
             })
     }
-    getProfileValues() {
+    getProfile() {
         const options = {
             url: 'http://localhost:3001/api/v1/users/profile',
             method: 'get',
@@ -110,50 +119,9 @@ class Profile extends Component {
             })
     }
 
-    // removeSubscription = (event) => {
-    //     const id = event.target.id;
-    //     return axios.delete(`http://localhost:3001/api/v1/users/subscription/${id}`, {
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //             Authorization: `Bearer ${window.localStorage.authToken}`
-    //         }
-    //     })
-    //         .then((res) => {
-    //             console.log(res)
-    //             this.setState({
-    //                 subscriptions: this.state.subscriptions.filter(sub => {
-    //                     return sub.id != id
-    //                 })
-    //             })
-    //         })
-    //         .catch((error) => {
-    //             this.props.createFlashMessage(error.message, 'error');
-    //         })
-    // }
-
-    // getSubscriptions() {
-    //     const options = {
-    //         url: 'http://localhost:3001/api/v1/users/subscriptions',
-    //         method: 'get',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //             Authorization: `Bearer ${window.localStorage.authToken}`
-    //         }
-    //     };
-    //     return axios(options)
-    //         .then((res) => {
-    //             console.log(res)
-    //             this.setState({ subscriptions: res.data.subscriptions })
-    //         })
-    //         .catch((error) => {
-    //             this.props.createFlashMessage(error.message, 'error');
-    //         })
-    // }
-
     componentDidMount() {
         console.log('profile mounted')
-        this.getProfileValues();
-        // this.getSubscriptions();
+        this.getProfile();
     }
 
     render() {
@@ -163,117 +131,91 @@ class Profile extends Component {
                 ref='uploadForm'
                 id='uploadForm'
                 accept='.jpg, .jpeg, .png'
-                encType="multipart/form-data">
-                <div>
+                encType="multipart/form-data"
+                style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }} >
                     <label htmlFor="userPic">
-                        <img width='60' src={this.state.userpic}
-                            alt={this.state.username} />
+                        <Avatar 
+                            size={80} 
+                            src={this.state.userpic} 
+                            style={{ marginRight: '1em', cursor: 'pointer' }}/>
                     </label>
-                    <input
-                        id='userPic'
-                        type='file'
-                        name='userPic'
-                        onChange={this.handleInputFileChange} />
-                </div>
-                <input type='submit' value='Update userpic' />
+                    <FlatButton 
+                        label="Choose an Image"
+                        containerElement="label" >
+                        <input
+                            id='userPic'
+                            type='file'
+                            name='userPic'
+                            accept='.jpg, .jpeg, .png'
+                            onChange={this.handleInputFileChange} />
+                    </FlatButton>
+                    <FlatButton 
+                        type='submit'
+                        label='Update userpic' />
             </form>
         );
         const profileForm = (
             <form
-                onSubmit={this.updateSubmit}>
-                <div>
-                    <label>Username</label>
-                    <div>
-                        <input
-                            type='text'
-                            className='form-control'
-                            id='username'
-                            name='username'
-                            value={this.state.username}
-                            onChange={this.handleInputChange} />
-                    </div>
-                </div>
-                <div>
-                    <label>Fullname</label>
-                    <div>
-                        <input
-                            type='text'
-                            className='form-control'
-                            id='fullname'
-                            name='fullname'
-                            value={this.state.fullname}
-                            onChange={this.handleInputChange} />
-                    </div>
-                </div>
-                <div>
-                    <label>Description</label>
-                    <div>
-                        <textarea
-                            type='text'
-                            className='form-control'
-                            id='description'
-                            name='description'
-                            value={this.state.description}
-                            onChange={this.handleInputChange} />
-                    </div>
-                </div>
-                <div>
-                    <label>Email</label>
-                    <div>
-                        <input
-                            type='email'
-                            className='form-control'
-                            id='email'
-                            name='email'
-                            value={this.state.email}
-                            onChange={this.handleInputChange} />
-                    </div>
-                </div>
-                <div>
-                    {
-                        this.state.errors.map((error) => {
-                            return <div key={'t' + error.param}>{error.msg}</div>
-                        })
-                    }
-                </div>
-                <div>
-                    <div>
-                        <button
-                            type='submit'>
-                            Update
-                            </button>&nbsp;
-                                <Link to='/'>Cancel</Link>
-                    </div>
-                </div>
+                onSubmit={this.updateSubmit}
+                style={{ padding: '0 16px' }}>
+                <TextField
+                    id='username'
+                    name='username'
+                    value={this.state.username}
+                    floatingLabelText="Username"
+                    fullWidth={true}
+                    onChange={this.handleInputChange}
+                    errorText={this.state.usernameError}
+                /><br />
+                <TextField
+                    id='fullname'
+                    name='fullname'
+                    value={this.state.fullname}
+                    floatingLabelText="Fullname"
+                    fullWidth={true}
+                    onChange={this.handleInputChange}
+                    errorText={this.state.fullnameError}
+                /><br />
+                <TextField
+                    id='email'
+                    name='email'
+                    value={this.state.email}
+                    floatingLabelText="Email"
+                    fullWidth={true}
+                    onChange={this.handleInputChange}
+                    errorText={this.state.emailError}
+                /><br />
+                <TextField
+                    id='description'
+                    name='description'
+                    value={this.state.description}
+                    floatingLabelText="Description"
+                    multiLine={true}
+                    fullWidth={true}
+                    onChange={this.handleInputChange}
+                    errorText={this.state.descriptionError}
+                /><br /><br />
+                <FlatButton type='submit' label='Update' secondary={true} />
+                <FlatButton label={<Link to='/'>Cancel</Link>} />
+                <br />
             </form>
-        );
+        )
         const changePassword = (
-            <div>
-                <label> Change Password</label>
-            </div>
-        );
-        // const subscriptionsBlock = (
-        //     <ul className='subscriptions-block'>
-        //         {
-        //             this.state.subscriptions.map((sub) => {
-        //                 return <li key={sub.id}>
-        //                     <img src={`data:image/png;base64, ${sub.avatar}`} alt={sub.username} />
-        //                     <label>{sub.username}</label>
-        //                     <button id={sub.id} onClick={this.removeSubscription}>Unfollow</button>
-        //                 </li>
-        //             })
-        //         }
-        //     </ul >
-        // );
+            <FlatButton label='Change Password' />
+        )
         return (
             !this.state.fullname.length
                 ? <CircularProgress /> :
                 <div className='profile'>
-                    <h3>Profile</h3>
+                    <Subheader>Avatar</Subheader>
                     {userPicForm}
-                    <hr />
+                    <br />
+                    <Divider />
+                    <Subheader>Profile</Subheader>
                     {profileForm}
-                    <hr />
+                    <br />
+                    <Divider />
+                    <Subheader>Password</Subheader>
                     {changePassword}
                 </div>
         );
