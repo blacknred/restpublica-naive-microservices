@@ -1,40 +1,10 @@
-const sharp = require('sharp');
-const fetch = require('node-fetch');
-const path = require('path');
-
 const faker = require('faker');
 
-function fet(image) {
-    return fetch(image)
-        .then((res) => {
-            return res.buffer();
-        })
-        .then((buffer) => {
-            return buffer;
-        })
-        .catch(() => {
-            return null;
-        });
-}
-
-const createPost = (knex, i) => {
-    const image = faker.image.image();
-    const imageThumb = path.join(__dirname, '../../../storage/thumbs', `thumb_${i}.png`);
-    return fet(image)
-        .then((img) => {
-            sharp(img)
-                .resize(200)
-                .toFile(imageThumb)
-                .then(() => {
-                    return knex('posts')
-                        .insert({
-                            user_id: Math.floor((Math.random() * 20) + 1),
-                            description: faker.lorem.sentences(),
-                            content_type: 'image/png',
-                            file: image,
-                            thumbnail: imageThumb
-                        });
-                });
+const createPost = (knex) => {
+    return knex('posts')
+        .insert({
+            user_id: Math.floor((Math.random() * 20) + 1),
+            description: faker.lorem.sentences()
         })
         .catch((err) => {
             console.log(err);
@@ -45,8 +15,8 @@ exports.seed = (knex, Promise) => {
     return knex('posts').del()
         .then(() => {
             const records = [];
-            for (let i = 1; i < 60; i++) {
-                records.push(createPost(knex, i));
+            for (let i = 1; i < 100; i++) {
+                records.push(createPost(knex));
             }
             return Promise.all(records);
         })

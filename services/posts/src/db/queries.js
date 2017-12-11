@@ -15,7 +15,22 @@ function getDashboard(subscriptionsArr, offset) {
         .whereIn('user_id', subscriptionsArr)
         .orderBy('created_at', 'desc')
         .limit(limit)
-        .offset(offset);
+        .offset(offset)
+        .map((_row) => {
+            const r = _row;
+            return knex('likes')
+                .count('* as likes_count')
+                .where('post_id', _row.post_id)
+                .first()
+                .then((row) => {
+                    r.likes = row.likes_count;
+                    return r;
+                });
+        })
+        .then((rows) => {
+            console.log(rows);
+            return rows;
+        });
 }
 
 function getSearchedPosts(searchPattern, offset) {

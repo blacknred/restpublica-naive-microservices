@@ -24,6 +24,18 @@ services:
     healthcheck:
       test: exit 0
 
+  posts-storage:
+    container_name: posts-storage
+    build: ./services/posts/storage/
+    volumes:
+      - './services/posts/storage:/usr/src/app'
+      - './services/posts/storage/package.json:/usr/src/package.json'
+      - './services/posts/storage/node_modules:/usr/src/node_modules'
+    ports:
+      - '3003:3003'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+
   users-service:
     container_name: users-service
     build: ./services/users/
@@ -61,10 +73,13 @@ services:
     depends_on:
       posts-db:
         condition: service_healthy
+      posts-storage:
+        condition: service_started
       users-service:
         condition: service_started
     links:
       - posts-db
+      - posts-storage
       - users-service
 
   web-service:
@@ -73,9 +88,29 @@ services:
     volumes:
       - './services/web:/usr/src/app'
       - './services/web/package.json:/usr/src/package.json'
-      - '/services/web/node_modules:/usr/src/node_modules'
+      - './services/web/node_modules:/usr/src/node_modules'
     ports:
       - '3000:3000'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      users-service:
+        condition: service_started
+      posts-service:
+        condition: service_started
+    links:
+      - users-service
+      - posts-service
+
+  swagger:
+    container_name: swagger
+    build: ./services/posts/swagger/
+    volumes:
+      - './services/posts/swagger:/usr/src/app'
+      - './services/posts/swagger/package.json:/usr/src/package.json'
+      - './services/posts/swagger/node_modules:/usr/src/node_modules'
+    ports:
+      - '3004:3004'
     environment:
       - NODE_ENV=${NODE_ENV}
     depends_on:

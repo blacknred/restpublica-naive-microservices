@@ -1,17 +1,17 @@
-# RestPublica Microservices - Files Dashboard App on Docker
+# Restpublica Microservices - Files Dashboard App on Docker
 
 
 ## Architecture
 
-| Name             | Service | Container | Tech                        |
-|------------------|---------|-----------|-----------------------------|
-| Web              | Web     | web       | React, Redux, React-Router  |
-| Posts API        | Posts   | posts     | Node, Express               |
-| Posts DB         | Posts   | posts-db  | Postgres                    |
-| Swagger          | Posts   | swagger   | Swagger UI                  |
-| Users API        | Users   | users     | Node, Express               |
-| Users DB         | Users   | users-db  | Postgres                    |
-| Functional Tests | Test    | n/a       | TestCafe                    |
+| Name             | Service | Container     | Tech                       |
+|------------------|---------|---------------|----------------------------|
+| Web              | Web     | web           | React, Redux, React-Router |
+| Posts API        | Posts   | posts         | Node, Express              |
+| Posts DB         | Posts   | posts-db      | Postgres                   |
+| Posts Storage    | Posts   | posts-storage | Node, Koa                  |
+| Swagger          | Posts   | swagger       | Swagger UI                 |
+| Users API        | Users   | users         | Node, Express              |
+| Users DB         | Users   | users-db      | Postgres                   |
 
 
 ## Services
@@ -35,7 +35,7 @@
 | /api/v1/users/subscription/:id  | DELETE      | DELETE      | delete subscription       |
 
 
-##### (2) Posts API - http://localhost:3002
+#### (2) Posts API - http://localhost:3002
 
 | Endpoint                   | HTTP Method | CRUD Method | Result                    |
 |----------------------------|-------------|-------------|---------------------------|
@@ -57,7 +57,7 @@
 | /api/v1/posts/like/:id     | DELETE      | DELETE      | delete a post  like       |
 
 
-##### (3) Web (React client SPA) - http://localhost:3000
+#### (3) Web Client (React SPA) - http://localhost:3000
 
 | Endpoint   | HTTP Method | CRUD Method | Result                            |
 |------------|-------------|-------------|-----------------------------------|
@@ -74,6 +74,30 @@
 | /profile   | GET         | READ        | render profile settings page      |
 | /post      | GET         | READ        | render post creation or edit page |
 
+
+#### (4) Mobile Client (React SPA) - http://localhost:3005
+
+| Endpoint   | HTTP Method | CRUD Method | Result                            |
+|------------|-------------|-------------|-----------------------------------|
+| /          | GET         | READ        | render landing page               |
+
+
+#### (5) Users Database and (6) Posts Database
+
+To access, get the container id from `docker ps` and then open `psql`:
+
+```sh
+$ docker exec -ti <container-id> psql -U postgres
+```
+
+#### (7) Posts Storage - http://localhost:3003
+
+Upload and static server for Posts files
+
+
+#### (8) Swagger - http://localhost:3004/docs
+
+Access Swagger docs at the above URL
 
 
 ## Run the project

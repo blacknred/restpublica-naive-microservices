@@ -19,7 +19,7 @@
         /* Redirect to mobile version */
        var parser = new UAParser(window.navigator.userAgent);
        if (parser.getDevice().type === 'mobile') { 
-           window.location.href = 'localhost:3005'+ window.location.pathname;
+           window.location.href = 'localhost:3005/'+ window.location.pathname;
         }
     </script>
     <title>Restpublica</title>

@@ -1,0 +1,21 @@
+---
+swagger: "2.0"
+info:
+  description: "Posts API Swagger"
+  version: "0.0.1"
+  title: "Posts API"
+host: "localhost:3002"
+basePath: "/posts"
+schemes:
+  - "http"
+produces:
+  - "text/html"
+  - "application/json"
+paths:
+  /status:
+    get:
+      summary: Sanity check
+      description: Sanity check
+      responses:
+        200:
+          description: 'ok'

@@ -1,13 +1,14 @@
 const mimeTypes = [
     'text/plain',
     'text/html',
-    'image/jpeg',
+    'image/jpg',
     'image/png',
     'audio/mpeg',
     'audio/mp3',
     'audio/webm',
     'video/mp4',
-    'application/octet-stream'
+    'application/octet-stream',
+    'application/javascript'
 ];
 
 exports.up = (knex) => {
@@ -16,12 +17,22 @@ exports.up = (knex) => {
             table.increments();
             table.integer('user_id').notNullable();
             table.text('description');
-            table.enu('content_type', mimeTypes);
-            table.text('file');
-            table.text('thumbnail');
             table.integer('views').notNullable().defaultTo(0);
-            table.integer('comments').notNullable().defaultTo(0);
             table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
+        })
+        .createTable('files', (table) => {
+            table.increments();
+            table.integer('post_id').notNullable();
+            // table.foreign('post_id').references('posts.id');
+            table.text('url').notNullable();
+            table.enu('content_type', mimeTypes).notNullable();
+        })
+        .createTable('thumbnails', (table) => {
+            table.increments();
+            table.integer('post_id').notNullable();
+            // table.foreign('post_id').references('posts.id');
+            table.text('url').notNullable();
+            table.enu('content_type', mimeTypes).notNullable();
         })
         .createTable('comments', (table) => {
             table.increments();
@@ -42,6 +53,8 @@ exports.up = (knex) => {
 exports.down = (knex) => {
     return knex.schema
         .dropTable('posts')
+        .dropTable('files')
+        .dropTable('thumbnails')
         .dropTable('comments')
         .dropTable('likes');
 };
