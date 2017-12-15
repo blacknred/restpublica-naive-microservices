@@ -54,7 +54,7 @@ app.use(async (ctx, next) => {
             await reader.pipe(writer);
             console.log('uploading %s -> %s', fileName, writer.path);
             filesPaths.push({
-                url: /* ctx.request.URL */ 'localhost:3003/' + filesDir + '/' + fileName,
+                url: /* ctx.request.URL */ 'http://localhost:3003/' + filesDir + '/' + fileName,
                 mime: (file.type).replace('-', '/')
             });
         }

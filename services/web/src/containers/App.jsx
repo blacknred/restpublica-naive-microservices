@@ -18,12 +18,12 @@ import RegisterForm from './RegisterForm';
 import LoginForm from './LoginForm';
 
 import Header from './Header';
-import PopularBlock from './PopularBlock';
-import SearchBlock from './SearchBlock';
+import TrendingBlock from './TrendingBlock';
 import UserBlock from './UserBlock';
 import MineBlock from './MineBlock';
 import Profile from './Profile';
 import PostList from './PostList';
+import SearchBlock from '../components/SearchBlock';
 import Post from './Post';
 import Subscriptions from './Subscriptions';
 
@@ -35,7 +35,7 @@ class App extends Component {
         this.previousLocation = this.props.location
         this.state = {
             is404: false,
-            drawer: false,
+            drawer: true,
             flashMessages: [],
             isAuthenticated: false,
             user: {
@@ -137,7 +137,7 @@ class App extends Component {
         const { location } = this.props
         const { isAuthenticated, flashMessages } = this.state
         /* 
-        - modals engine -
+        -- modals engine --
         React-router Links with { modal:true } value will provoke is_modal be true.
         When isModal is true Main switch routing will not go to new 
         location, stay on previousLocation and not render other component,
@@ -149,8 +149,10 @@ class App extends Component {
             location.state &&
             location.state.modal &&
             this.previousLocation !== location)// not initial render
-        // elements
-        const landing =
+
+        /* elements */
+
+        const landing = (
             <div>
                 <Route path='/login' render={() => (
                     <LoginForm
@@ -163,70 +165,30 @@ class App extends Component {
                         authUser={this.authUser} />
                 )} />
                 <LandingIntro />
-            </div>;
-        const profile =
-            <Profile
-                updateUser={this.updateUser}
-                createFlashMessage={this.createFlashMessage}
-            />;
+            </div>
+        );
 
-        const OpenSubscriptions = ({ match }) => (
+        const authFrame = (
             isAuthenticated ?
                 <div>
-                    <h3>{match.params.username}</h3>
-                    <Route path="/u/:username/:mode(followers|followin)" render={() => (
-                        <Subscriptions
-                            user={match.params.username}
-                            mode={match.params.mode}
-                            createFlashMessage={this.createFlashMessage}
-                        />
-                    )} />
+                    <Route path="/me" component={MineBlock} />
+                    <Route path="/search" component={SearchBlock} />
+                    <Route path="/me" render={() => (
+                        <PostList mode='me'/*{`user/${window.localStorage.getItem('username')}`}*/ />)}
+                    />
+                    <Route path="/search" render={({ location }) => (
+                        <PostList mode={`search${location.search}`} drawer={this.state.drawer} />)}
+                    />
+                    <Route path="/dashboard" render={() => (
+                        <PostList mode='dashboard' drawer={this.state.drawer} />)}
+                    />
                 </div>
-                : <Redirect to={{ pathname: '/' }} />);
-
-
-        const OpenPost = ({ match }) => (
-            <Post id={match.params.id} />);
-
-        const Frame = ({ match }) => (
-            <div>
-                <div>
-                    <Route path="/popular" component={PopularBlock} />
-                    <Route path="/u/:username" render={() => (
-                        <UserBlock
-                            user={match.params.username}
-                            is_authenticated={this.state.isAuthenticated}
-                            to404={this.to404}
-                        />)} />
-
-                </div>
-                <div>
-                    <Route path="/popular" render={() => (<PostList mode='popular' />)} />
-                    <Route path="/u/:username" render={() => (<PostList mode={`user/${match.params.username}`} />)} />
-                </div>
-            </div>);
-
-        const AuthFrame = ({ match }) => (
-            isAuthenticated ?
-                <div>
-                    <div>
-                        <Route path="/mine" component={MineBlock} />
-                        <Route path="/search" component={SearchBlock} />
-                    </div>
-                    <div>
-                        <Route path="/mine" render={() => (
-                            <PostList mode={`user/${window.localStorage.getItem('username')}`} />)} />
-                        <Route path="/search" render={() => (<PostList mode='search' />)} />
-                        <Route path="/dashboard" render={() => (<PostList mode='dashboard' />)} />
-                    </div>
-                </div>
-                : <Redirect to={{
+                :
+                <Redirect to={{
                     pathname: '/',
                     state: { referrer: this.props.location.pathname }
-                }} />);
-
-
-
+                }} />
+        );
 
         const Modal = ({ match, history, location }) => {
             const back = (e) => {
@@ -269,43 +231,73 @@ class App extends Component {
                         className='frame'
                         style={{ marginLeft: this.state.drawer ? '235px' : '0px' }} >
                         {
-                            this.state.is404 ?
-                                <Route component={NotFound} /> :
+                            this.state.is404 ? <Route component={NotFound} /> :
                                 <div>
-                                    {/* Main switch routing */}
                                     <Switch location={isModal ? this.previousLocation : location}>
                                         /* landing, auth */
                                         <Route exact path='/' render={() => (
-                                            !isAuthenticated ? landing
-                                                : <Redirect to={
-                                                    this.props.location.state == null
-                                                        ? '/dashboard'
+                                            !isAuthenticated ? landing :
+                                                <Redirect to={
+                                                    this.props.location.state == null ? '/dashboard'
                                                         : this.props.location.state.referrer
-                                                } />)} />
+                                                } />
+                                        )} />
                                         <Route path='/register' render={() => (
                                             isAuthenticated ? <Redirect to='/' /> : landing)} />
                                         <Route path='/login' render={() => (
                                             isAuthenticated ? <Redirect to='/' /> : landing)} />
+
                                         /* auth paths */
-                                        <Route path='/dashboard' component={AuthFrame} />
-                                        <Route path='/search/:searchParam?' component={AuthFrame} />
-                                        <Route path='/mine' component={AuthFrame} />
+                                        <Route path='/dashboard' render={() => authFrame} />
+                                        <Route path='/search/:searchParam?' render={() => authFrame} />
+                                        <Route path='/me' render={() => authFrame} />                        
+                                        <Route path='/post' render={() => <Redirect to='/' />} />
                                         <Route path='/profile' render={() => (
-                                            isAuthenticated ? profile : <Redirect to='/' />)} />
-                                        <Route path='/u/:username/:mode(followers|followin)'
-                                            component={OpenSubscriptions} />
-                                        <Route path='/post' render={() => (<Redirect to='/' />)} />
+                                            isAuthenticated ?
+                                                <Profile
+                                                    updateUser={this.updateUser}
+                                                    createFlashMessage={this.createFlashMessage}
+                                                />
+                                                : <Redirect to='/' />
+                                        )} />
+                                        <Route path='/u/:username/:mode(followers|followin)' render={({ match }) => (
+                                            isAuthenticated ?
+                                                <div>
+                                                    <h3>{match.params.username}</h3>
+                                                    <Subscriptions
+                                                        user={match.params.username}
+                                                        mode={match.params.mode}
+                                                        createFlashMessage={this.createFlashMessage}
+                                                    />
+                                                </div>
+                                                : <Redirect to={{ pathname: '/' }} />
+                                        )} />
                                         /* non auth paths */
-                                        <Route path='/popular' component={Frame} />
-                                        <Route path='/u/:username' component={Frame} />
-                                        <Route path='/p/:id' component={OpenPost} />
+                                        <Route path='/trending' render={() => (
+                                            <div>
+                                                <TrendingBlock />
+                                                <PostList mode='trending' drawer={this.state.drawer} />
+                                            </div>
+                                        )} />
+                                        <Route path='/u/:username' render={({ match }) => (
+                                            <div>
+                                                <UserBlock
+                                                    user={match.params.username}
+                                                    is_authenticated={this.state.isAuthenticated}
+                                                    to404={this.to404}
+                                                />
+                                                <PostList
+                                                    mode={`user/${match.params.username}`}
+                                                    drawer={this.state.drawer}
+                                                />
+                                            </div>
+                                        )} />
+                                        <Route path='/p/:id' render={({ match }) => <Post id={match.params.id} />} />
                                         /* 404 */
                                         <Route component={NotFound} />
                                     </Switch>
-                                    {/* /u/:username(.+/followers|.+/followin) */}
                                     {
                                         isModal ?
-                                            // Modal switch routing
                                             <Switch>
                                                 /* non auth paths */
                                                 <Route path='/p/:id' component={Modal} />

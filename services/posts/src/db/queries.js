@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 const knex = require('./connection');
 const routeHelpers = require('../routes/_helpers');
 
@@ -5,56 +6,155 @@ const limit = 20;
 const today = new Date();
 const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
 
+function getPostThumbs(post) {
+    return knex('thumbnails')
+        .select(['url', 'content_type'])
+        .where('id', post.post_id) // 'post_id', post.post_id
+        .then((row) => {
+            post.thumbs = row;
+            return post;
+        });
+}
+
+function getLikesCount(post) {
+    return knex('likes')
+        .count()
+        .where('post_id', post.post_id)
+        .first()
+        .then((row) => {
+            post.likes_count = row.count;
+            return post;
+        });
+}
+
+function getCommentsCount(post) {
+    return knex('comments')
+        .count('*')
+        .where('post_id', post.post_id)
+        .first()
+        .then((row) => {
+            post.comments_count = row.count;
+            return post;
+        });
+}
 
 /* posts */
 
 function getDashboard(subscriptionsArr, offset) {
     return knex('posts')
-        .select(['id as post_id', 'user_id', 'thumbnail', 'views', 'comments', 'created_at'])
-        .select(knex.raw('left (description, 50) as description'))
+        .select(['id as post_id', 'user_id', 'views', 'created_at'])
+        .select(knex.raw('left (description, 28) as description'))
         .whereIn('user_id', subscriptionsArr)
         .orderBy('created_at', 'desc')
         .limit(limit)
-        .offset(offset)
+        .offset(--offset * limit)
         .map((_row) => {
-            const r = _row;
-            return knex('likes')
-                .count('* as likes_count')
-                .where('post_id', _row.post_id)
-                .first()
-                .then((row) => {
-                    r.likes = row.likes_count;
-                    return r;
-                });
+            if (_row) return getPostThumbs(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
         })
         .then((rows) => {
-            console.log(rows);
-            return rows;
+            return knex('posts')
+                .count('*')
+                .whereIn('user_id', subscriptionsArr)
+                .first()
+                .then((count) => {
+                    return Object.assign({}, { rows }, { count });
+                });
+        });
+}
+
+function getTrendingPosts(offset) {
+    return knex('posts')
+        .select(['id as post_id', 'user_id', 'views', 'created_at'])
+        .select(knex.raw('left (description, 50) as description'))
+        .where('created_at', '>', lastWeek)
+        .orderBy('views', 'desc')
+        .limit(limit)
+        .offset(--offset * limit)
+        .map((_row) => {
+            if (_row) return getPostThumbs(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .where('created_at', '>', lastWeek)
+                .first()
+                .then((count) => {
+                    return Object.assign({}, { rows }, { count });
+                });
         });
 }
 
 function getSearchedPosts(searchPattern, offset) {
     return knex('posts')
+        .select(['id as post_id', 'user_id', 'views', 'created_at'])
+        .select(knex.raw('left (description, 50) as description'))
         .where('description', 'like', `%${searchPattern}%`)
         .orderBy('created_at', 'desc')
         .limit(limit)
-        .offset(offset);
-}
-
-function getPopularPosts(offset) {
-    return knex('posts')
-        .where('created_at', '>', lastWeek)
-        .orderBy('views', 'desc')
-        .limit(limit)
-        .offset(offset);
+        .offset(offset)
+        .map((_row) => {
+            if (_row) return getPostThumbs(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .where('description', 'like', `%${searchPattern}%`)
+                .then((count) => {
+                    return Object.assign({}, { rows }, { count });
+                });
+        });
 }
 
 function getUserPosts(userId, offset) {
     return knex('posts')
+        .select(['id as post_id', 'user_id', 'views', 'created_at'])
+        .select(knex.raw('left (description, 50) as description'))
         .where('user_id', userId)
         .orderBy('created_at', 'desc')
         .limit(limit)
-        .offset(offset);
+        .offset(offset)
+        .map((_row) => {
+            if (_row) return getPostThumbs(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return rows;
+        });
 }
 
 /* post */
@@ -157,7 +257,7 @@ function deletePostLike(likeId) {
 module.exports = {
     getDashboard,
     getSearchedPosts,
-    getPopularPosts,
+    getTrendingPosts,
     getUserPosts,
     getPost,
     addPost,

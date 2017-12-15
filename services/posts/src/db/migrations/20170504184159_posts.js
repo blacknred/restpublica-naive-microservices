@@ -23,21 +23,21 @@ exports.up = (knex) => {
         .createTable('files', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
-            // table.foreign('post_id').references('posts.id');
+            table.foreign('post_id').references('posts.id');
             table.text('url').notNullable();
             table.enu('content_type', mimeTypes).notNullable();
         })
         .createTable('thumbnails', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
-            // table.foreign('post_id').references('posts.id');
+            table.foreign('post_id').references('posts.id');
             table.text('url').notNullable();
             table.enu('content_type', mimeTypes).notNullable();
         })
         .createTable('comments', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
-            // table.foreign('post_id').references('posts.id');
+            table.foreign('post_id').references('posts.id');
             table.integer('user_id').notNullable();
             table.text('comment').notNullable();
             table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
@@ -45,7 +45,7 @@ exports.up = (knex) => {
         .createTable('likes', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
-            // table.foreign('post_id').references('posts.id');
+            table.foreign('post_id').references('posts.id');
             table.integer('user_id').notNullable();
         });
 };

@@ -10,6 +10,18 @@ import TextField from 'material-ui/TextField';
 import FlatButton from 'material-ui/FlatButton';
 import Avatar from 'material-ui/Avatar';
 
+const styles ={
+    avatarForm: { 
+        display: 'flex', alignItems: 'center', padding: '0 16px'
+    },
+    avatar: {
+        marginRight: '1em', cursor: 'pointer'
+    },
+    profileForm: { 
+        padding: '0 16px'
+    }
+}
+
 class Profile extends Component {
     constructor(props) {
         super(props);
@@ -132,12 +144,12 @@ class Profile extends Component {
                 id='uploadForm'
                 accept='.jpg, .jpeg, .png'
                 encType="multipart/form-data"
-                style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }} >
+                style={styles.avatarForm} >
                     <label htmlFor="userPic">
                         <Avatar 
                             size={80} 
                             src={this.state.userpic} 
-                            style={{ marginRight: '1em', cursor: 'pointer' }}/>
+                            style={styles.avatar}/>
                     </label>
                     <FlatButton 
                         label="Choose an Image"
@@ -157,7 +169,7 @@ class Profile extends Component {
         const profileForm = (
             <form
                 onSubmit={this.updateSubmit}
-                style={{ padding: '0 16px' }}>
+                style={styles.profileForm}>
                 <TextField
                     id='username'
                     name='username'

@@ -25,10 +25,12 @@ exports.seed = (knex, Promise) => {
     return knex('users').del()
         .then(() => {
             const records = [];
-            for (let i = 1; i <= 20; i++) {
+            for (let i = 1; i <= 30; i++) {
                 records.push(createUser(knex));
             }
             return Promise.all(records);
         })
-        .catch((err) => { console.log(err); }); // eslint-disable-line
+        .catch((err) => {
+            console.log(err);
+        });
 };

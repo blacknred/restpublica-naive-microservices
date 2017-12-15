@@ -51,6 +51,42 @@ function getSubscriptions(req, next) {
         });
 }
 
+function getUsersConciseData(usersIdsArr, req, next) {
+    const options = {
+        method: 'GET',
+        uri: `http://users-service:3001/api/v1/users/concise?ids=${usersIdsArr}`,
+        json: true,
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${req.headers.authorization.split(' ')[1]}`,
+        }
+    };
+    return request(options)
+        .then((response) => {
+            return response.users;
+        })
+        .catch((err) => {
+            return next(err);
+        });
+}
+
+// //////////////////////////////////////
+
+function removePostFiles(paths) {
+    const [filePath, thumbPath] = paths;
+    return fs.unlinkSync(filePath)
+        .then(() => {
+            if (thumbPath) fs.unlinkSync(thumbPath);
+        })
+        .then(() => {
+            return true;
+        })
+        .catch((err) => {
+            console.log(err);
+            return false;
+        });
+}
+
 function getUserId(req, next) {
     const headers = {
         'Content-Type': 'application/json'
@@ -73,39 +109,6 @@ function getUserId(req, next) {
         });
 }
 
-function getUsersConciseData(usersIdsArr, req, next) {
-    const options = {
-        method: 'GET',
-        uri: `http://users-service:3001/api/v1/users/concise?ids=${usersIdsArr}`,
-        json: true,
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${req.headers.authorization.split(' ')[1]}`,
-        }
-    };
-    return request(options)
-        .then((response) => {
-            return response.users;
-        })
-        .catch((err) => {
-            return next(err);
-        });
-}
-
-function removePostFiles(paths) {
-    const [filePath, thumbPath] = paths;
-    return fs.unlinkSync(filePath)
-        .then(() => {
-            if (thumbPath) fs.unlinkSync(thumbPath);
-        })
-        .then(() => {
-            return true;
-        })
-        .catch((err) => {
-            console.log(err);
-            return false;
-        });
-}
 
 module.exports = {
     ensureAuthenticated,

@@ -9,6 +9,10 @@ import FlatButton from 'material-ui/FlatButton';
 import { List, ListItem } from 'material-ui/List';
 import Subheader from 'material-ui/Subheader';
 
+const styles = {
+    list: { width: '100%' }
+}
+
 class Subscriptions extends Component {
     constructor(props) {
         super(props);
@@ -112,7 +116,7 @@ class Subscriptions extends Component {
                 {
                     !this.state.subscriptions.length
                         ? <CircularProgress /> :
-                        <List style={{ width: '100%' }}>
+                        <List style={styles.list}>
                             <Subheader>{this.props.mode}</Subheader>
                             {
                                 this.state.subscriptions.map((sub) => {

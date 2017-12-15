@@ -4,7 +4,7 @@ import React, { Component } from 'react';
 
 import CircularProgress from 'material-ui/CircularProgress';
 
-class PopularBlock extends Component {
+class TrendingBlock extends Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -33,4 +33,4 @@ class PopularBlock extends Component {
     }
 }
 
-export default PopularBlock;
+export default TrendingBlock;

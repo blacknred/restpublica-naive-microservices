@@ -18,21 +18,24 @@ router.get('/dashboard', routeHelpers.ensureAuthenticated,
     (req, res, next) => {
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? req.query.offset : 0;
+                ? req.query.offset : 1;
         return routeHelpers.getSubscriptions(req, next)
             .then((response) => {
                 return Promise.all([
                     postQueries.getDashboard(
-                        response.subscriptions.map((sub) => { return sub.user_id; }), offset),
+                        response.subscriptions.map((sub) => {
+                            return sub.user_id;
+                        }), offset),
                     response.subscriptions
                 ]);
             })
             .then((arrs) => {
-                const [usersData, posts] = arrs;
-                const finaleArr = usersData.map((x) => {
-                    return Object.assign(x, posts.find(y => y.user_id === x.user_id));
+                const [posts, usersData] = arrs;
+                const finalePosts = posts.rows.map((x) => {
+                    return Object.assign({}, x,
+                        { author: usersData.find(y => y.user_id === x.user_id) });
                 });
-                return finaleArr;
+                return Object.assign({}, posts.count, { posts: finalePosts });
             })
             .then((posts) => {
                 res.status(200).json({
@@ -47,6 +50,31 @@ router.get('/dashboard', routeHelpers.ensureAuthenticated,
                 });
             });
     });
+
+router.get('/trending', (req, res) => {
+    const offset =
+        req.query.offset && /^\+?\d+$/.test(req.query.offset)
+            ? req.query.offset : 0;
+    return postQueries.getTrendingPosts(offset)
+        .then((response) => {
+            res.json({
+                status: 'success',
+                data: posts
+            });
+        })
+        .then((posts) => {
+            res.json({
+                status: 'success',
+                data: posts
+            });
+        })
+        .catch((err) => {
+            res.status(500).json({
+                status: 'error',
+                message: err
+            });
+        });
+});
 
 router.get('/search', routeHelpers.ensureAuthenticated,
     (req, res) => {
@@ -65,51 +93,32 @@ router.get('/search', routeHelpers.ensureAuthenticated,
                 console.log(err);
                 res.status(500).json({
                     status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.get('/popular', (req, res) => {
-        const offset =
-            req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? req.query.offset : 0;
-        return postQueries.getPopularPosts(offset)
-            .then((posts) => {
-                res.json({
-                    status: 'success',
-                    data: posts
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
+                    message: err.message
                 });
             });
     });
 
 router.get('/user/:username', (req, res, next) => {
-        const offset =
-            req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? req.query.offset : 0;
-        return routeHelpers.getUserId(req, next)
-            .then((id) => {
-                return postQueries.getUserPosts(id, offset);
-            })
-            .then((posts) => {
-                res.json({
-                    status: 'success',
-                    data: posts
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err.message
-                });
+    const offset =
+        req.query.offset && /^\+?\d+$/.test(req.query.offset)
+            ? req.query.offset : 0;
+    return routeHelpers.getUserId(req, next)
+        .then((id) => {
+            return postQueries.getUserPosts(id, offset);
+        })
+        .then((posts) => {
+            res.json({
+                status: 'success',
+                data: posts
             });
-    });
+        })
+        .catch((err) => {
+            res.status(500).json({
+                status: 'error',
+                message: err.message
+            });
+        });
+});
 
 /* post */
 
