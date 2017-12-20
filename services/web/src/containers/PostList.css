@@ -1,0 +1,7 @@
+/* post List */
+.posts{
+    display: flex;
+    /* justify-content: center; */
+    /* align-items: flex-start; */
+    flex-wrap: wrap;
+}

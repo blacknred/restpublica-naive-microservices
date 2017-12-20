@@ -10,10 +10,10 @@ import { Card, CardMedia, CardTitle } from 'material-ui/Card';
 
 const styles = {
     card: {
-        width: '19%', margin: '0.3em', background: 'inherit', boxShadow: 'null'
+        width: '16.3%', margin: '2px', background: 'inherit', boxShadow: 'null'
     },
     cardTitle: {
-        padding: '16px 16px 16px 0'
+        padding: '0px 16px 16px 0px'
     },
     cardTitleTitle: {
         fontSize: '0.9em', fontWeight: 'bold'
@@ -34,14 +34,12 @@ let countDate = (dateObj => {
     else if (now.hour() > date.hour()) res = `${date.hour()} hour`
     else if (now.minute() > date.minute()) res = `${date.minute()} min`
     else res = `${date.secounds} sec`
-    // else if (date.isoWeek() === now.isoWeek()) res = date.weekday()
     return res
 })
 
-const PostCard = (props) => {
-    const post = props.post
+const PostCard = ({ post }) => {
     return (
-        <Card style={styles.card}>
+        <Card style={styles.card} >
             {/* <Link to={`/u/${post.author.username}`}>
                 <CardHeader
                     title={post.author.username}
@@ -50,34 +48,34 @@ const PostCard = (props) => {
                     <span>{countDate(post.created_at)}</span>
                 />
             </Link> */}
-
             <CardMedia>
                 <Link to={{ pathname: `/p/${post.post_id}`, state: { modal: true } }}>
                     <div>
                         {
                             post.thumbs.map((thumb, i) => {
                                 return <img
-                                    src={`http://${thumb.url}`}
+                                    src={thumb.url}
                                     key={i} alt="" width='100%' />
                             })
                         }
                     </div>
                 </Link>
             </CardMedia>
-
             <CardTitle
                 style={styles.cardTitle}
-                title={post.description}
+                title={`${post.description}...`}
                 titleStyle={styles.cardTitleTitle}
                 subtitle={
                     <div>
                         <div>
-                            <Link to={`/u/${post.author.username}`}>
-                                <b>{post.author.username}</b>
-                            </Link>
-                            {/* <span>{countDate(post.created_at)}</span> */}
-                        </div>
-                        <br />
+                            {
+                                post.author ?
+                                    <Link to={`/u/${post.author.username}`}>
+                                        <b>{post.author.username}</b>
+                                    </Link> 
+                                : null
+                            }    
+                        </div><br />
                         <div style={styles.cardTitleSubtitleCounts} >
                             <span>{`${post.views} views ${post.likes_count} likes`}</span>
                             <span>{countDate(post.created_at)}</span>
@@ -85,7 +83,6 @@ const PostCard = (props) => {
                     </div>
                 }
             />
-
             {/* <CardActions style={{ color: 'grey', fontSize: '0.7em' }}>
                 <span>
                     <ActionFavoriteIcon style={{ width: '16px' }} >{post.likes_count} </ActionFavoriteIcon>

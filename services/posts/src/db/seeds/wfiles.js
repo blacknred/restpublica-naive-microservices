@@ -1,9 +1,35 @@
+/* eslint-disable no-unused-vars */
 const sharp = require('sharp');
 const fetch = require('node-fetch');
 const request = require('request-promise');
-// const faker = require('faker'); // faker.image.image();
+const fs = require('fs');
+const path = require('path');
+
 const imgSrc = 'https://placeimg.com/640/480/any';
+const imgSrc2 = 'http://lorempixel.com/640/480/';
+const dir = path.join(__dirname, 'static');
+const fetchFromDir = true;
 const fetchedImgs = [];
+
+/* fake dir fs populating */
+const fsReadFile = async (file) => {
+    const p = path.join(dir, file);
+    const buff = await fs.readFileSync(p);
+    await fetchedImgs.push(buff);
+};
+const fsReadAllFilesFromDir = async () => {
+    const promises = [];
+    await fs.readdir(dir, (err, files) => {
+        if (err) console.log(err);
+        for (let i = 0; i < files.length; i++) {
+            promises.push(fsReadFile(files[i]));
+            if (i === (files.length - 1)) break;
+        }
+        return Promise.all(promises);
+    });
+};
+/* fake dir fs populating */
+
 
 const fet = (image) => {
     return fetch(image)
@@ -21,6 +47,7 @@ const fet = (image) => {
 };
 
 const createFile = (knex, i, imgBuffer) => {
+    // console.log(imgBuffer.length);
     return sharp(imgBuffer)
         .resize(200)
         .toBuffer()
@@ -36,9 +63,6 @@ const createFile = (knex, i, imgBuffer) => {
                             contentType: 'image/jpg'
                         }
                     }
-                },
-                headers: {
-                    /* 'content-type': 'application/x-www-form-urlencoded' */
                 }
             };
             return request(options)
@@ -67,9 +91,6 @@ const createFile = (knex, i, imgBuffer) => {
                             contentType: 'image/jpg'
                         }
                     }
-                },
-                headers: {
-                    /* 'content-type': 'application/x-www-form-urlencoded' */
                 }
             };
             return request(options)
@@ -98,9 +119,15 @@ exports.seed = (knex, Promise) => {
             knex('files').del();
         })
         .then(() => {
+            if (fetchFromDir) {
+                fsReadAllFilesFromDir()
+                    .then((h) => {
+                        return h;
+                    });
+            }
             const fetches = [];
-            for (let i = 1; i <= 250; i++) {
-                fetches.push(fet(imgSrc));
+            for (let i = 1; i <= 500; i++) {
+                fetches.push(fet(imgSrc2));
             }
             return Promise.all(fetches);
         })
@@ -108,7 +135,7 @@ exports.seed = (knex, Promise) => {
             const filesCount = fetchedImgs.length;
             console.log(`all fetched files count: ${filesCount}`);
             const records = [];
-            for (let i = 1; i <= filesCount; i++) {
+            for (let i = 1; i < filesCount; i++) {
                 // const postId = Math.floor((Math.random() * 250) + 1);
                 records.push(createFile(knex, i, fetchedImgs[i]));
             }

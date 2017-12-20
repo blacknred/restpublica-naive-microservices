@@ -7,12 +7,12 @@ const salt = bcrypt.genSaltSync();
 
 const createUser = (knex) => {
     const hash = bcrypt.hashSync('herman5', salt);
-    const username = faker.name.firstName();
-    return authHelpers.createAvatar(username)
+    const fullname = faker.name.findName();
+    return authHelpers.createAvatar(fullname)
         .then((avatar) => {
             return knex('users').insert({
-                username,
-                fullname: faker.name.findName(),
+                username: faker.name.firstName(),
+                fullname,
                 description: faker.lorem.sentences(),
                 password: hash,
                 email: faker.internet.email(),

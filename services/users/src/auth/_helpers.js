@@ -1,15 +1,27 @@
+/* eslint-disable no-unused-vars */
 const bcrypt = require('bcryptjs');
 const util = require('util');
+const faker = require('faker');
 const fetch = require('node-fetch');
 const knex = require('../db/connection');
 const localAuth = require('./local');
 
-const limit = 20;
+
+const limit = 15;
+const lettersAvatars = (fullname) => {
+    const name = fullname.replace(' ', '+');
+    const background = faker.internet.color().replace('#', '');
+    return `https://ui-avatars.com/api/?name=${name}&size=128&background=${background}`;
+};
+const adorableAvatars = (fullname) => {
+    return `https://api.adorable.io/avatars/285/${fullname}.png`;
+};
+const fakerAvatar = 'http://faker.hook.io/?property=image.avatar';
 
 /* auth */
 
-function createAvatar(username) {
-    return fetch(`https://api.adorable.io/avatars/285/${username}.png`)
+function createAvatar(fullname) {
+    return fetch(lettersAvatars(fullname))
         .then((res) => {
             return res.buffer();
         })
@@ -157,21 +169,10 @@ function getUserData(userName, authUserId) {
         });
 }
 
-function getUsersConciseData(authUserId, usersIdsArr) {
+function getUsersConciseData(usersIdsArr) {
     return knex('users')
         .select(['id as user_id', 'username', 'avatar'])
         .whereIn('id', usersIdsArr)
-        .map((_row) => {
-            const r = _row;
-            return knex('subscriptions')
-                .select('id')
-                .where({ user_id: _row.user_id, sub_user_id: authUserId })
-                .first()
-                .then((row) => {
-                    r.my_subscription_id = row ? row.id : null;
-                    return r;
-                });
-        })
         .then((rows) => {
             return rows;
         })
@@ -190,7 +191,7 @@ function getFollowers(userId, offset, authUserId) {
         .where('user_id', userId)
         .andWhere('sub_user_id', '!=', authUserId)
         .limit(limit)
-        .offset(offset)
+        .offset(offset * limit)
         .map((_row) => {
             const r = _row;
             return knex('subscriptions')
@@ -203,7 +204,14 @@ function getFollowers(userId, offset, authUserId) {
                 });
         })
         .then((rows) => {
-            return rows;
+            return knex('subscriptions')
+                .count('*')
+                .where('user_id', userId)
+                .andWhere('sub_user_id', '!=', authUserId)
+                .first()
+                .then((count) => {
+                    return Object.assign({}, { count: count.count }, { subscriptions: rows });
+                });
         })
         .catch(() => {
             return null;
@@ -218,7 +226,7 @@ function getFollowin(userId, offset, authUserId) {
         .where('sub_user_id', userId)
         .andWhere('user_id', '!=', authUserId)
         .limit(limit)
-        .offset(offset)
+        .offset(offset * limit)
         .map((_row) => {
             const r = _row;
             return knex('subscriptions')
@@ -230,6 +238,26 @@ function getFollowin(userId, offset, authUserId) {
                     return r;
                 });
         })
+        .then((rows) => {
+            return knex('subscriptions')
+                .count('*')
+                .where('sub_user_id', userId)
+                .andWhere('user_id', '!=', authUserId)
+                .first()
+                .then((count) => {
+                    return Object.assign({}, { count: count.count }, { subscriptions: rows });
+                });
+        })
+        .catch(() => {
+            return null;
+        });
+}
+
+function getConciseFollowin(userId) {
+    return knex('subscriptions')
+        .select('user_id')
+        .where('sub_user_id', userId)
+        // ? limit
         .then((rows) => {
             return rows;
         })
@@ -280,6 +308,7 @@ module.exports = {
     getUsersConciseData,
     getFollowers,
     getFollowin,
+    getConciseFollowin,
     createSubscription,
     deleteSubscription
 };

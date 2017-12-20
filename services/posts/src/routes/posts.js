@@ -18,15 +18,21 @@ router.get('/dashboard', routeHelpers.ensureAuthenticated,
     (req, res, next) => {
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? req.query.offset : 1;
+                ? --req.query.offset : 1;
         return routeHelpers.getSubscriptions(req, next)
             .then((response) => {
+                return postQueries.getDashboard(
+                    response.data.map((sub) => {
+                        return sub.user_id;
+                    }), offset);
+            })
+            .then((response) => {
                 return Promise.all([
-                    postQueries.getDashboard(
-                        response.subscriptions.map((sub) => {
+                    response,
+                    routeHelpers.getUsersConciseData(
+                        response.rows.map((sub) => {
                             return sub.user_id;
-                        }), offset),
-                    response.subscriptions
+                        }), req, next)
                 ]);
             })
             .then((arrs) => {
@@ -51,16 +57,27 @@ router.get('/dashboard', routeHelpers.ensureAuthenticated,
             });
     });
 
-router.get('/trending', (req, res) => {
+router.get('/trending', (req, res, next) => {
     const offset =
         req.query.offset && /^\+?\d+$/.test(req.query.offset)
-            ? req.query.offset : 0;
+            ? --req.query.offset : 1;
     return postQueries.getTrendingPosts(offset)
         .then((response) => {
-            res.json({
-                status: 'success',
-                data: posts
+            return Promise.all([
+                response,
+                routeHelpers.getUsersConciseData(
+                    response.rows.map((sub) => {
+                        return sub.user_id;
+                    }), req, next)
+            ]);
+        })
+        .then((arrs) => {
+            const [posts, usersData] = arrs;
+            const finalePosts = posts.rows.map((x) => {
+                return Object.assign({}, x,
+                    { author: usersData.find(y => y.user_id === x.user_id) });
             });
+            return Object.assign({}, posts.count, { posts: finalePosts });
         })
         .then((posts) => {
             res.json({
@@ -76,32 +93,10 @@ router.get('/trending', (req, res) => {
         });
 });
 
-router.get('/search', routeHelpers.ensureAuthenticated,
-    (req, res) => {
-        const offset =
-            req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? req.query.offset : 0;
-        if (!req.query.q) { throw new Error('Search pattern is empty'); }
-        return postQueries.getSearchedPosts(req.query.q, offset)
-            .then((posts) => {
-                res.json({
-                    status: 'success',
-                    data: posts
-                });
-            })
-            .catch((err) => {
-                console.log(err);
-                res.status(500).json({
-                    status: 'error',
-                    message: err.message
-                });
-            });
-    });
-
 router.get('/user/:username', (req, res, next) => {
     const offset =
         req.query.offset && /^\+?\d+$/.test(req.query.offset)
-            ? req.query.offset : 0;
+            ? --req.query.offset : 0;
     return routeHelpers.getUserId(req, next)
         .then((id) => {
             return postQueries.getUserPosts(id, offset);
@@ -119,6 +114,29 @@ router.get('/user/:username', (req, res, next) => {
             });
         });
 });
+
+router.get('/search', routeHelpers.ensureAuthenticated,
+    (req, res) => {
+        const offset =
+            req.query.offset && /^\+?\d+$/.test(req.query.offset)
+                ? --req.query.offset : 0;
+        if (!req.query.q) { throw new Error('Search pattern is empty'); }
+        return postQueries.getSearchedPosts(req.query.q, offset)
+            .then((posts) => {
+                res.json({
+                    status: 'success',
+                    data: posts
+                });
+            })
+            .catch((err) => {
+                console.log(err);
+                res.status(500).json({
+                    status: 'error',
+                    message: err.message
+                });
+            });
+    });
+
 
 /* post */
 
@@ -201,7 +219,7 @@ router.get('/:id/comments', routeHelpers.ensureAuthenticated,
     validate.validateComments, (req, res, next) => {
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? req.query.offset : 0;
+                ? --req.query.offset : 0;
         return postQueries.getPostComments(req.params.id, offset)
             .then((comments) => {
                 const usersIds = comments.map((user) => {
@@ -298,7 +316,7 @@ router.get('/:id/likes', routeHelpers.ensureAuthenticated,
     validate.validateLikes, (req, res, next) => {
         const offset =
             req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? req.query.offset : 0;
+                ? --req.query.offset : 0;
         return postQueries.getPostLikes(req.params.id, offset)
             .then((likes) => {
                 const usersIds = likes.map((user) => {

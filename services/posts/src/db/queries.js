@@ -2,7 +2,7 @@
 const knex = require('./connection');
 const routeHelpers = require('../routes/_helpers');
 
-const limit = 20;
+const limit = 18;
 const today = new Date();
 const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
 
@@ -43,11 +43,11 @@ function getCommentsCount(post) {
 function getDashboard(subscriptionsArr, offset) {
     return knex('posts')
         .select(['id as post_id', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 28) as description'))
+        .select(knex.raw('left (description, 22) as description'))
         .whereIn('user_id', subscriptionsArr)
         .orderBy('created_at', 'desc')
         .limit(limit)
-        .offset(--offset * limit)
+        .offset(offset * limit)
         .map((_row) => {
             if (_row) return getPostThumbs(_row);
             return _row;
@@ -73,12 +73,13 @@ function getDashboard(subscriptionsArr, offset) {
 
 function getTrendingPosts(offset) {
     return knex('posts')
-        .select(['id as post_id', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 50) as description'))
+        .distinct('id as post_id')
+        .select(['user_id', 'views', 'created_at'])
+        .select(knex.raw('left (description, 22) as description'))
         .where('created_at', '>', lastWeek)
         .orderBy('views', 'desc')
         .limit(limit)
-        .offset(--offset * limit)
+        .offset(offset * limit)
         .map((_row) => {
             if (_row) return getPostThumbs(_row);
             return _row;
@@ -99,13 +100,50 @@ function getTrendingPosts(offset) {
                 .then((count) => {
                     return Object.assign({}, { rows }, { count });
                 });
+        })
+        .catch(() => {
+            return null;
+        });
+}
+
+function getUserPosts(userId, offset) {
+    return knex('posts')
+        .select(['id as post_id', 'user_id', 'views', 'created_at'])
+        .select(knex.raw('left (description, 22) as description'))
+        .where('user_id', userId)
+        .orderBy('created_at', 'desc')
+        .limit(limit)
+        .offset(offset * limit)
+        .map((_row) => {
+            if (_row) return getPostThumbs(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .where('user_id', userId)
+                .first()
+                .then((count) => {
+                    return Object.assign({}, { posts: rows }, { count: count.count });
+                });
+        })
+        .catch(() => {
+            return null;
         });
 }
 
 function getSearchedPosts(searchPattern, offset) {
     return knex('posts')
         .select(['id as post_id', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 50) as description'))
+        .select(knex.raw('left (description, 22) as description'))
         .where('description', 'like', `%${searchPattern}%`)
         .orderBy('created_at', 'desc')
         .limit(limit)
@@ -129,31 +167,9 @@ function getSearchedPosts(searchPattern, offset) {
                 .then((count) => {
                     return Object.assign({}, { rows }, { count });
                 });
-        });
-}
-
-function getUserPosts(userId, offset) {
-    return knex('posts')
-        .select(['id as post_id', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 50) as description'))
-        .where('user_id', userId)
-        .orderBy('created_at', 'desc')
-        .limit(limit)
-        .offset(offset)
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
         })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return rows;
+        .catch(() => {
+            return null;
         });
 }
 

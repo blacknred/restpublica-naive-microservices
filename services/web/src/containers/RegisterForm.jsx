@@ -93,7 +93,10 @@ class RegisterForm extends Component {
                     onChange={this.handleInputChange}
                     errorText={this.state.passwordError}
                 /><br /><br />
-                <FlatButton type='submit' label='Sign up' secondary={true} />
+                <FlatButton
+                    type='submit'
+                    label='Sign up'
+                    secondary={true} />
                 <FlatButton label={<Link to='/login'>Need to login?</Link>} />
                 <br /><br />
             </form>

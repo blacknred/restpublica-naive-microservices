@@ -10,7 +10,12 @@ import TextField from 'material-ui/TextField';
 import FlatButton from 'material-ui/FlatButton';
 import Avatar from 'material-ui/Avatar';
 
+
 const styles ={
+    profile: {
+        display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', width: '500px'
+    },
     avatarForm: { 
         display: 'flex', alignItems: 'center', padding: '0 16px'
     },
@@ -65,7 +70,7 @@ class Profile extends Component {
             }
         })
             .then((res) => {
-                console.log(res)
+                // console.log(res)
                 const data = res.data;
                 if (res.data.status === 'Validation failed') {
                     this.setState({ errors: data.failures })
@@ -75,7 +80,7 @@ class Profile extends Component {
                 }
             })
             .catch((error) => {
-                this.props.createFlashMessage(error.message, 'error');
+                this.props.createFlashMessage('Server error', 'error');
             })
     }
     updateSubmit = (event) => {
@@ -93,7 +98,7 @@ class Profile extends Component {
             }
         })
             .then((res) => {
-                console.log(res)
+                // console.log(res)
                 res.data.status === 'Validation failed' ?
                     res.data.failures.forEach((failure) => {
                         const name = `${failure.param}Error`
@@ -102,7 +107,7 @@ class Profile extends Component {
                     this.props.updateUser(res.data.user.username)
             })
             .catch((error) => {
-                this.props.createFlashMessage(error.message, 'error');
+                this.props.createFlashMessage('Server error', 'error');
             })
     }
     getProfile() {
@@ -116,7 +121,7 @@ class Profile extends Component {
         };
         return axios(options)
             .then((res) => {
-                console.log(res)
+                // console.log(res)
                 const user = res.data.user;
                 this.setState({
                     username: user.username,
@@ -127,12 +132,12 @@ class Profile extends Component {
                 });
             })
             .catch((error) => {
-                this.props.createFlashMessage(error.message, 'error');
+                this.props.createFlashMessage('Server error', 'error');
             })
     }
 
     componentDidMount() {
-        console.log('profile mounted')
+        console.log('profile is mounted')
         this.getProfile();
     }
 
@@ -218,7 +223,7 @@ class Profile extends Component {
         return (
             !this.state.fullname.length
                 ? <CircularProgress /> :
-                <div className='profile'>
+                <div style={styles.profile}>
                     <Subheader>Avatar</Subheader>
                     {userPicForm}
                     <br />

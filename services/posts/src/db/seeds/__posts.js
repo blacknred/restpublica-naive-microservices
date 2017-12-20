@@ -17,7 +17,7 @@ exports.seed = (knex, Promise) => {
     return knex('posts').del()
         .then(() => {
             const records = [];
-            for (let i = 1; i <= 250; i++) {
+            for (let i = 1; i <= 500; i++) {
                 records.push(createPost(knex));
             }
             return Promise.all(records);

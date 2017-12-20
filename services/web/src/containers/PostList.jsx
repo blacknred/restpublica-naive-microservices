@@ -1,14 +1,14 @@
-/* eslint-disable no-unused-expressions */
 /* eslint-disable no-undef */
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom'
 import axios from 'axios';
-
-import ScrollToTop from 'react-scroll-up';
 import InfiniteScroll from 'react-infinite-scroller'
-// import InfiniteScrolling from '../components/InfiniteScrolling';
+import ScrollToTop from 'react-scroll-up';
+
+import './PostList.css';
+
 import PostCard from '../components/PostCard';
-import Filters from '../components/Filters';
+import Options from '../components/PostListOptions';
 
 import CircularProgress from 'material-ui/CircularProgress';
 import IconButton from 'material-ui/IconButton';
@@ -17,18 +17,15 @@ import ImageTuneIcon from 'material-ui/svg-icons/image/tune';
 import NavidationArrowUpwardIcon from 'material-ui/svg-icons/navigation/arrow-upward';
 
 const styles = {
-    filtersRightPanel: {
+    optionsRightPanel: {
         position: 'fixed', display: 'flex', flexDirection: 'column',
         transition: 'right 450ms cubic-bezier(0.23, 1, 0.32, 1) 0ms'
     },
     backToTop: {
-        position: null,
-        bottom: null,
-        right: null,
-        cursor: 'pointer',
-        transitionDuration: '0.2s',
-        transitionTimingFunction: 'linear',
-        transitionDelay: '0s'
+        position: 'static',
+    },
+    loader: {
+        flex: 1, textAlign: 'center'
     }
 }
 
@@ -37,16 +34,28 @@ class PostList extends Component {
         super(props);
         this.state = {
             mode: this.props.mode,
-            posts_count: 1,
+
+            empty: false,
+            reload: false,
+            hasMore: true,
             posts: [],
-            filters: false,
-            view_val: 1,
-            filter_val: 1,
-            sort_val: 1
+
+            isOptionsOpen: false,
+            filter: 'none',
+            // temp
+            layout: 1,
+            runEffect: 1
         }
     }
-    handlefiltersToggle = () => this.setState({ filters: !this.state.filters });
-    handleFiltersChange = (filter, value) => this.setState({ [filter]: value });
+    handleOptionsOpenToggle = () => {
+        this.setState({ isOptionsOpen: !this.state.isOptionsOpen });
+    }
+    handleFilterChange = (value) => {
+        this.setState({ filter: value });
+        this.scroll.pageLoaded = 0
+        this.setState({ reload: !this.state.reload })
+        this.setState({ posts: [], postsCount: 1 })
+    }
     getPosts = (page) => {
         const headers = {
             headers: { 'Content-Type': 'application/json' }
@@ -54,13 +63,28 @@ class PostList extends Component {
         if (window.localStorage.authToken) {
             headers.headers.Authorization = `Bearer ${window.localStorage.authToken}`;
         };
-        return axios.get(`http://localhost:3002/api/v1/posts/${this.state.mode}?offset=${page}`, headers)
+        return axios.get(
+            `http://localhost:3002/api/v1/posts/${this.state.mode}?offset=${page}&filter=${this.state.filter}`, headers)
             .then((res) => {
-                console.log(res)
-                if (page === 1) this.setState({ posts_count: res.data.data.count })
-                this.setState({ posts: (this.state.posts).concat(res.data.data.posts) });
+                // console.log(res)
+                if (this.props.setPostsCount && page === 1) {
+                    this.props.setPostsCount(res.data.data.count)
+                }
+                if (res.data.data.count === 0) {
+                    this.setState({ empty: true, hasMore: false })
+                } else {
+                    this.setState({ posts: (this.state.posts).concat(res.data.data.posts) });
+                }
+                if ((this.state.posts).length >= res.data.data.count) {
+                    console.log('overflow')
+                    this.setState({ hasMore: false });
+                }
+                console.log(`Posts - page:${page}, count:${res.data.data.count}, length:${this.state.posts.length}`)
             })
-            .catch((err) => { console.log(err); })
+            .catch((error) => {
+                this.setState({ hasMore: false });
+                this.props.createFlashMessage('Server error', 'error');
+            })
     }
     empty = () => {
         switch (this.state.mode) {
@@ -82,8 +106,9 @@ class PostList extends Component {
                 return (
                     <p>
                         Seems like you have no posts yet.<br /><br />
-                        Start now with <Link to={{ pathname: '/post', state: { modal: true } }}>
-                        <b>Create a post</b></Link>.
+                        Start now with
+                        <Link to={{ pathname: '/post', state: { modal: true } }}>
+                            <b>Create a post</b></Link>.
                     </p>
                 );
             default:
@@ -94,9 +119,9 @@ class PostList extends Component {
                 );
         }
     }
+
     componentDidMount() {
-        console.log(`${this.props.mode} mounted`)
-        //this.getPosts(this.props.mode)
+        console.log(`${this.props.mode} posts are mounted`)
     }
     render() {
         const posts = this.state.posts.map(post => (
@@ -106,47 +131,51 @@ class PostList extends Component {
             />
         ))
         return (
-            <div className='container'>
-                {
-                    this.state.posts.length ?
-                        <div>
-                            <Filters
-                                drawer={this.props.drawer}
-                                filters={this.state.filters}
-                                handleFiltersChange={this.handleFiltersChange}
-                                sort_val={this.state.sort_val}
-                                filter_val={this.state.filter_val}
+            this.state.empty ?
+                <div className='container'>{this.empty()}</div> :
+                <div className='container'>
+                    {
+                        this.state.posts.length < 30 ? null :
+                            <div>
+                                <Options
+                                    drawer={this.props.drawer}
+                                    isOptionsOpen={this.state.isOptionsOpen}
+                                    handleFilterChange={this.handleFilterChange}
+                                    filter={this.state.filter}
+                                    layout={this.state.layout}
+                                    runEffect={this.state.runEffect}
                                 />
-                            <div style={Object.assign({}, styles.filtersRightPanel,
-                                { right: this.props.drawer ? '6%' : '12%' })} >
-                                <IconButton onClick={this.handlefiltersToggle} >
-                                    <ImageTuneIcon color={this.state.filters ? 'rgb(255, 64, 129)' : null} />
-                                </IconButton>
-                                <ScrollToTop showUnder={460} style={styles.backToTop}>
-                                    <IconButton>
-                                        <NavidationArrowUpwardIcon />
+                                <div style={Object.assign({}, styles.optionsRightPanel,
+                                    { right: this.props.drawer ? '6%' : '12%' })} >
+                                    <IconButton onClick={this.handleOptionsOpenToggle} >
+                                        <ImageTuneIcon color={this.state.isOptionsOpen
+                                            ? 'rgb(255, 64, 129)' : null} />
                                     </IconButton>
-                                </ScrollToTop>
+                                    <ScrollToTop
+                                        showUnder={460}
+                                        style={styles.backToTop}>
+                                        <IconButton>
+                                            <NavidationArrowUpwardIcon />
+                                        </IconButton>
+                                    </ScrollToTop>
+                                </div>
                             </div>
-                        </div>
-                        : null
-                }
-                {
-                    this.state.posts_count > 0 ?
-                        <InfiniteScroll
-                            className="posts"
-                            pageStart={0}
-                            loadMore={this.getPosts}
-                            hasMore={this.state.posts.length < this.state.posts_count}
-                            loader={<CircularProgress />}
-                            useWindow={true}
-                            threshold={100} >
-                            {posts}
-                        </InfiniteScroll>
-                        // {/* <InfiniteScrolling content={posts} getPosts={this.getPosts} /> */ }
-                        : this.empty()
-                }
-            </div>
+                    }
+
+                    <InfiniteScroll
+                        //key={this.state.reload}
+                        ref={(scroll) => { this.scroll = scroll }}
+                        className="posts"
+                        pageStart={0}
+                        initialLoad={true}
+                        loadMore={this.getPosts}
+                        hasMore={this.state.hasMore}
+                        loader={<CircularProgress style={styles.loader} />}
+                        useWindow={true}
+                        threshold={500} >
+                        {posts}
+                    </InfiniteScroll>
+                </div>
         )
     }
 }
