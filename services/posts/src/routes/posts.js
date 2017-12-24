@@ -21,7 +21,7 @@ router.get('/dashboard', routeHelpers.ensureAuthenticated,
                 ? --req.query.offset : 1;
         return routeHelpers.getSubscriptions(req, next)
             .then((response) => {
-                return postQueries.getDashboard(
+                return postQueries.getDashboardPosts(
                     response.data.map((sub) => {
                         return sub.user_id;
                     }), offset);
@@ -93,6 +93,44 @@ router.get('/trending', (req, res, next) => {
         });
 });
 
+router.get('/search', (req, res, next) => {
+        const offset =
+            req.query.offset && /^\+?\d+$/.test(req.query.offset)
+                ? --req.query.offset : 0;
+        if (!req.query.q) { throw new Error('Search pattern is empty'); }
+        return postQueries.getSearchedPosts(req.query.q, offset)
+            .then((response) => {
+                return Promise.all([
+                    response,
+                    routeHelpers.getUsersConciseData(
+                        response.rows.map((sub) => {
+                            return sub.user_id;
+                        }), req, next)
+                ]);
+            })
+            .then((arrs) => {
+                const [posts, usersData] = arrs;
+                const finalePosts = posts.rows.map((x) => {
+                    return Object.assign({}, x,
+                        { author: usersData.find(y => y.user_id === x.user_id) });
+                });
+                return Object.assign({}, posts.count, { posts: finalePosts });
+            })
+            .then((posts) => {
+                res.json({
+                    status: 'success',
+                    data: posts
+                });
+            })
+            .catch((err) => {
+                console.log(err);
+                res.status(500).json({
+                    status: 'error',
+                    message: err.message
+                });
+            });
+    });
+
 router.get('/user/:username', (req, res, next) => {
     const offset =
         req.query.offset && /^\+?\d+$/.test(req.query.offset)
@@ -114,28 +152,6 @@ router.get('/user/:username', (req, res, next) => {
             });
         });
 });
-
-router.get('/search', routeHelpers.ensureAuthenticated,
-    (req, res) => {
-        const offset =
-            req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? --req.query.offset : 0;
-        if (!req.query.q) { throw new Error('Search pattern is empty'); }
-        return postQueries.getSearchedPosts(req.query.q, offset)
-            .then((posts) => {
-                res.json({
-                    status: 'success',
-                    data: posts
-                });
-            })
-            .catch((err) => {
-                console.log(err);
-                res.status(500).json({
-                    status: 'error',
-                    message: err.message
-                });
-            });
-    });
 
 
 /* post */

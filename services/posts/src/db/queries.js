@@ -2,7 +2,7 @@
 const knex = require('./connection');
 const routeHelpers = require('../routes/_helpers');
 
-const limit = 18;
+const limit = 12;
 const today = new Date();
 const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
 
@@ -40,10 +40,10 @@ function getCommentsCount(post) {
 
 /* posts */
 
-function getDashboard(subscriptionsArr, offset) {
+function getDashboardPosts(subscriptionsArr, offset) {
     return knex('posts')
         .select(['id as post_id', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 22) as description'))
+        .select(knex.raw('left (description, 40) as description'))
         .whereIn('user_id', subscriptionsArr)
         .orderBy('created_at', 'desc')
         .limit(limit)
@@ -75,7 +75,7 @@ function getTrendingPosts(offset) {
     return knex('posts')
         .distinct('id as post_id')
         .select(['user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 22) as description'))
+        .select(knex.raw('left (description, 40) as description'))
         .where('created_at', '>', lastWeek)
         .orderBy('views', 'desc')
         .limit(limit)
@@ -106,10 +106,44 @@ function getTrendingPosts(offset) {
         });
 }
 
+function getSearchedPosts(searchPattern, offset) {
+    return knex('posts')
+        .select(['id as post_id', 'user_id', 'views', 'created_at'])
+        .select(knex.raw('left (description, 40) as description'))
+        .where('description', 'like', `%${searchPattern}%`)
+        .orderBy('created_at', 'desc')
+        .limit(limit)
+        .offset(offset)
+        .map((_row) => {
+            if (_row) return getPostThumbs(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .where('description', 'like', `%${searchPattern}%`)
+                .first()
+                .then((count) => {
+                    return Object.assign({}, { rows }, { count });
+                });
+        })
+        .catch(() => {
+            return null;
+        });
+}
+
 function getUserPosts(userId, offset) {
     return knex('posts')
         .select(['id as post_id', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 22) as description'))
+        .select(knex.raw('left (description, 40) as description'))
         .where('user_id', userId)
         .orderBy('created_at', 'desc')
         .limit(limit)
@@ -140,38 +174,6 @@ function getUserPosts(userId, offset) {
         });
 }
 
-function getSearchedPosts(searchPattern, offset) {
-    return knex('posts')
-        .select(['id as post_id', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 22) as description'))
-        .where('description', 'like', `%${searchPattern}%`)
-        .orderBy('created_at', 'desc')
-        .limit(limit)
-        .offset(offset)
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return knex('posts')
-                .count('*')
-                .where('description', 'like', `%${searchPattern}%`)
-                .then((count) => {
-                    return Object.assign({}, { rows }, { count });
-                });
-        })
-        .catch(() => {
-            return null;
-        });
-}
 
 /* post */
 
@@ -271,7 +273,7 @@ function deletePostLike(likeId) {
 }
 
 module.exports = {
-    getDashboard,
+    getDashboardPosts,
     getSearchedPosts,
     getTrendingPosts,
     getUserPosts,

@@ -11,7 +11,7 @@ ENV PATH /usr/src/app/node_modules/.bin:$PATH
 ADD package.json /usr/src/app/package.json
 #ADD package-lock.json /usr/src/app/package-lock.json
 #RUN cd /usr/src/app && npm install
-RUN npm install react-scripts@0.9.5 -g
+RUN npm install react-scripts@1.0.17 -g
 
 COPY . /usr/src/app
 

@@ -1,11 +1,24 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+/* eslint-disable no-undef */
+import React, { Component } from 'react';
 
-const Post = () => (
-    <div style={{ background: '#eee', border: '1px solid #aaa', margin: '0 auto', width: '80%' }} >
-        <h1>Post</h1>
-        <Link to='/'><p>Return Home</p></Link>
-    </div>
-)
+const styles = {
+    postContainer: {
+        background: '#eee'
+    }
+}
 
+class Post extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {}
+    }
+    render() {
+        return (
+            <div className='container' style={styles.postContainer}>
+                Post
+            </div>
+        )
+    }
+
+}
 export default Post  

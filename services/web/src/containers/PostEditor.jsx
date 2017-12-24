@@ -3,8 +3,7 @@ import React, { Component } from 'react';
 
 const styles = {
     postEditorContainer: {
-        background: '#eee', border: '1px solid #aaa',
-        margin: '0 auto', width: '80%'
+        background: '#eee', margin: '0 auto', width: '500px'
     }
 }
 

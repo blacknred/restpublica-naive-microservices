@@ -1,25 +1,33 @@
 import React, { Component } from 'react'
+import { CSSTransitionGroup } from 'react-transition-group'
 import { Route, Redirect, Switch } from 'react-router-dom'
 
+import { grey100 } from 'material-ui/styles/colors';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import Paper from 'material-ui/Paper';
+import darkBaseTheme from 'material-ui/styles/baseThemes/darkBaseTheme';
+import lightBaseTheme from 'material-ui/styles/baseThemes/lightBaseTheme';
+import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import IconButton from 'material-ui/IconButton';
 import NavigationCloseIcon from 'material-ui/svg-icons/navigation/close';
+import Dialog from 'material-ui/Dialog';
+import Paper from 'material-ui/Paper';
 
 import './App.css';
+import "animate.css/animate.min.css"
 
 import NotFound from '../components/NotFound';
 import ContentNotFound from '../components/ContentNotFound';
 import FlashMessages from '../components/FlashMessages';
 import AppDrawer from '../components/Drawer';
 import Header from '../components/Header';
+import TrendingBlock from '../components/TrendingBlock';
+import UsersBlock from '../components/UsersBlock';
+import SearchBlock from '../components/SearchBlock';
 
 import LandingIntro from './LandingIntro';
-import Profile from './Profile';
+import Settings from './Settings';
 import PostList from './PostList';
 import User from './User';
-import Search from './Search';
-import Trending from './Trending';
 import Post from './Post';
 import PostEditor from './PostEditor';
 
@@ -36,14 +44,16 @@ class App extends Component {
             isContentNotFound: false,
             drawer: true,
             flashMessages: [],
-            isNotify: true,
             notifications: [1, 2, 3],
+            isNotify: false,
+            isNightMode: false
         }
         this.authUser = this.authUser.bind(this)
         this.logoutUser = this.logoutUser.bind(this)
         this.updateUser = this.updateUser.bind(this)
         this.drawerToggle = this.drawerToggle.bind(this)
         this.notifyToggle = this.notifyToggle.bind(this)
+        this.nightModeToggle = this.nightModeToggle.bind(this)
         this.toggle404 = this.toggle404.bind(this)
         this.redirect = this.redirect.bind(this)
         this.deleteFlashMessage = this.deleteFlashMessage.bind(this)
@@ -53,9 +63,18 @@ class App extends Component {
         this.setState({ drawer: !this.state.drawer });
     }
     notifyToggle() {
+        const cur = this.state.isNotify;
+        this.setState({ isNotify: !cur });
+        window.localStorage.setItem('userNotify', !cur);
         this.createFlashMessage(
-            `Notifications turn ${this.state.isNotify ? 'off' : 'on'}`, 'notice');
-        this.setState({ isNotify: !this.state.isNotify });
+            `Notifications are turn ${this.state.isNotify ? 'off' : 'on'}`, 'notice');
+    }
+    nightModeToggle() {
+        const val = !this.state.isNightMode;
+        this.setState({ isNightMode: val });
+        window.localStorage.setItem('userNightMode', val);
+        this.createFlashMessage(
+            `Night mode is ${this.state.isNightMode ? 'off' : 'on'}`, 'notice');
     }
     createFlashMessage(text, type = 'notice') {
         const message = { text, type }
@@ -82,12 +101,17 @@ class App extends Component {
         window.localStorage.setItem('userId', userData.id)
         window.localStorage.setItem('userName', userData.username)
         window.localStorage.setItem('userPic', userData.avatar)
+        window.localStorage.setItem('userNotify', true)
+        window.localStorage.setItem('userNightMode', false)
         this.setState({
             isAuthenticated: true,
-            user: { name: userData.username, pic: userData.avatar }
+            user: { name: userData.username, pic: userData.avatar },
+            isNotify: true,
+            isNightMode: false,
         })
         this.createFlashMessage(`You successfully ${mode}! Welcome!`)
         this.props.history.push('/')
+        if (mode === 'registered') alert('Introduce')
     }
     updateUser(userData) {
         if (userData.username) {
@@ -109,6 +133,8 @@ class App extends Component {
         window.localStorage.clear()
         this.setState({
             isAuthenticated: false,
+            drawer: false,
+            isNightMode: false,
             user: {
                 name: '',
                 pic: ''
@@ -124,31 +150,42 @@ class App extends Component {
         this.props.history.push(url)
     }
     componentWillMount() {
-        const { authToken, userName, userPic } = window.localStorage;
+        const { authToken, userName, userPic, userNotify,
+            userNightMode } = window.localStorage;
         if (authToken) {
             this.setState({
                 isAuthenticated: true,
-                user: { name: userName, pic: userPic }
+                user: { name: userName, pic: userPic },
+                isNotify: userNotify === 'true',
+                isNightMode: userNightMode === 'true'
             })
         }
     }
-    componentDidMount() {
-        // this.props.history.push('/')
+    componentWillUpdate(nextProps) {
+        const { location } = this.props
+        if (
+            nextProps.history.action !== 'POP' &&
+            (!location.state || !location.state.modal)
+        ) {
+            /* set previousLocation if props.location is not modal */
+            this.previousLocation = this.props.location
+        }
     }
     render() {
         const { location } = this.props
         const { isAuthenticated, user, drawer, flashMessages, isNotify, notifications,
-            isContentNotFound } = this.state
-        /* 
-        -- modals engine --
-        React-router Links with { modal:true } value will provoke is_modal to be true.
-        When isModal is true Main switch routing will not go to new 
-        location, stay on previousLocation and not render other component,
-        but Modal switch routing will render proper modal component.
-        React-router common Links without { modal:true } value will provoke is_modal be false
-        and activate Main switch routing new location instead of Modal switch routing.
-        */
+            isContentNotFound, isNightMode } = this.state
+
         const isModal = !!(
+            /* 
+                -- modals engine --
+                React-router Links with { modal:true } value will provoke is_modal to be true.
+                When isModal is true Main switch routing will not go to new 
+                location, stay on previousLocation and not render other component,
+                but Modal switch routing will render proper modal component.
+                React-router common Links without { modal:true } value will provoke is_modal be false
+                and activate Main switch routing new location instead of Modal switch routing.
+            */
             location.state &&
             location.state.modal &&
             this.previousLocation !== location // not initial render
@@ -177,103 +214,129 @@ class App extends Component {
                     isNotify={isNotify}
                     notifications={notifications}
                     notifyToggle={this.notifyToggle}
+                    isNightMode={isNightMode}
+                    nightModeToggle={this.nightModeToggle}
                     toggle404={this.toggle404}
-                    isContentNotFound={this.state.isContentNotFound} />
+                    isContentNotFound={isContentNotFound} />
                 {
                     !isAuthenticated ? null :
                         <AppDrawer
-                            //toggle404={this.toggle404}
-                            isContentNotFound={this.state.isContentNotFound}
+                            className='drawer'
+                            toggle404={this.toggle404}
+                            isContentNotFound={isContentNotFound}
                             redirect={this.redirect}
                             drawer={drawer}
-                            location={location.pathname} />
+                            location={location.pathname}
+                            isNightMode={isNightMode} />
                 }
-                <div
-                    className='frame'
-                    style={{ marginLeft: drawer ? '235px' : '0px' }}
-                >
-                    {
-                        isContentNotFound ? <Route component={ContentNotFound} /> :
-                            <div>
-                                <Route path='/dashboard' render={() => (
+                <div className={drawer ? 'frame open' : 'frame'}>
+                    <CSSTransitionGroup
+                        transitionName={{
+                            enter: "animatedd",
+                            enterActive: "fadeInUpp",
+                            leave: "fade-leave",
+                            //leaveActive: "fade-out"
+                            // appear: 'animatedd',
+                            // appearActive: 'fadeInUpp'
+                        }}
+                        transitionEnterTimeout={300}
+                        transitionLeaveTimeout={100}>
+                        <Switch key={location.key} location={location}>
+                            <Route path='/settings' render={() => (
+                                <div>
+                                    <Settings
+                                    updateUser={this.updateUser}
+                                    createFlashMessage={this.createFlashMessage}
+                                />
+                                </div>
+                            )} />
+
+                            <Route path='/dashboard' render={() => (
+                                <PostList
+                                    mode='dashboard'
+                                    drawer={drawer}
+                                    isAuthenticated={isAuthenticated}
+                                    isFullAccess={false}
+                                    isNightMode={isNightMode}
+                                    createFlashMessage={this.createFlashMessage} />
+                            )} />
+
+                            <Route path='/trending' render={() => (
+                                <div>
+                                    <TrendingBlock />
+                                    <UsersBlock />
                                     <PostList
-                                        mode='dashboard'
-                                        drawer={this.state.drawer}
-                                        createFlashMessage={this.createFlashMessage} />
-                                )} />
-
-                                <Route path='/search/:searchParam?' render={({ location }) => (
-                                    <Search query={location.search} />
-                                )} />
-
-                                <Route path='/me/:mode' render={({ match }) => (
-                                    <User
-                                        user={this.state.user.name}
+                                        mode='trending'
+                                        drawer={drawer}
                                         isAuthenticated={isAuthenticated}
-                                        drawer={this.state.drawer}
-                                        notifications={notifications}
-                                        mode='me'
-                                        toggle404={this.toggle404}
+                                        isFullAccess={false}
+                                        isNightMode={isNightMode}
                                         createFlashMessage={this.createFlashMessage} />
-                                )} />
+                                </div>
+                            )} />
 
-                                <Route path='/profile' render={() => (
-                                    <Profile
-                                        updateUser={this.updateUser}
-                                        createFlashMessage={this.createFlashMessage}
-                                    />
-                                )} />
+                            <Route path='/search/:searchParam?' render={({ location }) => (
+                                <div>
+                                    <SearchBlock />
+                                    <UsersBlock />
+                                    <PostList
+                                        mode={`search${location.search}`}
+                                        drawer={drawer}
+                                        isAuthenticated={isAuthenticated}
+                                        isFullAccess={false}
+                                        isNightMode={isNightMode}
+                                        createFlashMessage={this.createFlashMessage} />
+                                </div>
+                            )} />
 
-                                <Route path='/trending' render={() => (
-                                    <Trending />
-                                )} />
+                            <Route path='/me/:mode' render={({ match }) => (
+                                <div>
+                                    <User
+                                    user={user.name}
+                                    isAuthenticated={isAuthenticated}
+                                    drawer={drawer}
+                                    notifications={notifications}
+                                    mode='me'
+                                    redirect={this.redirect}
+                                    toggle404={this.toggle404}
+                                    isNightMode={isNightMode}
+                                    createFlashMessage={this.createFlashMessage} />
+                             
+                                </div>
+                                )}/>
+                                
 
-                                <Route path='/u/:username/:mode' render={({ match }) => (
+                            <Route path='/u/:username/:mode' render={({ match }) => (
+                                isContentNotFound ? <Route component={ContentNotFound} /> :
                                     <User
                                         user={match.params.username}
                                         mode='user'
-                                        isAuthenticated={this.state.isAuthenticated}
+                                        isAuthenticated={isAuthenticated}
+                                        redirect={this.redirect}
                                         toggle404={this.toggle404}
-                                        drawer={this.state.drawer}
+                                        drawer={drawer}
+                                        isNightMode={isNightMode}
                                         createFlashMessage={this.createFlashMessage}
                                     />
-                                )} />
+                            )} />
 
-                                <Route path='/p/:id' render={({ match }) => (
+                            <Route path='/p/:id' render={({ match }) => (
+                                isContentNotFound ? <Route component={ContentNotFound} /> :
                                     <Post id={match.params.id} />
-                                )} />
-                            </div>
-                    }
+                            )} />
+                        </Switch>
+                    </CSSTransitionGroup>
                 </div>
-            </div>
+            </div >
         );
 
-        // const Modal = ({ match, history, location }) => {
-        //     const back = (e) => {
-        //         e.stopPropagation()
-        //         history.goBack()
-        //     }
-        //     return (
-        //         <div className='modal'>
-        //             <Paper zDepth={1}>
-        //                 <IconButton onClick={back} >
-        //                     <NavigationCloseIcon />
-        //                 </IconButton>
-        //                 <Route path="/p/:id" render={({ match }) => (
-        //                     <Post id={match.params.id} />
-        //                 )} />
-        //                 <Route path="/post" component={PostEditor} />
-        //             </Paper>
-        //         </div >
-        //     );
-        // }
-
         return (
-            <MuiThemeProvider>
-                <div>
+            <MuiThemeProvider muiTheme={getMuiTheme(isNightMode ? darkBaseTheme : lightBaseTheme)}>
+                <Paper style={Object.assign({}, { minHeight: '100vh' },
+                    isNightMode ? null : { backgroundColor: grey100 })}>
                     <Switch location={isModal ? this.previousLocation : location}>
 
-                        /* ***** landing, auth ***** */
+                        {/* ***** landing, auth ***** */}
                         <Route exact path='/' render={() => (
                             !isAuthenticated ?
                                 <Redirect to='/login' /> :
@@ -289,7 +352,7 @@ class App extends Component {
                         <Route path='/login' render={() => landing} />
 
 
-                        /* ***** auth paths ***** */
+                        {/* ***** auth paths ***** */}
                         <Route path='/dashboard' render={() => (
                             isAuthenticated ? dynamicFrame : <Redirect to='/' />
                         )} />
@@ -306,7 +369,7 @@ class App extends Component {
                             <Redirect to='/me/posts' />
                         )} />
 
-                        <Route path='/profile' render={() => (
+                        <Route path='/settings' render={() => (
                             isAuthenticated ? dynamicFrame :
                                 <Redirect to={{
                                     pathname: '/',
@@ -317,7 +380,7 @@ class App extends Component {
                         <Route path='/post' render={() => <Redirect to='/' />} />
 
 
-                        /* ***** non auth paths ***** */
+                        {/* ***** non auth paths ***** */}
                         <Route path='/trending' render={() => dynamicFrame} />
 
                         <Route path='/search/:searchParam?' render={({ location }) => (
@@ -339,27 +402,34 @@ class App extends Component {
                         <Route path='/p/:id' render={() => dynamicFrame} />
 
 
-                        /* ***** toggle404 ***** */
+                        {/* ***** 404 ***** */}
                         <Route component={NotFound} />
 
                     </Switch>
                     {
                         !isModal ? null :
-                        <Route render={({ history }) => (
-                            <div className='modal'>
-                                <Paper zDepth={1}>
-                                    <IconButton onClick={() => history.goBack()} >
-                                        <NavigationCloseIcon />
-                                    </IconButton>
-                                    <Route path="/p/:id" render={({ match }) => (
-                                        <Post id={match.params.id} />
-                                    )} />
-                                    <Route path="/post" component={PostEditor} />
-                                </Paper>
-                            </div >
-                        )} />
+                            <Route render={({ history }) => (
+                                <Dialog
+                                    actions={
+                                        <IconButton onClick={() => history.goBack()} >
+                                            <NavigationCloseIcon />
+                                        </IconButton>
+                                    }
+                                    modal={true}
+                                    contentStyle={{ width: 'auto', maxWidth: 'none' }}
+                                    open={true} >
+                                    <Switch>
+                                        <Route path="/newpost" component={PostEditor} />
+                                        <Route path="/p/:id/:mode(delete)" component={PostEditor} />
+                                        <Route path="/p/:id/:mode(edit)" component={PostEditor} />
+                                        <Route path="/p/:id" render={({ match }) => (
+                                            <Post id={match.params.id} />
+                                        )} />
+                                    </Switch>
+                                </Dialog>
+                            )} />
                     }
-                </div>
+                </Paper>
             </MuiThemeProvider>
         )
     }

@@ -69,8 +69,12 @@ class LoginForm extends Component {
                     onChange={this.handleInputChange}
                     errorText={this.state.passwordError}
                 /><br /><br />
-                <FlatButton type='submit' label='Log in' secondary={true} />
-                <FlatButton label={<Link to='/register'>Need to register?</Link>} />
+                <FlatButton
+                    type='submit'
+                    label='Log in'
+                    secondary={true} />
+                <FlatButton
+                    label={<Link to='/register'>Need to register?</Link>} />
                 <br /><br />
             </form>
         )

@@ -3,8 +3,7 @@ import React, { Component } from 'react';
 
 const styles = {
     postContainer: {
-        background: '#eee', border: '1px solid #aaa',
-        margin: '0 auto', width: '80%'
+        background: '#eee'
     }
 }
 
@@ -15,7 +14,7 @@ class Post extends Component {
     }
     render() {
         return (
-            <div style={styles.postContainer}>
+            <div className='container' style={styles.postContainer}>
                 Post
             </div>
         )

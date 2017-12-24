@@ -1,8 +1,7 @@
-/* subscriptions */
-.subscriptions{
+/* activity */
+.activity{
     width: 40%;
     display: flex;
-    flex-wrap: wrap;
     min-height: 10vh;
     align-items: center;
     justify-content: center;

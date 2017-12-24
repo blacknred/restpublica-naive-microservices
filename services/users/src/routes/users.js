@@ -226,8 +226,10 @@ router.get('/concise', (req, res) => {
     const usersIdsArr = req.query.users.split(',') || [];
     return authHelpers.getUsersConciseData(usersIdsArr)
         .then((usersdata) => {
-            // eslint-disable-next-line
-            usersdata.forEach(user => user.avatar = user.avatar.toString('base64'));
+            if (usersdata) {
+                // eslint-disable-next-line
+                usersdata.forEach(user => user.avatar = user.avatar.toString('base64'));
+            }
             res.status(200).json({
                 status: 'success',
                 users: usersdata
@@ -250,8 +252,10 @@ router.get('/followers/:id', validate.validateUserSubscriptions,
             ? --req.query.offset : 0;
         return authHelpers.getFollowers(req.params.id, offset, req.user)
             .then((result) => {
-                // eslint-disable-next-line
-                result.subscriptions.forEach(user => user.avatar = user.avatar.toString('base64'));
+                if (result.subscriptions) {
+                    // eslint-disable-next-line
+                    result.subscriptions.forEach(user => user.avatar = user.avatar.toString('base64'));
+                }
                 res.status(200).json({
                     status: 'success',
                     data: result
@@ -275,7 +279,7 @@ router.get('/followin/:id', validate.validateUserSubscriptions,
             authHelpers.getConciseFollowin(req.params.id) :
             authHelpers.getFollowin(req.params.id, offset, req.user))
             .then((result) => {
-                if (!concise) {
+                if (!concise && result.subscriptions) {
                     // eslint-disable-next-line
                     result.subscriptions.forEach(user => user.avatar = user.avatar.toString('base64'))
                 }

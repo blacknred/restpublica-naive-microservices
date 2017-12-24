@@ -21,7 +21,7 @@ const UserBlock = ({ userId, userpic, username, fullname, description, isAuthent
             mode === 'me' ?
                 <FlatButton
                     secondary={true}
-                    label={<Link to='/settings#profile'>Edit profile</Link>} />
+                    label={<Link to='/profile'>Edit profile</Link>} />
                 :
                 mySubscriptionId ?
                     <FlatButton

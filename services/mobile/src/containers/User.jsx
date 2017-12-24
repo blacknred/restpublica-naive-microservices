@@ -254,7 +254,6 @@ class User extends Component {
         return (
             !this.state.username ? <CircularProgress /> :
                 <div>
-                    <br/>
                     <UserBlock
                         mode={mode}
                         userId={this.state.userId}

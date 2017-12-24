@@ -9,13 +9,10 @@ import Avatar from 'material-ui/Avatar';
 import FlatButton from 'material-ui/FlatButton';
 import { List, ListItem } from 'material-ui/List';
 
-import './Subscriptions.css';
-
 const styles = {
     list: { width: '100%' },
-    loader: {
-        flex: 1, textAlign: 'center'
-    }
+    loader: { textAlign: 'center', width: '100%'},
+    subscriptions: { maxWidth: '40%' }
 }
 
 class Subscriptions extends Component {
@@ -62,15 +59,16 @@ class Subscriptions extends Component {
         return axios.get(`http://localhost:3001/api/v1/users/${this.state.mode}/${this.state.userId}?offset=${page}`, headers)
             .then((res) => {
                 // console.log(res)
+                // if there are no requested posts at all view empty page 
                 if (parseInt(res.data.data.count, 2) === 0) {
                     this.setState({ empty: true, hasMore: false })
-                } else {
+                }
+                // enlarge posts arr if there are, block loading if there are not
+                if ((res.data.data.subscriptions).length > 0) {
                     this.setState({
                         subscriptions: (this.state.subscriptions).concat(res.data.data.subscriptions)
                     })
-                }
-                if (this.state.subscriptions.length >= res.data.data.count) {
-                    console.log('overflow')
+                } else {
                     this.setState({ hasMore: false });
                 }
                 console.log(`Subscriptions - page:${page}, count:${res.data.data.count}, length:${this.state.subscriptions.length}`)
@@ -120,25 +118,25 @@ class Subscriptions extends Component {
             />
         ))
         return (
-            this.state.empty ?
-                <div className='subscriptions'>
-                    <p> There are no {this.state.mode}.</p>
-                </div> :
-                <div>
-                    <InfiniteScroll
-                        className="subscriptions"
-                        pageStart={0}
-                        initialLoad={true}
-                        loadMore={this.getSubscriptions}
-                        hasMore={this.state.hasMore}
-                        loader={<CircularProgress style={styles.loader} />}
-                        useWindow={true}
-                        threshold={100} >
-                        <List style={styles.list}>
-                            {subscriptions}
-                        </List>
-                    </InfiniteScroll>
-                </div>
+            <div style={styles.subscriptions}>
+            <br/>
+                {
+                    this.state.empty ?
+                        <p style={styles.loader}> <br />There are no {this.state.mode}.</p> :
+                        <InfiniteScroll
+                            pageStart={0}
+                            initialLoad={true}
+                            loadMore={this.getSubscriptions}
+                            hasMore={this.state.hasMore}
+                            loader={<CircularProgress style={styles.loader} />}
+                            useWindow={true}
+                            threshold={100} >
+                            <List style={styles.list}>
+                                {subscriptions}
+                            </List>
+                        </InfiniteScroll>
+                }
+            </div>
         );
     }
 }

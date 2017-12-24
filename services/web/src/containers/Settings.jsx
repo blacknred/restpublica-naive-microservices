@@ -9,25 +9,16 @@ import Divider from 'material-ui/Divider';
 import TextField from 'material-ui/TextField';
 import FlatButton from 'material-ui/FlatButton';
 import Avatar from 'material-ui/Avatar';
+import Paper from 'material-ui/Paper';
 
-
-const styles ={
-    profile: {
-        display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', width: '500px'
-    },
-    avatarForm: { 
-        display: 'flex', alignItems: 'center', padding: '0 16px'
-    },
-    avatar: {
-        marginRight: '1em', cursor: 'pointer'
-    },
-    profileForm: { 
-        padding: '0 16px'
-    }
+const styles = {
+    profile: { padding: '1em', /*height: '100vh',*/ width: '500px' },
+    avatarForm: { display: 'flex', alignItems: 'center', padding: '0 16px' },
+    avatar: { marginRight: '1em', cursor: 'pointer' },
+    profileForm: { padding: '0 16px' }
 }
 
-class Profile extends Component {
+class Settings extends Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -60,7 +51,7 @@ class Profile extends Component {
     userPicSibmit = (event) => {
         event.preventDefault();
         const userPic = event.target.querySelector('#userPic').files[0];
-        if (!userPic) return this.props.createFlashMessage('Select image at first', 'notice')
+        if (!userPic) return this.props.createFlashMessage('Select an image at first', 'notice')
         const formData = new FormData();
         formData.append('userPic', userPic);
         return axios.put('http://localhost:3001/api/v1/users/update/userpic', formData, {
@@ -150,25 +141,25 @@ class Profile extends Component {
                 accept='.jpg, .jpeg, .png'
                 encType="multipart/form-data"
                 style={styles.avatarForm} >
-                    <label htmlFor="userPic">
-                        <Avatar 
-                            size={80} 
-                            src={this.state.userpic} 
-                            style={styles.avatar}/>
-                    </label>
-                    <FlatButton 
-                        label="Choose an Image"
-                        containerElement="label" >
-                        <input
-                            id='userPic'
-                            type='file'
-                            name='userPic'
-                            accept='.jpg, .jpeg, .png'
-                            onChange={this.handleInputFileChange} />
-                    </FlatButton>
-                    <FlatButton 
-                        type='submit'
-                        label='Update userpic' />
+                <label htmlFor="userPic">
+                    <Avatar
+                        size={80}
+                        src={this.state.userpic}
+                        style={styles.avatar} />
+                </label>
+                <FlatButton
+                    label="Choose an Image"
+                    containerElement="label" >
+                    <input
+                        id='userPic'
+                        type='file'
+                        name='userPic'
+                        accept='.jpg, .jpeg, .png'
+                        onChange={this.handleInputFileChange} />
+                </FlatButton>
+                <FlatButton
+                    type='submit'
+                    label='Update userpic' />
             </form>
         );
         const profileForm = (
@@ -218,12 +209,14 @@ class Profile extends Component {
             </form>
         )
         const changePassword = (
-            <FlatButton label='Change Password' />
+            <form>
+                <FlatButton label='Change Password' />
+            </form>
         )
         return (
             !this.state.fullname.length
                 ? <CircularProgress /> :
-                <div style={styles.profile}>
+                <Paper style={styles.profile} transitionEnabled={false}>
                     <Subheader>Avatar</Subheader>
                     {userPicForm}
                     <br />
@@ -234,9 +227,9 @@ class Profile extends Component {
                     <Divider />
                     <Subheader>Password</Subheader>
                     {changePassword}
-                </div>
+                </Paper>
         );
     }
 }
 
-export default Profile  
+export default Settings  

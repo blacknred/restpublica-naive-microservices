@@ -10,7 +10,7 @@ import IconButton from 'material-ui/IconButton';
 import { Toolbar, ToolbarGroup, ToolbarTitle } from 'material-ui/Toolbar';
 import Badge from 'material-ui/Badge';
 import Toggle from 'material-ui/Toggle';
-import { grey200, grey300, grey600, grey900, black } from 'material-ui/styles/colors';
+import { grey100, grey200, grey600, grey900, black } from 'material-ui/styles/colors';
 import NavigationMenuIcon from 'material-ui/svg-icons/navigation/menu';
 import ContentAddIcon from 'material-ui/svg-icons/content/add';
 import SocialNotificationsIcon from 'material-ui/svg-icons/social/notifications';
@@ -27,22 +27,22 @@ const Header = ({ user, logoutUser, isAuthenticated, isNotify, notifications,
         appbar: {
             position: 'fixed', top: '0', width: '100%',
             backgroundColor: isNightMode ? black : 'white',
-            zIndex: '1400', boxShadow: '0 1px 8px rgba(0,0,0,.3)'
-        }, //'0px 4px 8px -3px rgba(17, 17, 17, .06)'
+            zIndex: '1400', boxShadow: '0px 4px 8px -3px rgba(17, 17, 17, .06)'
+        },
         drawerButton: { marginLeft: '-10px' },
         drawerButtonIcon: { color: grey600 },
         toolbarTitle: {
             fontSize: '1.2em', marginLeft: '1em', fontWeight: '700',
-            color: isNightMode ? grey200 : grey600
+            color: isNightMode ? grey200 : grey900
         },
         searchField: {
-            width: '450px', height: '42px', lineHeight: '42px',
-            backgroundColor: isNightMode ? grey900 : grey300,
-            padding: '0 1em', marginLeft: '35px', borderRadius: '3px'
+            width: '450px', height: '34px', lineHeight: '34px',
+            backgroundColor: isNightMode ? grey900 : grey100,
+            padding: '0 1em', marginLeft: '35px',
         },
         searchFieldInput: { color: isNightMode ? grey200 : grey900 },
         badge: { top: '9px', right: '9px' },
-        userButton: { margin: '0px', padding: '0px' },
+        userButton: { margin: '0 0 0 12px', padding: '0px' },
         iconButton: { color: grey600 },
         userMenu: { cursor: 'pointer' },
         newPost: { minWidth: '48px', }
@@ -81,14 +81,14 @@ const Header = ({ user, logoutUser, isAuthenticated, isNotify, notifications,
         <IconMenu
             iconButtonElement={
                 <IconButton style={styles.userButton}>
-                    <Avatar src={`data:image/png;base64, ${user.pic}`} size={35} />
+                    <Avatar src={`data:image/png;base64, ${user.pic}`} size={37} />
                 </IconButton>
             }
             anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
             targetOrigin={{ horizontal: 'left', vertical: 'top' }}
             style={styles.userMenu} >
             <MenuItem leftIcon={<ActionSettingsIcon />} >
-                <Link to='/settings#profile'>Edit profile</Link>
+                <Link to='/profile'>Edit profile</Link>
             </MenuItem>
             <MenuItem
                 leftIcon={<ActionExitToAppIcon />}

@@ -5,15 +5,10 @@ import SocialSentimentDissatisfiedIcon from 'material-ui/svg-icons/social/sentim
 
 const styles = {
     container: {
-        color: '#747474',
-        display: 'flex',
-        alignItems: 'center',
-        flexDirection: 'column',
-        paddingTop: '10%'
+        color: '#747474', display: 'flex', paddingTop: '10%',
+        alignItems: 'center', flexDirection: 'column'
     },
-    icon: {
-        width: '7em', height: '7em', color: 'rgb(228, 228, 228)'
-    }
+    icon: { width: '7em', height: '7em', color: 'rgb(228, 228, 228)' }
 }
 
 const NotFound = () => (

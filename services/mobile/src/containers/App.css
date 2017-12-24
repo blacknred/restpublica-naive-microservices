@@ -1,7 +1,6 @@
 body{
     font-family: sans-serif;
     margin: 0;
-    /* background-color: #F5F5F5; */
 }
 a{
     text-decoration: none;
@@ -10,120 +9,85 @@ a{
 form input[type=file]{
     display: none;
 }
-
 .frame{
     transition: margin 450ms cubic-bezier(0.23, 1, 0.32, 1) 0ms;
-    margin-top: 56px;
+    padding-top: 100px;
     display: flex;
-    align-items: center;
+    /* align-items: center; */
     justify-content: center;
-    min-height: 30vh;
-    margin-top: 6em;
+    height: 100%;
+    margin-left: 0px;
 }
-/* .container{
-    margin: 6vh auto;
-} */
-.modal{
-    position: fixed;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #f3f3f3d1;
-    z-index: 1500;
-    overflow-y: auto;
-    padding: 5vh;
+.frame.open{
+    margin-left: 240px;
 }
-.modal button{
-    position: absolute;
-    right: 0;
-    top: 0;
-}
-
-
-/* profile */
-.profile{
+.container{
     display: flex;
     flex-direction: column;
     justify-content: center;
-    width: 500px;
-}
-
-/* user-block */
-.user-block{
-    display: flex;
-    width: 800px;
-    justify-content: space-around;
-    align-items: flex-start;
-    min-height: 25vh;
-    margin-top: 3em;
-}
-.user-block-right{
-    width: 70%;
-}
-.user-block-right h2:first-of-type{
-    display: flex;
-    justify-content: space-between;
-}
-
-/* popular-block */
-.popular-block{
-    width: 800px;
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-start;
     min-height: 10vh;
-}
-
-/* post List */
-.posts{
-    min-width: 700px;
-    width: 1200px;
-    display: flex;
-    justify-content: center;
-    /* align-items: flex-start; */
-    flex-wrap: wrap;
-}
-.post-card{
-    width: 270px;
-    height: auto;
-    background: #f1f1f1;
-    vertical-align: top;
-    margin: 0.5em;
-}
-
-/* subscriptions */
-.subscriptions{
-    width: 450px;
-    display: flex;
-    min-height: 10vh;
-    align-items: center;
-    justify-content: center;
+    margin: 2em 0;
+    width: 1300px;
 }
 
 
-
-
-
-
-
-/* .app-header{
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4em;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-}
-.app-header-popup{
-     position: absolute;
-     min-height: 100px;
-     min-width: 100px;
-
+/* .fade-enter {
+    opacity: 0;
+    z-index: 1;
+}  
+.fade-enter.fade-enter-active {
+    opacity: 1;
+    transition: opacity 250ms ease-in;
 } */
+
+.fade-enter {
+    opacity: 0.01;
+}
+.fade-enter.fade-enter-active {
+    opacity: 1;
+    transition: opacity 600ms ease-in;
+}
+.fade-leave {
+    opacity: 1;
+}
+.fade-leave.fade-leave-active {
+    opacity: 0.01;
+    transition: opacity 50ms ease-in;
+}
+
+
+@media (max-width: 1600px){
+    .frame.open{
+        margin-left: 0px;
+    }
+}
+@media (max-width: 1400px){
+    .container{
+        max-width: 1100px;
+        width: auto;
+    }
+}
+
+.element {
+    -webkit-animation: element-act 5s;
+    -moz-animation:    element-act 5s;
+    -o-animation:      element-act 5s;
+    animation:         element-act 5s;
+  }
+  
+  @-webkit-keyframes element-act {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @-moz-keyframes element-act {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @-o-keyframes element-act {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes element-act {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
