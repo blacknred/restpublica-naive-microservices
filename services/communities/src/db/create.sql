@@ -1,2 +1,2 @@
-CREATE DATABASE users_dev;
-CREATE DATABASE users_test;
+CREATE DATABASE communities_dev;
+CREATE DATABASE communities_test;

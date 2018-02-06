@@ -12,7 +12,5 @@ ADD package.json /usr/src/package.json
 ADD package-lock.json /usr/src/app/package-lock.json
 #RUN npm install
 
-COPY . /usr/src/app
-
 # start app
 CMD ["npm", "start"]

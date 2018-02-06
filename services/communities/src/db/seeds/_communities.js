@@ -1,10 +1,11 @@
 const faker = require('faker');
 const helpers = require('../_helpers');
+const routeHelpers = require('../../routes/_helpers');
 
 const createCommunity = (knex, title, adminId) => {
     return Promise.all([
-        helpers.createAvatar(title),
-        helpers.createTheme()
+        routeHelpers.createAvatar(title),
+        routeHelpers.createTheme()
     ])
         .then((imgs) => {
             const [avatar, theme] = imgs;

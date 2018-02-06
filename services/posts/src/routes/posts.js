@@ -1,393 +1,300 @@
+/* eslint-disable consistent-return */
 const express = require('express');
-const postQueries = require('../db/queries.js');
-const routeHelpers = require('./_helpers');
-const newPost = require('./_new_post');
+const postsQueries = require('../db/queries.js');
+const helpers = require('./_helpers');
+const dbHelpers = require('../db/_helpers');
 const validate = require('./validation');
 
 const router = express.Router();
 
+
 /* status */
 
-router.get('/status', (req, res) => {
-    res.send('ok');
+router.get('/ping', (req, res) => {
+    res.send('pong');
+});
+
+/* post */
+
+router.post('/posts', validate.post, async (req, res, next) => {
+    const newPost = {
+        slug: dbHelpers.genSlug(),
+        author_id: req.user,
+        commentable: req.body.commentable,
+        archived: req.body.archived
+    };
+    if (req.body.communityId) newPost.community_id = req.body.communityId;
+    if (req.body.description) newPost.description = req.body.description;
+    try {
+        const post = await postsQueries.createPost(newPost);
+        // if (data.name) throw new Error(data.detail || data.message);
+        switch (req.body.contentType) {
+            /* eslint-disable */
+            case 'imgs' || 'video':
+                Object.keys(req.files).map(async (fileKey) => {
+                    const file = req.files[fileKey]
+                    if (file.truncated) throw new Error('file is over the size limit: 10mB');
+                    let thumbBuffer;
+                    if (req.body.contentType === 'img') thumbBuffer = await helpers.createImageThumb(file.data);
+                    else { thumbBuffer = await helpers.createVideoThumb(file); }
+                    const [filePath, thumbPath] = await helpers.saveFile(file, thumbBuffer);
+                    const fileObj = {
+                        post_id: post.id,
+                        mime: file.mimetype,
+                        file: filePath,
+                        thumb: thumbPath
+                    };
+                    await postsQueries.addFiles(fileObj);
+                });
+                break;
+            case 'link':
+                const link = JSON.parse(req.body.link);
+                // create new link
+                const newLink = {
+                    post_id: post.id,
+                    type: link.type,
+                    link: link.url
+                };
+                if (data.title) newLink.title = link.title;
+                if (data.thumb) newLink.thumb = link.thumb;
+                if (link.type === 'img') newLink.thumb = await helpers.createImageThumb(link.url);
+                await postsQueries.addLink(newLink);
+                break;
+            case 'poll':
+                const poll = JSON.parse(req.body.poll);
+                // create new poll
+                const newPoll = {
+                    post_id: post.id,
+                    subject: data.subject
+                };
+                if (data.endsAt) newPoll.ands_at = data.endsAt;
+                const addedPoll = await postsQueries.addPoll(newPoll);
+                // add poll options
+                Object.keys(poll.options).map(async (objKey, i) => {
+                    const newPollOption = {
+                        poll_id: addedPoll.id,
+                        option: poll.options[objKey]
+                    };
+                    if (req.files.option_[i]) newPollOption.img = req.files.option_[i].data;
+                    await postsQueries.addPollOption(newPollOption);
+                });
+                break;
+            default:
+        }
+        if (req.body.tags) {
+            req.body.tags.forEach(async (tag) => {
+                const tagId = await postsQueries.saveTag(tag);
+                await postsQueries.addTagToPost(tagId, post.id);
+            });
+        }
+        res.status(200).json({
+            status: 'success',
+            data: post
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.get('/posts/:slug', validate.post, async (req, res, next) => {
+    try {
+        const data = await postsQueries.getPost(req.params.slug, req.user);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.put('/posts/:id', validate.post, async (req, res, next) => {
+    const updatedPost = {
+        post_id: req.params.Id,
+        description: req.body.description
+    };
+    try {
+        const data = await postsQueries.updatePost(req.user, updatedPost);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.delete('/posts/:id', validate.post, async (req, res, next) => {
+    try {
+        const data = await postsQueries.deletePost(req.params.id, req.user);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+/* comments */
+
+router.post('/posts/:id/comments', validate.comments, async (req, res, next) => {
+    const newComment = {
+        post_id: req.body.id,
+        user_id: req.user,
+        comment: req.body.comment
+    };
+    try {
+        const data = await postsQueries.createPostComment(newComment);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.get('/posts/:id/comments', validate.comments, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    try {
+        const data = await postsQueries.getPostComments(req.params.id, offset);
+        // if (communityData.name) throw new Error(communityData.detail || communityData.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.put('/posts/:id/comment/:commid', validate.comments, async (req, res, next) => {
+    const newComment = {
+        comment: req.body.comment
+    };
+    try {
+        const data = await postsQueries.updatePostComment(req.params.commid, req.user, newComment);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.delete('/posts/comment/:commid', validate.comments, async (req, res, next) => {
+    try {
+        const data = await postsQueries.deletePostComment(req.params.commid, req.user);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+/* likes */
+
+router.post('/posts/:id/likes', validate.likes, async (req, res, next) => {
+    const newLike = {
+        post_id: req.body.id,
+        user_id: req.user
+    };
+    try {
+        const data = await postsQueries.createPostLike(newLike);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.get('/posts/:id/likes', validate.likes, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    try {
+        const data = await postsQueries.getPostLikes(req.params.id, req.user, offset);
+        // if (communityData.name) throw new Error(communityData.detail || communityData.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.delete('/posts/:id/likes/:likeid', validate.likes, async (req, res, next) => {
+    try {
+        const data = await postsQueries.deletePostLike(req.params.likeid, req.user);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+/* tags */
+
+router.get('/tags', validate.tags, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const query = req.query.query.toLowerCase() || null;
+    let data;
+    try {
+        if (query) data = await postsQueries.getSearchedTags(query, offset);
+        else data = await postsQueries.getTrendingTags(offset);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
 });
 
 /* posts */
 
-router.get('/dashboard', routeHelpers.ensureAuthenticated,
-    (req, res, next) => {
-        const offset =
-            req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? --req.query.offset : 1;
-        return routeHelpers.getSubscriptions(req, next)
-            .then((response) => {
-                return postQueries.getDashboardPosts(
-                    response.data.map((sub) => {
-                        return sub.user_id;
-                    }), offset);
-            })
-            .then((response) => {
-                return Promise.all([
-                    response,
-                    routeHelpers.getUsersConciseData(
-                        response.rows.map((sub) => {
-                            return sub.user_id;
-                        }), req, next)
-                ]);
-            })
-            .then((arrs) => {
-                const [posts, usersData] = arrs;
-                const finalePosts = posts.rows.map((x) => {
-                    return Object.assign({}, x,
-                        { author: usersData.find(y => y.user_id === x.user_id) });
-                });
-                return Object.assign({}, posts.count, { posts: finalePosts });
-            })
-            .then((posts) => {
-                res.status(200).json({
-                    status: 'success',
-                    data: posts
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err.message
-                });
-            });
-    });
-
-router.get('/trending', (req, res, next) => {
-    const offset =
-        req.query.offset && /^\+?\d+$/.test(req.query.offset)
-            ? --req.query.offset : 1;
-    return postQueries.getTrendingPosts(offset)
-        .then((response) => {
-            return Promise.all([
-                response,
-                routeHelpers.getUsersConciseData(
-                    response.rows.map((sub) => {
-                        return sub.user_id;
-                    }), req, next)
-            ]);
-        })
-        .then((arrs) => {
-            const [posts, usersData] = arrs;
-            const finalePosts = posts.rows.map((x) => {
-                return Object.assign({}, x,
-                    { author: usersData.find(y => y.user_id === x.user_id) });
-            });
-            return Object.assign({}, posts.count, { posts: finalePosts });
-        })
-        .then((posts) => {
-            res.json({
-                status: 'success',
-                data: posts
-            });
-        })
-        .catch((err) => {
-            res.status(500).json({
-                status: 'error',
-                message: err
-            });
+router.get('/posts', validate.posts, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const tag = req.query.tag.toLowerCase() || null;
+    const query = req.query.query.toLowerCase() || null;
+    const profiles = req.query.profiles.split(',') || null;
+    const comms = req.query.communities.split(',') || null;
+    let data;
+    try {
+        if (query) data = await postsQueries.getSearchedPosts(query, req.user, offset);
+        else if (tag) data = await postsQueries.getPostsByTag(tag, req.user, offset);
+        else if (profiles) data = await postsQueries.getProfilesPosts(req.user, profiles, offset);
+        else if (comms) data = await postsQueries.getCommunitiesPosts(req.user, comms, offset);
+        else data = await postsQueries.getTrendingPosts(req.user, offset);
+        // if (data.name) throw new Error(data.detail || data.message);
+        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
+        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
+        // // eslint-disable-next-line
+        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
+        res.status(200).json({
+            status: 'success',
+            data
         });
+    } catch (err) {
+        return next(err);
+    }
 });
-
-router.get('/search', (req, res, next) => {
-        const offset =
-            req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? --req.query.offset : 0;
-        if (!req.query.q) { throw new Error('Search pattern is empty'); }
-        return postQueries.getSearchedPosts(req.query.q, offset)
-            .then((response) => {
-                return Promise.all([
-                    response,
-                    routeHelpers.getUsersConciseData(
-                        response.rows.map((sub) => {
-                            return sub.user_id;
-                        }), req, next)
-                ]);
-            })
-            .then((arrs) => {
-                const [posts, usersData] = arrs;
-                const finalePosts = posts.rows.map((x) => {
-                    return Object.assign({}, x,
-                        { author: usersData.find(y => y.user_id === x.user_id) });
-                });
-                return Object.assign({}, posts.count, { posts: finalePosts });
-            })
-            .then((posts) => {
-                res.json({
-                    status: 'success',
-                    data: posts
-                });
-            })
-            .catch((err) => {
-                console.log(err);
-                res.status(500).json({
-                    status: 'error',
-                    message: err.message
-                });
-            });
-    });
-
-router.get('/user/:username', (req, res, next) => {
-    const offset =
-        req.query.offset && /^\+?\d+$/.test(req.query.offset)
-            ? --req.query.offset : 0;
-    return routeHelpers.getUserId(req, next)
-        .then((id) => {
-            return postQueries.getUserPosts(id, offset);
-        })
-        .then((posts) => {
-            res.json({
-                status: 'success',
-                data: posts
-            });
-        })
-        .catch((err) => {
-            res.status(500).json({
-                status: 'error',
-                message: err.message
-            });
-        });
-});
-
-
-/* post */
-
-router.get('/:id', routeHelpers.ensureAuthenticated,
-    validate.validatePost, (req, res) => {
-        return postQueries.getPost(req.params.id)
-            .then((post) => {
-                res.json({
-                    status: 'success',
-                    data: post
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.post('/:type', routeHelpers.ensureAuthenticated,
-    validate.validatePost, (req, res) => {
-        const post = newPost.createPost(req);
-        return postQueries.addPost(post)
-            .then(() => {
-                res.json({
-                    status: 'success',
-                    data: 'Post added!'
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.put('/:id', routeHelpers.ensureAuthenticated,
-    validate.validatePost, (req, res) => {
-        const updatedPost = {
-            description: req.body.description
-        };
-        return postQueries.updatePost(req.params.id, updatedPost)
-            .then((post) => {
-                res.json({
-                    status: 'success',
-                    data: post
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.delete('/:id', routeHelpers.ensureAuthenticated,
-    validate.validatePost, (req, res) => {
-        return postQueries.deletePost(req.params.id)
-            .then((status) => {
-                if (!status) console.log('Files not found!');
-                res.json({
-                    status: 'success',
-                    data: 'Post deleted!'
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-/* comments */
-
-router.get('/:id/comments', routeHelpers.ensureAuthenticated,
-    validate.validateComments, (req, res, next) => {
-        const offset =
-            req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? --req.query.offset : 0;
-        return postQueries.getPostComments(req.params.id, offset)
-            .then((comments) => {
-                const usersIds = comments.map((user) => {
-                    return user.user_id;
-                });
-                return Promise.all([
-                    routeHelpers.getUsersConciseData(usersIds, req, next),
-                    comments
-                ]);
-            })
-            /* eslint-disable */
-            .then((arrs) => {
-                const [usersData, comments] = arrs;
-                const finaleArr = usersData.map((x) => {
-                    return Object.assign(x, comments.find(y => y.user_id == x.user_id));
-                });
-                return finaleArr;
-            })
-            /* eslint-enable */
-            .then((fullComments) => {
-                res.json({
-                    status: 'success',
-                    data: fullComments
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.post('/:id/comment', routeHelpers.ensureAuthenticated,
-    validate.validateComments, (req, res) => {
-        console.log(req.user);
-        const newComment = {
-            post_id: req.params.id,
-            user_id: req.user,
-            comment: req.body.comment
-        };
-        return postQueries.addPostComment(newComment)
-            .then(() => {
-                res.json({
-                    status: 'success',
-                    data: 'Comment added!'
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.put('/comment/:id', routeHelpers.ensureAuthenticated,
-    validate.validateComments, (req, res) => {
-        return postQueries.updatePostComment(req.params.id, req.body.comment)
-            .then((post) => {
-                res.json({
-                    status: 'success',
-                    data: post
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.delete('/comment/:id', routeHelpers.ensureAuthenticated,
-    validate.validateComments, (req, res) => {
-        return postQueries.deletePostComment(req.params.id)
-            .then(() => {
-                res.json({
-                    status: 'success',
-                    data: 'Comment deleted!'
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-/* likes */
-
-router.get('/:id/likes', routeHelpers.ensureAuthenticated,
-    validate.validateLikes, (req, res, next) => {
-        const offset =
-            req.query.offset && /^\+?\d+$/.test(req.query.offset)
-                ? --req.query.offset : 0;
-        return postQueries.getPostLikes(req.params.id, offset)
-            .then((likes) => {
-                const usersIds = likes.map((user) => {
-                    return user.user_id;
-                });
-                return routeHelpers.getUsersConciseData(usersIds, req, next);
-            })
-            .then((users) => {
-                console.warn(users);
-                res.json({
-                    status: 'success',
-                    data: users
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.post('/like', routeHelpers.ensureAuthenticated,
-    validate.validateLikes, (req, res) => {
-        return postQueries.addPostLike(req.body.postId, req.user)
-            .then(() => {
-                res.json({
-                    status: 'success',
-                    data: 'Like added!'
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
-
-router.delete('/like/:id', routeHelpers.ensureAuthenticated,
-    validate.validateLikes, (req, res) => {
-        return postQueries.deletePostLike(req.params.id)
-            .then(() => {
-                res.json({
-                    status: 'success',
-                    data: 'Like deleted!'
-                });
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    status: 'error',
-                    message: err
-                });
-            });
-    });
 
 
 module.exports = router;

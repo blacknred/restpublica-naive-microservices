@@ -2,9 +2,7 @@ const gulp = require('gulp');
 const nodemon = require('gulp-nodemon');
 const eslint = require('gulp-eslint');
 
-/*
-tasks
- */
+/* tasks */
 
 gulp.task('start', () => {
   nodemon({
@@ -21,8 +19,6 @@ gulp.task('lint', () => (
   .pipe(eslint.failAfterError())
 ));
 
-/*
-default
- */
+/* default */
 
 gulp.task('default', ['start', 'lint']);

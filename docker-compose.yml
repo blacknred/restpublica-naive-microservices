@@ -12,10 +12,10 @@ services:
       - POSTGRES_PASSWORD=postgres
     healthcheck:
       test: exit 0
-  
-  posts-db:
-    container_name: posts-db
-    build: ./services/posts/src/db
+
+  communities-db:
+    container_name: communities-db
+    build: ./services/communities/src/db
     ports:
       - '5434:5432'
     environment:
@@ -24,15 +24,25 @@ services:
     healthcheck:
       test: exit 0
 
-  posts-storage:
-    container_name: posts-storage
+  posts-db:
+    container_name: posts-db
+    build: ./services/posts/src/db
+    ports:
+      - '5435:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: exit 0
+
+  files-storage:
+    container_name: files-storage
     build: ./services/posts/storage/
     volumes:
       - './services/posts/storage:/usr/src/app'
-      - './services/posts/storage/package.json:/usr/src/package.json'
       - './services/posts/storage/node_modules:/usr/src/node_modules'
     ports:
-      - '3003:3003'
+      - '3007:3007'
     environment:
       - NODE_ENV=${NODE_ENV}
 
@@ -41,10 +51,9 @@ services:
     build: ./services/users/
     volumes:
       - './services/users:/usr/src/app'
-      - './services/users/package.json:/usr/src/package.json'
       - './services/users/node_modules:/usr/src/node_modules'
     ports:
-      - '3001:3001'
+      - '3004:3004'
     environment:
       - DATABASE_URL=postgres://postgres:postgres@users-db:5432/users_dev
       - DATABASE_TEST_URL=postgres://postgres:postgres@users-db:5432/users_test
@@ -56,68 +65,135 @@ services:
     links:
       - users-db
 
+  communities-service:
+    container_name: communities-service
+    build: ./services/communities/
+    volumes:
+      - './services/communities:/usr/src/app'
+      - './services/communities/node_modules:/usr/src/node_modules'
+    ports:
+      - '3005:3005'
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@communities-db:5432/communities_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@communities-db:5432/communities_test
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+    depends_on:
+      communities-db:
+        condition: service_healthy
+      users-service:
+        condition: service_started
+    links:
+      - communities-db
+      - users-service
+
   posts-service:
     container_name: posts-service
     build: ./services/posts/
     volumes:
       - './services/posts:/usr/src/app'
-      - './services/posts/package.json:/usr/src/package.json'
       - './services/posts/node_modules:/usr/src/node_modules'
     ports:
-      - '3002:3002'
+      - '3006:3006'
     environment:
       - DATABASE_URL=postgres://postgres:postgres@posts-db:5432/posts_dev
       - DATABASE_TEST_URL=postgres://postgres:postgres@posts-db:5432/posts_test
       - NODE_ENV=${NODE_ENV}
       - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+      - FILES_STORAGE_HOST=http://files-storage:3007
     depends_on:
       posts-db:
         condition: service_healthy
-      posts-storage:
+      files-storage:
         condition: service_started
       users-service:
+        condition: service_started
+      communities-service:
         condition: service_started
     links:
       - posts-db
-      - posts-storage
+      - files-storage
       - users-service
-
-  web-service:
-    container_name: web-service
-    build: ./services/web/
-    volumes:
-      - './services/web:/usr/src/app'
-      - './services/web/package.json:/usr/src/package.json'
-      - './services/web/node_modules:/usr/src/node_modules'
-    ports:
-      - '3000:3000'
-    environment:
-      - NODE_ENV=${NODE_ENV}
-    depends_on:
-      users-service:
-        condition: service_started
-      posts-service:
-        condition: service_started
-    links:
-      - users-service
-      - posts-service
+      - communities-service
 
   swagger:
     container_name: swagger
     build: ./services/posts/swagger/
     volumes:
       - './services/posts/swagger:/usr/src/app'
-      - './services/posts/swagger/package.json:/usr/src/package.json'
       - './services/posts/swagger/node_modules:/usr/src/node_modules'
     ports:
-      - '3004:3004'
+      - '3008:3008'
     environment:
       - NODE_ENV=${NODE_ENV}
     depends_on:
       users-service:
         condition: service_started
+      communities-service:
+        condition: service_started
       posts-service:
         condition: service_started
     links:
       - users-service
+      - communities-service
       - posts-service
+
+  restpublica-api:
+    container_name: restpublica-api
+    build: ./api_gateway/
+    volumes:
+      - './api_gateway:/usr/src/app'
+      - './api_gateway/node_modules:/usr/src/node_modules'
+    ports:
+      - '3003:3003'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+      - USERS_API_HOST=http://users-service:3004
+      - COMMUNITIES_API_HOST=http://communities-service:3005
+      - POSTS_API_HOST=http://posts-service:3006
+    depends_on:
+      users-service:
+        condition: service_started
+      communities-service:
+        condition: service_started
+      posts-service:
+        condition: service_started
+    links:
+      - users-service
+      - communities-service
+      - posts-service
+
+  # web-client:
+  #   container_name: web-client
+  #   build: ./clients/web/
+  #   volumes:
+  #     - './services/web:/usr/src/app'
+  #     - './services/web/node_modules:/usr/src/node_modules'
+  #   ports:
+  #     - '3000:3000'
+  #   environment:
+  #     - NODE_ENV=${NODE_ENV}
+  #     - RESTPUBLICA_API_HOST=http://localhost:3003
+  #   depends_on:
+  #     restpublica-api:
+  #       condition: service_started
+  #   links:
+  #     - restpublica-api
+  
+  # mobile-client:
+    # container_name: mobile-client
+    # build: ./clients/mobile/
+    # volumes:
+    #   - './services/mobile:/usr/src/app'
+    #   - './services/mobile/node_modules:/usr/src/node_modules'
+    # ports:
+    #   - '3001:3001'
+    # environment:
+    #   - NODE_ENV=${NODE_ENV}
+    #   - RESTPUBLICA_API_HOST=http://localhost:3003
+    # depends_on:
+    #   restpublica-api:
+    #     condition: service_started
+    # links:
+    #   - restpublica-api

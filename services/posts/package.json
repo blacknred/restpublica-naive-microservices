@@ -1,13 +1,12 @@
 {
     "name": "restpublica-posts-api-microservice",
-    "version": "0.0.1",
+    "version": "0.1.1",
     "scripts": {
         "start": "gulp --gulpfile app/gulpfile.js",
         "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
     },
     "dependencies": {
         "body-parser": "^1.17.1",
-        "cookie-parser": "^1.4.3",
         "debug": "^2.6.6",
         "express": "^4.15.2",
         "express-fileupload": "*",
@@ -20,8 +19,8 @@
         "request": "^2.81.0",
         "request-promise": "^4.2.0",
         "sharp": "^0.18.4",
-        "video-thumb": "*",
-        "video-thumbnail-url": "*"
+        "moment": "^2.20.1",
+        "jwt-simple": "^0.5.0",
     },
     "devDependencies": {
         "chai": "^3.5.0",

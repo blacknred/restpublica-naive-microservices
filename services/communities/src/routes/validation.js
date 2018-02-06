@@ -1,56 +1,43 @@
-function validateUser(req, res, next) {
+function community(req, res, next) {
     if (req.method === 'POST') {
-        req.checkBody('username')
+        req.checkBody('name')
             .notEmpty()
             .withMessage('Name cannot be empty');
-        req.checkBody('password')
-            .matches(/^.*(?=.{5,})(?=.*\d)(?=.*[a-zA-Z]).*$/)
-            .withMessage(`Password must be at least 5 chars 
-            long and contain at least one number`);
-        req.checkBody('fullname')
+        req.checkBody('description')
             .notEmpty()
-            .withMessage('Full name cannot be empty');
-        req.checkBody('email')
-            .isEmail()
-            .withMessage('Must be an valid email');
+            .withMessage('Description cannot be empty');
+        req.checkBody('restricted')
+            .isIn([true, false])
+            .withMessage('Restricted should be bool');
+        req.checkBody('posts_moderation')
+            .isIn([true, false])
+            .withMessage('Posts moderation should be bool');
     } else if (req.method === 'PUT') {
-        req.checkBody('username')
-            .notEmpty()
-            .withMessage('Name cannot be empty');
-        req.checkBody('fullname')
-            .notEmpty()
-            .withMessage('Full name cannot be empty');
-        req.checkBody('email')
-            .isEmail()
-            .withMessage('Must be an valid email');
-    }
-    const failures = req.validationErrors();
-    if (failures) {
-        return res.status(422)
-            .json({ status: `Validation failed`, failures });
-    }
-    return next();
-}
-
-function validateUsersArr(req, res, next) {
-    const usersIdArr = req.params.userids.split(',');
-    let failures = null;
-    usersIdArr.forEach((id) => {
-        if (!Number.isInteger(parseInt(id, 10))) {
-            failures++;
+        req.checkParams('id')
+            .isInt()
+            .withMessage('Id must be integer');
+        if (!req.files) {
+            req.checkBody('option')
+                .notEmpty()
+                .withMessage('Update option cannot be empty');
+            req.checkBody('value')
+                .notEmpty()
+                .withMessage('Update value cannot be empty');
+        } else if (!req.files.avatar && !req.files.theme) {
+            return res.status(422)
+                .json({ status: `Validation failed`, failures: 'No image was uploaded' });
         }
-    });
-    if (failures) {
-        return res.status(422)
-            .json({ status: `Validation failed`, failures: 'Users id must be integer' });
+    } else if (req.method === 'DELETE') {
+        req.checkParams('id')
+            .isInt()
+            .withMessage('Id must be integer');
+        req.checkBody('option')
+            .notEmpty()
+            .withMessage('Update option cannot be empty');
+        req.checkBody('value')
+            .notEmpty()
+            .withMessage('Update value cannot be empty');
     }
-    return next();
-}
-
-function validateSearch(req, res, next) {
-    req.checkParams('query')
-        .matches(/^.{3,}$/)
-        .withMessage('Search query must has at least 3 chars');
     const failures = req.validationErrors();
     if (failures) {
         return res.status(422)
@@ -59,14 +46,22 @@ function validateSearch(req, res, next) {
     return next();
 }
 
-function validateUserLogin(req, res, next) {
-    req.checkBody('username')
-        .notEmpty()
-        .withMessage('Name cannot be empty');
-    req.checkBody('password')
-        .matches(/^.*(?=.{5,})(?=.*\d)(?=.*[a-zA-Z]).*$/)
-        .withMessage(`Password must be at least 5 chars 
-        long and contain at least one number`);
+function communities(req, res, next) {
+    if (req.query.query) {
+        req.checkQuery('query')
+            .matches(/^.{3,}$/)
+            .withMessage('Search query must has at least 3 chars');
+    }
+    if (req.query.communities) {
+        req.checkQuery('communities')
+            .matches(/[0-9]+/g)
+            .withMessage('Communities ids must be integers');
+    }
+    if (req.query.admin) {
+        req.checkQuery('admin')
+            .isInt()
+            .withMessage('Admin id must be integer');
+    }
     const failures = req.validationErrors();
     if (failures) {
         return res.status(422)
@@ -75,27 +70,40 @@ function validateUserLogin(req, res, next) {
     return next();
 }
 
-function validateUserAvatar(req, res, next) {
-    if (!req.files.avatar) {
-        return res.status(422)
-            .json({ status: `Validation failed`, failures: 'No image was uploaded' });
-    }
-    return next();
-}
-
-
-function validateUserSubscriptions(req, res, next) {
-    const pattern = new RegExp(`^((?!${req.user})[0-9]*)$`);
+function bans(req, res, next) {
     if (req.method === 'GET') {
-        req.checkParams('userid')
-            .isInt()
-            .withMessage('Must be integer');
+        req.checkParams('id')
+            .notEmpty()
+            .withMessage('Community id cannot be empty');
     } else if (req.method === 'POST') {
-        req.checkBody('userId')
+        req.checkBody('id')
             .isInt()
-            .withMessage('Must be integer')
-            .matches(pattern)
-            .withMessage('Trying subscribe self');
+            .withMessage('Id must be integer');
+        req.checkBody('endDate')
+            .notEmpty()
+            .withMessage('endDate value cannot be empty');
+    }
+    const failures = req.validationErrors();
+    if (failures) {
+        return res.status(422)
+            .json({ status: `Validation failed`, failures });
+    }
+    return next();
+}
+
+function subscriptions(req, res, next) {
+    if (req.method === 'GET') {
+        req.checkParams('id')
+            .isInt()
+            .withMessage('Community id must be integer');
+    } else if (req.method === 'POST') {
+        req.checkBody('id')
+            .isInt()
+            .withMessage('Community id must be integer');
+    } else if (req.method === 'DELETE') {
+        req.checkParams('subid')
+            .isInt()
+            .withMessage('Subscription id must be integer');
     }
     const failures = req.validationErrors();
     if (failures) {
@@ -106,10 +114,8 @@ function validateUserSubscriptions(req, res, next) {
 }
 
 module.exports = {
-    validateUser,
-    validateUsersArr,
-    validateSearch,
-    validateUserLogin,
-    validateUserAvatar,
-    validateUserSubscriptions
+    community,
+    bans,
+    subscriptions,
+    communities
 };

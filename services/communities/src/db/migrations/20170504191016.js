@@ -9,6 +9,7 @@ exports.up = (knex) => {
             table.boolean('restricted').notNullable().defaultTo(false);
             table.boolean('posts_moderation').notNullable().defaultTo(false);
             table.integer('admin_id').notNullable();
+            table.datetime('last_post_at');
             table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
         })
         .createTable('communities_subscriptions', (table) => {
@@ -24,7 +25,7 @@ exports.up = (knex) => {
             table.integer('community_id').notNullable();
             table.foreign('community_id').references('communities.id');
             table.integer('user_id').notNullable();
-            table.datetime('end_date').notNullable().defaultTo(knex.raw('now() + INTERVAL 1 DAY'));
+            table.datetime('end_date').notNullable().defaultTo(knex.raw('now() + INTERVAL \'1 DAY\''));
         })
         .alterTable('communities_subscriptions', (table) => {
             table.unique(['community_id', 'user_id']);

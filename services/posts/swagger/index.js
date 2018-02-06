@@ -4,7 +4,7 @@ const swaggerTools = require('swagger-tools');
 const jsyaml = require('js-yaml');
 const fs = require('fs');
 
-const serverPort = 3004;
+const serverPort = 3008;
 const options = {};
 
 const spec = fs.readFileSync('./swagger.yaml', 'utf8');
