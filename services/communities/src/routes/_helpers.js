@@ -10,9 +10,6 @@ function createAvatar(fullname) {
         .then((data) => {
             return data.buffer();
         })
-        .then((buffer) => {
-            return buffer;
-        })
         .catch((err) => {
             console.log(err.message);
         });
@@ -25,7 +22,12 @@ function createTheme() {
             return data.buffer();
         })
         .then((buffer) => {
-            return buffer;
+            return gm(buffer)
+                .resize(800, 100)
+                .toBuffer('JPG', (err, buffer) => {
+                    if (err) throw new Error(err);
+                    return buffer;
+                });
         })
         .catch((err) => {
             console.log(err.message);

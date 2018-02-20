@@ -5,6 +5,8 @@ services:
   users-db:
     container_name: users-db
     build: ./services/users/src/db
+    volumes:
+      - ./services/users/src/db/pg-data:/var/lib/postgresql/data
     ports:
       - '5433:5432'
     environment:
@@ -16,6 +18,8 @@ services:
   communities-db:
     container_name: communities-db
     build: ./services/communities/src/db
+    volumes:
+      - ./services/communities/src/db/pg-data:/var/lib/postgresql/data
     ports:
       - '5434:5432'
     environment:
@@ -23,10 +27,12 @@ services:
       - POSTGRES_PASSWORD=postgres
     healthcheck:
       test: exit 0
-
+  
   posts-db:
     container_name: posts-db
     build: ./services/posts/src/db
+    volumes:
+      - ./services/posts/src/db/pg-data:/var/lib/postgresql/data
     ports:
       - '5435:5432'
     environment:
@@ -35,23 +41,41 @@ services:
     healthcheck:
       test: exit 0
 
+  partners-db:
+    container_name: partners-db
+    build: ./services/partners/src/db
+    volumes:
+      - ./services/partners/src/db/mongo-data:/data/db
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test: exit 0
+
   files-storage:
     container_name: files-storage
     build: ./services/posts/storage/
     volumes:
       - './services/posts/storage:/usr/src/app'
-      - './services/posts/storage/node_modules:/usr/src/node_modules'
+      - './services/posts/storage/package.json:/usr/src/package.json'
     ports:
       - '3007:3007'
-    environment:
-      - NODE_ENV=${NODE_ENV}
 
-  users-service:
-    container_name: users-service
+  redis-cache:
+    container_name: redis-cache
+    image: redis:alpine
+    volumes:
+      - ./api_gateway/redis-data:/data
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: exit 0
+  
+  users-api:
+    container_name: users-api
     build: ./services/users/
     volumes:
       - './services/users:/usr/src/app'
-      - './services/users/node_modules:/usr/src/node_modules'
+      - './services/users/package.json:/usr/src/package.json'
     ports:
       - '3004:3004'
     environment:
@@ -65,12 +89,12 @@ services:
     links:
       - users-db
 
-  communities-service:
-    container_name: communities-service
+  communities-api:
+    container_name: communities-api
     build: ./services/communities/
     volumes:
       - './services/communities:/usr/src/app'
-      - './services/communities/node_modules:/usr/src/node_modules'
+      - './services/communities/package.json:/usr/src/package.json'
     ports:
       - '3005:3005'
     environment:
@@ -85,14 +109,14 @@ services:
         condition: service_started
     links:
       - communities-db
-      - users-service
+      - users-api
 
-  posts-service:
-    container_name: posts-service
+  posts-api:
+    container_name: posts-api
     build: ./services/posts/
     volumes:
       - './services/posts:/usr/src/app'
-      - './services/posts/node_modules:/usr/src/node_modules'
+      - './services/posts/package.json:/usr/src/package.json'
     ports:
       - '3006:3006'
     environment:
@@ -106,63 +130,78 @@ services:
         condition: service_healthy
       files-storage:
         condition: service_started
-      users-service:
-        condition: service_started
-      communities-service:
-        condition: service_started
     links:
       - posts-db
       - files-storage
-      - users-service
-      - communities-service
 
   swagger:
     container_name: swagger
     build: ./services/posts/swagger/
     volumes:
       - './services/posts/swagger:/usr/src/app'
-      - './services/posts/swagger/node_modules:/usr/src/node_modules'
+      - '/usr/src/app/node_modules'
     ports:
-      - '3008:3008'
+      - '3009:3009'
     environment:
       - NODE_ENV=${NODE_ENV}
     depends_on:
-      users-service:
-        condition: service_started
-      communities-service:
-        condition: service_started
       posts-service:
         condition: service_started
-    links:
-      - users-service
-      - communities-service
-      - posts-service
+      links:
+        - posts-service
 
-  restpublica-api:
-    container_name: restpublica-api
+  partners-api:
+    container_name: posts-api
+    build: ./services/partners/
+    volumes:
+      - './services/partners:/usr/src/app'
+      - './services/partners/package.json:/usr/src/package.json'
+    ports:
+      - '3008:3008'
+    environment:
+      - DATABASE_URL=mongodb://mongo:27017/partners_api
+      - DATABASE_TEST_URL=mongodb://mongo:27017/partners_api_test
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+    depends_on:
+      partners-db:
+        condition: service_healthy
+    links:
+      - partners-db
+
+  api-gateway:
+    container_name: api-gateway
     build: ./api_gateway/
     volumes:
       - './api_gateway:/usr/src/app'
-      - './api_gateway/node_modules:/usr/src/node_modules'
+      - '/usr/src/app/node_modules'
     ports:
       - '3003:3003'
     environment:
       - NODE_ENV=${NODE_ENV}
       - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
-      - USERS_API_HOST=http://users-service:3004
-      - COMMUNITIES_API_HOST=http://communities-service:3005
-      - POSTS_API_HOST=http://posts-service:3006
+      - USERS_API_HOST=http://localhost:3004
+      - PARTNERS_API_HOST=http://localhost:3008
+      - COMMUNITIES_API_HOST=http://localhost:3005
+      - POSTS_API_HOST=http://localhost:3006
     depends_on:
-      users-service:
+      redis-cache:
         condition: service_started
-      communities-service:
+      users-api:
         condition: service_started
-      posts-service:
+      partners-api:
+        condition: service_started
+      communities-api:
+        condition: service_started
+      posts-api:
         condition: service_started
     links:
-      - users-service
-      - communities-service
-      - posts-service
+      - redis-cache
+      - users-api
+      - partners-api
+      - communities-api
+      - posts-api
+
 
   # web-client:
   #   container_name: web-client

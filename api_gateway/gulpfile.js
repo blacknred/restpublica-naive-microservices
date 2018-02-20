@@ -8,7 +8,7 @@ tasks
 
 gulp.task('start', () => {
   nodemon({
-    script: './src/server',
+    script: './src/clusters',
     ext: 'js html',
     tasks: ['lint'],
   });

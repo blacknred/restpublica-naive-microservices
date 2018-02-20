@@ -1,9 +1,9 @@
 ---
 swagger: "2.0"
 info:
-  description: "Restpublica Posts API Swagger"
+  description: "Restpublica Posts API"
   version: "0.0.1"
-  title: "Restpublica Posts API"
+  title: "Posts API"
 host: "localhost:3008"
 basePath: "/posts"
 schemes:

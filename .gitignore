@@ -3,7 +3,6 @@ node_modules
 
 # testing
 coverage
-.travis.yml
 
 # production
 build
@@ -13,6 +12,7 @@ build
 .env
 npm-debug.log
 _ignore
+env.sh
 
 #ide
 .vscode

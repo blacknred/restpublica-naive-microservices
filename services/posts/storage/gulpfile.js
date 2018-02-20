@@ -19,6 +19,6 @@ gulp.task('lint', () => (
         .pipe(eslint.failAfterError())
 ));
 
-/* default*/
+/* default */
 
 gulp.task('default', ['start', 'lint']);

@@ -13,7 +13,7 @@ function community(req, res, next) {
             .isIn([true, false])
             .withMessage('Posts moderation should be bool');
     } else if (req.method === 'PUT') {
-        req.checkParams('id')
+        req.checkParams('cid')
             .isInt()
             .withMessage('Id must be integer');
         if (!req.files) {
@@ -28,7 +28,7 @@ function community(req, res, next) {
                 .json({ status: `Validation failed`, failures: 'No image was uploaded' });
         }
     } else if (req.method === 'DELETE') {
-        req.checkParams('id')
+        req.checkParams('cid')
             .isInt()
             .withMessage('Id must be integer');
         req.checkBody('option')
@@ -72,7 +72,7 @@ function communities(req, res, next) {
 
 function bans(req, res, next) {
     if (req.method === 'GET') {
-        req.checkParams('id')
+        req.checkParams('cid')
             .notEmpty()
             .withMessage('Community id cannot be empty');
     } else if (req.method === 'POST') {
@@ -93,7 +93,7 @@ function bans(req, res, next) {
 
 function subscriptions(req, res, next) {
     if (req.method === 'GET') {
-        req.checkParams('id')
+        req.checkParams('sid')
             .isInt()
             .withMessage('Community id must be integer');
     } else if (req.method === 'POST') {
@@ -101,7 +101,7 @@ function subscriptions(req, res, next) {
             .isInt()
             .withMessage('Community id must be integer');
     } else if (req.method === 'DELETE') {
-        req.checkParams('subid')
+        req.checkParams('sid')
             .isInt()
             .withMessage('Subscription id must be integer');
     }

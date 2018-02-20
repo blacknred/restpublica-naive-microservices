@@ -1,7 +1,8 @@
 /* eslint-disable */
 const auth = require('./local');
 
-export const ensureAuthenticated = (req, res, next) => {
+function ensureAuthenticated (req, res, next) {
+    console.log('ff');
     if (process.env.NODE_ENV === 'test') {
         ensureAuthenticated = (req, res, next) => {
             req.user = 1;
@@ -9,7 +10,7 @@ export const ensureAuthenticated = (req, res, next) => {
         };
     }
     if (!(req.headers && req.headers.authorization)) {
-        return res.status(400)
+        return res.status(401)
             .json({
                 status: 'error',
                 message: 'No access token.'
@@ -29,3 +30,5 @@ export const ensureAuthenticated = (req, res, next) => {
         return next();
     });
 }
+
+module.exports.ensureAuthenticated = ensureAuthenticated;

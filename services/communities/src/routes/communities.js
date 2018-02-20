@@ -1,6 +1,6 @@
 /* eslint-disable consistent-return */
 const express = require('express');
-const sharp = require('sharp');
+const gm = require('gm');
 const communitiesQueries = require('../db/queries.js');
 const validate = require('./validation');
 const helpers = require('./_helpers');
@@ -10,17 +10,15 @@ const router = express.Router();
 /* status */
 
 router.get('/ping', (req, res) => {
-    res.send('pong');
+    res.status(200).send('pong');
 });
 
-/* community */
+/* communities */
 
 router.post('/', validate.community, async (req, res, next) => {
     const newCommunity = {
         name: req.body.name,
         description: req.body.description,
-        avatar: req.body.avatar,
-        theme: req.body.theme,
         restricted: req.body.restricted,
         posts_moderation: req.body.posts_moderation,
         admin_id: req.user
@@ -33,10 +31,25 @@ router.post('/', validate.community, async (req, res, next) => {
                 param: 'name',
                 msg: `Name ${newCommunity.name} is already in use`
             });
-            throw new Error(`Name ${newCommunity.name} is already in use`);
+            throw new Error();
         }
-        if (newCommunity.avatar === null) {
+        if (!req.files.avatar) {
             newCommunity.avatar = helpers.createAvatar(newCommunity.fullname);
+        } else {
+            newCommunity.avatar = await gm(req.files.avatar.data)
+                .resize(100, 100)
+                .toBuffer('JPG', (err, buffer) => {
+                    if (err) throw new Error(err);
+                    return buffer;
+                });
+        }
+        if (req.files.theme) {
+            newCommunity.theme = await gm(req.files.theme.data)
+                .resize(800, 100)
+                .toBuffer('JPG', (err, buffer) => {
+                    if (err) throw new Error(err);
+                    return buffer;
+                });
         }
         const community = await communitiesQueries.createCommunity(newCommunity);
         // if (newUserData.name) throw new Error(newUserData.detail || newUserData.message);
@@ -58,38 +71,28 @@ router.post('/', validate.community, async (req, res, next) => {
     }
 });
 
-router.put('/:id', validate.community, async (req, res, next) => {
-    const id = req.params.id;
+router.get('/', validate.communities, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const query = req.query.query.toLowerCase() || null;
+    const comms = req.query.communities.split(',') || null;
+    const admin = req.query.admin || null;
     let data;
     try {
-        if (!req.files) {
-            const newCommunityData = { [req.body.option]: req.body.value };
-            data = await communitiesQueries.updateCommunity(newCommunityData, id, req.user);
-        } else if (req.files.avatar) {
-            const avatar = await sharp(req.files.avatar.data)
-                .resize(100, 100)
-                .toBuffer();
-            data = await communitiesQueries.updateCommunity({ avatar }, id, req.user);
-        } else {
-            const theme = await sharp(req.files.theme.data)
-                .resize(800, 100)
-                .toBuffer();
-            data = await communitiesQueries.updateCommunity({ theme }, id, req.user);
-        }
+        if (query) data = await communitiesQueries.getSearchedCommunities(query, req.user, offset);
+        else if (comms) data = await communitiesQueries.getCommunitiesData(comms, req.user);
+        else if (admin) data = await communitiesQueries.getUserCommunities(req.user, offset);
+        else data = await communitiesQueries.getTrendingCommunities(req.user, offset);
         // if (data.name) throw new Error(data.detail || data.message);
-        res.status(200).json({
-            status: 'success',
-            data: !req.files ? data : data.toString('base64')
+        /* eslint-disable */
+        data.communities.forEach(com => {
+            com.avatar = com.avatar.toString('base64');
+            com.background = com.background.toString('base64');
         });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-router.delete('/:id', validate.community, async (req, res, next) => {
-    try {
-        const data = await communitiesQueries.deleteCommunity(req.params.id);
-        // if (data.name) throw new Error(data.detail || data.message);
+        /* eslint-enable */
+        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
+        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
+        // // eslint-disable-next-line
+        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
         res.status(200).json({
             status: 'success',
             data
@@ -133,9 +136,56 @@ router.get('/:name/id', validate.community, async (req, res, next) => {
     }
 });
 
+router.put('/:cid', validate.community, async (req, res, next) => {
+    const id = req.params.cid;
+    let data;
+    try {
+        if (!req.files) {
+            const newCommunityData = { [req.body.option]: req.body.value };
+            data = await communitiesQueries.updateCommunity(newCommunityData, id, req.user);
+        } else if (req.files.avatar) {
+            const avatar = await gm(req.files.avatar.data)
+                .resize(100, 100)
+                .toBuffer('JPG', (err, buffer) => {
+                    if (err) throw new Error(err);
+                    return buffer;
+                });
+            data = await communitiesQueries.updateCommunity({ avatar }, id, req.user);
+        } else {
+            const theme = await gm(req.files.theme.data)
+                .resize(800, 100)
+                .toBuffer('JPG', (err, buffer) => {
+                    if (err) throw new Error(err);
+                    return buffer;
+                });
+            data = await communitiesQueries.updateCommunity({ theme }, id, req.user);
+        }
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data: !req.files ? data : data.toString('base64')
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.delete('/:cid', validate.community, async (req, res, next) => {
+    try {
+        const data = await communitiesQueries.deleteCommunity(req.params.cid);
+        // if (data.name) throw new Error(data.detail || data.message);
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
 /* subscriptions */
 
-router.post('/:id/follow', validate.subscriptions, async (req, res, next) => {
+router.post('/:cid/follow', validate.subscriptions, async (req, res, next) => {
     const newSubscription = {
         community_id: req.body.id,
         user_id: req.user
@@ -152,10 +202,12 @@ router.post('/:id/follow', validate.subscriptions, async (req, res, next) => {
     }
 });
 
-router.delete('/:id/follow/:subid', validate.subscriptions, async (req, res, next) => {
+router.get('/:cid/followers', validate.subscriptions, async (req, res, next) => {
+    const id = req.params.cid;
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
     try {
-        const data = await communitiesQueries.deleteSubscription(req.params.subid, req.user);
-        // if (data.name) throw new Error(data.detail || data.message);
+        const data = await communitiesQueries.getFollowers(id, req.user, offset);
+        // if (communityData.name) throw new Error(communityData.detail || communityData.message);
         res.status(200).json({
             status: 'success',
             data
@@ -165,12 +217,10 @@ router.delete('/:id/follow/:subid', validate.subscriptions, async (req, res, nex
     }
 });
 
-router.get('/:id/followers', validate.subscriptions, async (req, res, next) => {
-    const id = req.params.id;
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+router.delete('/:cid/follow/:sid', validate.subscriptions, async (req, res, next) => {
     try {
-        const data = await communitiesQueries.getFollowers(id, req.user, offset);
-        // if (communityData.name) throw new Error(communityData.detail || communityData.message);
+        const data = await communitiesQueries.deleteSubscription(req.params.sid, req.user);
+        // if (data.name) throw new Error(data.detail || data.message);
         res.status(200).json({
             status: 'success',
             data
@@ -196,7 +246,7 @@ router.get('/:id/followers', validate.subscriptions, async (req, res, next) => {
 
 /* bans */
 
-router.post('/:id/ban', validate.bans, async (req, res, next) => {
+router.post('/:cid/ban', validate.bans, async (req, res, next) => {
     const newBan = {
         community_id: req.body.id,
         user_id: req.user,
@@ -214,9 +264,9 @@ router.post('/:id/ban', validate.bans, async (req, res, next) => {
     }
 });
 
-router.get('/:id/bans', validate.bans, async (req, res, next) => {
+router.get('/:cid/bans', validate.bans, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const id = req.params.id;
+    const id = req.params.cid;
     try {
         const data = await communitiesQueries.getBans(id, req.user, offset);
         // if (data.name) throw new Error(data.detail || data.message);
@@ -228,39 +278,5 @@ router.get('/:id/bans', validate.bans, async (req, res, next) => {
         return next(err);
     }
 });
-
-/* communities */
-
-router.get('/', validate.communities, async (req, res, next) => {
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const query = req.query.query.toLowerCase() || null;
-    const comms = req.query.communities.split(',') || null;
-    const admin = req.query.admin || null;
-    let data;
-    try {
-        if (query) data = await communitiesQueries.getSearchedCommunities(query, req.user, offset);
-        else if (comms) data = await communitiesQueries.getCommunitiesData(comms, req.user);
-        else if (admin) data = await communitiesQueries.getUserCommunities(req.user, offset);
-        else data = await communitiesQueries.getTrendingCommunities(req.user, offset);
-        // if (data.name) throw new Error(data.detail || data.message);
-        /* eslint-disable */
-        data.communities.forEach(com => {
-            com.avatar = com.avatar.toString('base64');
-            com.background = com.background.toString('base64');
-        });
-        /* eslint-enable */
-        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
-        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
-        // // eslint-disable-next-line
-        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
 
 module.exports = router;

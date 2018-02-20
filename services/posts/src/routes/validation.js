@@ -10,52 +10,73 @@ function post(req, res, next) {
         req.checkBody('archived')
             .isIn([true, false])
             .withMessage('Archived should be bool');
-        if (req.body.communityId) {
-            req.checkBody('communityId')
-                .isInt()
-                .withMessage('Community id must be integer');
-        }
-        if (req.body.tags) {
-            req.checkBody('tags')
-                .matches(/[0-9a-zA-Z]+/g)
-                .withMessage('Tags must be alphanumeric');
-        }
-        switch (req.body.contentType) {
-            case 'imgs' || 'video':
-                if (!req.files) {
-                    return res.status(422)
-                        .json({ status: `Validation failed`, failures: 'No file was uploaded' });
+        req.checkBody('communityId')
+            .matches(/^(\d+|)$/)
+            .withMessage('Community id must be integer or empty');
+        req.checkBody('description')
+            .exists()
+            .withMessage('Post must have description');
+        req.checkBody('tags')
+            .matches(/^$|#[0-9a-zA-Z]+/g)
+            .withMessage('Tags must be alphanumeric or empty');
+        req.checkBody('type')
+            .not().isIn(['file', 'link', 'poll'])
+            .withMessage('Post type is not in use')
+            .custom((value) => {
+                function exists(val) {
+                    return typeof val !== 'undefined' && val !== null;
                 }
-                break;
-            case 'link':
-                if (!JSON.parse(req.body.link).link
-                    .match(/^(http[s]?:\/\/)?[^\s(["<,>]*\.[^\s[",><]*$/igm)) {
-                    return res.status(422)
-                        .json({ status: `Validation failed`, failures: 'No link was found' });
+                function url(val) {
+                    return val.match(/^(http[s]?:\/\/)?[^\s(["<,>]*\.[^\s[",><]*$/igm);
                 }
-                break;
-            case 'poll':
-                if (!(JSON.parse(req.body.poll).subject.length > 0 &&
-                Object.keys(JSON.parse(req.body.poll).options).length > 1)) {
-                    return res.status(422)
-                        .json({ status: `Validation failed`, failures: 'Poll is incorrect' });
+                if (value === 'file') {
+                    if (!exists(req.body.fileType) ||
+                        !req.body.fileType.match(/^(img|gif|video)+$/g)) {
+                        throw new Error('File type is empty or incorrect');
+                    } else if (Object.keys(req.files).length === 0) {
+                        throw new Error('No file was uploaded');
+                    }
+                } else if (value === 'poll') {
+                    if (!exists(req.body.pollSubject)) {
+                        throw new Error('Poll subject is missed or empty');
+                    }
+                    if (exists(req.body.pollEndsAt) &&
+                        !isNaN(req.body.pollEndsAt) && isNaN(Date.parse(req.body.pollEndsAt))) {
+                        throw new Error('Poll endsAt is not a Date');
+                    }
+                    if (!exists(req.body.pollOptions)) {
+                        throw new Error('Poll options are missed or empty');
+                    } else {
+                        const pollOptions = Object.keys(JSON.parse(req.body.pollOptions));
+                        if (pollOptions.length < 2) throw new Error('Poll must have atleast 2 options');
+                        else {
+                            pollOptions.forEach((opt) => {
+                                if (!exists(pollOptions[opt]) || !exists(req.files[opt])) {
+                                    throw new Error('Poll option is incorrect');
+                                }
+                            });
+                        }
+                    }
+                } else {
+                    if (!exists(req.body.linkType) && req.body.linkType.match(/^(embed|file|page)+$/g)) {
+                        throw new Error('Link src is missed or empty');
+                    }
+                    if (!url(req.body.linkUrl)) throw new Error('Link url is missed or empty');
+                    if (!exists(req.body.linkSrc)) throw new Error('Link src is missed or empty');
+                    if (exists(req.body.linkThumb) && !url(req.body.linkThumb)) {
+                        throw new Error('Link src is missed or empty');
+                    }
                 }
-                break;
-            default:
-                return res.status(422)
-                    .json({ status: `Validation failed`, failures: 'Content type is incorrect' });
-        }
+            });
     } else if (req.method === 'PUT') {
-        req.checkParams('id')
+        req.checkParams('pid')
             .isInt()
             .withMessage('Post id must be integer');
         req.checkBody('description')
             .notEmpty()
             .withMessage('Comment cannot be empty');
-
-
     } else if (req.method === 'DELETE') {
-        req.checkParams('id')
+        req.checkParams('pid')
             .isInt()
             .withMessage('Post id must be integer');
     }
@@ -69,7 +90,7 @@ function post(req, res, next) {
 
 function comments(req, res, next) {
     if (req.method === 'GET') {
-        req.checkParams('id')
+        req.checkParams('pid')
             .isInt()
             .withMessage('Post id must be integer');
     } else if (req.method === 'POST') {
@@ -80,14 +101,14 @@ function comments(req, res, next) {
             .notEmpty()
             .withMessage('Comment cannot be empty');
     } else if (req.method === 'PUT') {
-        req.checkParams('commid')
+        req.checkParams('cid')
             .isInt()
             .withMessage('Comment id must be integer');
         req.checkBody('comment')
             .notEmpty()
             .withMessage('Comment cannot be empty');
     } else if (req.method === 'DELETE') {
-        req.checkParams('commid')
+        req.checkParams('cid')
             .isInt()
             .withMessage('Comment id must be integer');
     }
@@ -101,7 +122,7 @@ function comments(req, res, next) {
 
 function likes(req, res, next) {
     if (req.method === 'GET') {
-        req.checkParams('id')
+        req.checkParams('pid')
             .isInt()
             .withMessage('Post id must be integer');
     } else if (req.method === 'POST') {
@@ -109,7 +130,7 @@ function likes(req, res, next) {
             .isInt()
             .withMessage('Post id must be integer');
     } else if (req.method === 'DELETE') {
-        req.checkParams('likeid')
+        req.checkParams('lid')
             .isInt()
             .withMessage('Like id must be integer');
     }

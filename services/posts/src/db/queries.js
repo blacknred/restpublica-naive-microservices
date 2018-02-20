@@ -1,23 +1,12 @@
 /* eslint-disable no-param-reassign */
 const util = require('util');
 const knex = require('./connection');
-const routeHelpers = require('../routes/_helpers');
 
 const limit = 12;
 const usersPostsPerOneLimit = 6;
 const today = new Date();
 const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
 
-
-function getPostThumbs(post) {
-    return knex('thumbnails')
-        .select(['url', 'content_type'])
-        .where('post_id', post.post_id) // 'post_id', post.post_id
-        .then((row) => {
-            post.thumbs = row;
-            return post;
-        });
-}
 
 function getPostTags(post) {
     return knex('tags')
@@ -52,10 +41,62 @@ function getCommentsCount(post) {
         });
 }
 
+function getPostContent(post, userId) {
+    switch (post.type) {
+        case 'file':
+            return knex('post_files')
+                .select('*')
+                .where('post_id', post.id)
+                .then((row) => {
+                    post.content = row;
+                    return post;
+                });
+        case 'link':
+            return knex('post_links')
+                .select('*')
+                .where('post_id', post.id)
+                .then((row) => {
+                    post.content = row;
+                    return post;
+                });
+        case 'poll':
+            return knex('post_polls')
+                .select('*')
+                .where('post_id', post.id)
+                .then((poll) => {
+                    post.content = poll;
+                    return knex('post_polls_options')
+                        .select('*')
+                        .where('poll_id', poll.id);
+                })
+                .map((opt, i) => {
+                    return knex('post_polls_voices')
+                        .count('*')
+                        .where('option_id', opt.id)
+                        .first()
+                        .then((count) => {
+                            post.content.options[i] =
+                                { option: opt.option, count };
+                        });
+                })
+                .then(() => {
+                    return knex('post_polls_voices')
+                        .select('id')
+                        .whereIn('option_id', post.options)
+                        .andWhere('user_id', userId)
+                        .then((id) => {
+                            post.content.myVotedOptionId = id;
+                            return post;
+                        });
+                });
+        default: return null;
+    }
+}
+
 /* post */
 
 function addFiles(fileObj) {
-    return knex('files')
+    return knex('post_files')
         .insert(fileObj)
         .returning('*')
         .catch((err) => {
@@ -64,7 +105,7 @@ function addFiles(fileObj) {
 }
 
 function addLink(linkObj) {
-    return knex('links')
+    return knex('post_links')
         .insert(linkObj)
         .returning('*')
         .catch((err) => {
@@ -73,7 +114,7 @@ function addLink(linkObj) {
 }
 
 function addPoll(pollObj) {
-    return knex('polls')
+    return knex('post_polls')
         .insert(pollObj)
         .returning('*')
         .catch((err) => {
@@ -82,15 +123,13 @@ function addPoll(pollObj) {
 }
 
 function addPollOption(pollOptionObj) {
-    return knex('polls_options')
+    return knex('post_polls_options')
         .insert(pollOptionObj)
         .returning('*')
         .catch((err) => {
             return err;
         });
 }
-
-
 
 function saveTag(tag) {
     return knex('tags')
@@ -119,12 +158,16 @@ function createPost(newPost) {
         });
 }
 
-function getPost(slug) {
+function getPost(slug, userId) {
     return knex('posts')
         .select('*')
         .where('slug', slug)
+        .andWhere('archived', false)
+        .orWhere('author_id', userId)
+        .first()
         .then((_row) => {
-            return getLikesCount(_row[0]);
+            if (!_row) throw new Error();
+            return getLikesCount(_row);
         })
         .then((_row) => {
             return getCommentsCount(_row);
@@ -133,13 +176,134 @@ function getPost(slug) {
             return getPostTags(_row);
         })
         .then((_row) => {
-            switch
-            return knex('files')
-                .select(['url', 'content_type'])
-                .where('post_id', _row.post_id)
-                .then((row) => {
-                    _row.files = row;
-                    return _row;
+            return getPostContent(_row, userId);
+        })
+        .catch((err) => {
+            return err;
+        });
+}
+
+function updatePost(newPost, userId) {
+    return knex('posts')
+        .update(newPost)
+        .where('id', userId)
+        .returning('*')
+        .catch((err) => {
+            return err;
+        });
+}
+
+function deletePost(postId, userId) {
+    const filesToDelete = [];
+    return knex('posts')
+        .del()
+        .where('id', postId)
+        .andWhere('author_id', userId)
+        .returning('*')
+        .then((post) => {
+            if (!post) throw new Error();
+            switch (post.type) {
+                case 'file':
+                    knex('post_files')
+                        .del()
+                        .where('post_id', postId)
+                        .returning(['file', 'thumb'])
+                        .then((paths) => {
+                            filesToDelete.push(paths);
+                        });
+                    break;
+                case 'link':
+                    knex('post_links')
+                        .del()
+                        .where('post_id', postId)
+                        .returning('thumb')
+                        .then((path) => {
+                            filesToDelete.push(path);
+                        });
+                    break;
+                case 'poll':
+                    knex('post_polls')
+                        .del()
+                        .where('post_id', postId)
+                        .return('id')
+                        .then((pollId) => {
+                            knex('post_polls_options')
+                                .del()
+                                .where('poll_id', pollId)
+                                .return(['id', 'img'])
+                                .map((data) => {
+                                    filesToDelete.push(data.img);
+                                    return knex('post_polls_voices')
+                                        .del()
+                                        .where('option_id', data.id);
+                                });
+                        });
+                    break;
+                default:
+            }
+        })
+        .then(() => {
+            knex('comments')
+                .del()
+                .where('post_id', postId);
+        })
+        .then(() => {
+            knex('likes')
+                .del()
+                .where('post_id', postId);
+        })
+        .then(() => {
+            knex('posts_tags')
+                .del()
+                .where('post_id', postId);
+        })
+        .then(() => {
+            return filesToDelete;
+        })
+        .catch((err) => {
+            return err;
+        });
+}
+
+
+/* posts */
+
+function getTrendingPosts(offset, userId) {
+    return knex('posts')
+        .distinct('id')
+        .select(['slug', 'author_id', 'community_id', 'type', 'views_cnt', 'created_at'])
+        .select(knex.raw('left (description, 40) as description'))
+        .where('created_at', '>', lastWeek)
+        .andWhere('archived', false)
+        .orderBy('views', 'desc')
+        .limit(limit)
+        .offset(offset * limit)
+        .map((_row) => {
+            if (_row) return getPostContent(_row, userId);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getPostTags(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .where('created_at', '>', lastWeek)
+                .first()
+                .then((count) => {
+                    return Object.assign(
+                        {}, { count: count.count },
+                        { posts: rows }
+                    );
                 });
         })
         .catch((err) => {
@@ -147,68 +311,178 @@ function getPost(slug) {
         });
 }
 
-
-
-
-
-
-
-function updatePost(postId, newPost) {
+function getSearchedPosts(searchPattern, offset, userId) {
     return knex('posts')
-        .update(newPost)
-        .where('id', postId)
-        .returning('*')
-        .catch((err) => {
-            return err;
-        });
-}
-
-function deletePost(postId) {
-    return knex('posts').select('file', 'thumbnail').where('id', postId)
-        .then((paths) => {
-            return routeHelpers.removePostFiles(paths);
+        .select(['slug', 'author_id', 'community_id', 'type', 'views_cnt', 'created_at'])
+        .select(knex.raw('left (description, 40) as description'))
+        .whereRaw('LOWER(description) like ?', `%${searchPattern}%`)
+        .andWhere('archived', false)
+        .orderBy('created_at', 'desc')
+        .limit(limit)
+        .offset(limit * offset)
+        .map((_row) => {
+            if (_row) return getPostContent(_row, userId);
+            return _row;
         })
-        .then((status) => {
-            if (!status) return false;
-            return knex.transaction((trx) => {
-                knex('posts').transacting(trx).where('id', postId).del()
-                    .then(() => {
-                        return knex('comments')
-                            .where('post_id', postId)
-                            .del();
-                    })
-                    .then(() => {
-                        return knex('likes')
-                            .where('post_id', postId)
-                            .del();
-                    })
-                    .then(trx.commit)
-                    .catch(trx.rollback);
-            });
-        });
-}
-
-
-
-
-
-/* posts */
-
-
-
-function getUserPostsCount(userId) {
-    return knex('posts')
-        .count('*')
-        .where('user_id', userId)
-        .first()
-        .then((count) => {
-            return count.count;
+        .map((_row) => {
+            if (_row) return getPostTags(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .whereRaw('LOWER(description) like ?', `%${searchPattern}%`)
+                .first()
+                .then((count) => {
+                    return Object.assign(
+                        {}, { count: count.count },
+                        { posts: rows }
+                    );
+                });
         })
         .catch((err) => {
             return err;
         });
 }
 
+function getPostsByTag(tag, offset, userId) {
+    return knex('posts')
+        .select(['slug', 'author_id', 'community_id', 'type', 'views_cnt', 'created_at'])
+        .select(knex.raw('left (description, 40) as description'))
+        .leftJoin('posts_tags', 'posts.id', 'posts_tags.post_id')
+        .leftJoin('tags', 'posts_tags.tag_id', 'tags.id')
+        .where('tags.title', tag)
+        .andWhere('archived', false)
+        .orderBy('created_at', 'desc')
+        .limit(limit)
+        .offset(limit * offset)
+        .map((_row) => {
+            if (_row) return getPostContent(_row, userId);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getPostTags(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .leftJoin('posts_tags', 'posts.id', 'posts_tags.post_id')
+                .leftJoin('tags', 'posts_tags.tag_id', 'tags.id')
+                .where('tags.title', tag)
+                .first()
+                .then((count) => {
+                    return Object.assign(
+                        {}, { count: count.count },
+                        { posts: rows }
+                    );
+                });
+        })
+        .catch((err) => {
+            return err;
+        });
+}
+
+function getProfilesPosts(profiles, offset, userId, concise = false) {
+    return knex('posts')
+        .select(['slug', 'author_id', 'community_id', 'type', 'views_cnt', 'created_at'])
+        .select(knex.raw('left (description, 40) as description'))
+        .whereIn('author_id', profiles)
+        .andWhere('archived', profiles !== userId ? false : false || true)
+        .orderBy('created_at', 'desc')
+        .limit(concise ? usersPostsPerOneLimit : limit)
+        .offset(limit * offset)
+        .map((_row) => {
+            if (_row) return getPostContent(_row, userId);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getPostTags(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .where('user_id', userId)
+                .andWhere('archived', profiles !== userId ? false : false || true)
+                .first()
+                .then((count) => {
+                    return Object.assign(
+                        {}, { count: count.count },
+                        { posts: rows }
+                    );
+                });
+        })
+        .catch((err) => {
+            return err;
+        });
+}
+
+function getCommunitiesPosts(communities, offset, userId, concise = false) {
+    return knex('posts')
+        .select(['slug', 'author_id', 'community_id', 'type', 'views_cnt', 'created_at'])
+        .select(knex.raw('left (description, 40) as description'))
+        .whereIn('user_id', communities)
+        .andWhere('archived', false)
+        .orderBy('created_at', 'desc')
+        .limit(concise ? usersPostsPerOneLimit : limit)
+        .offset(limit * offset)
+        .map((_row) => {
+            if (_row) return getPostContent(_row, userId);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getPostTags(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getLikesCount(_row);
+            return _row;
+        })
+        .map((_row) => {
+            if (_row) return getCommentsCount(_row);
+            return _row;
+        })
+        .then((rows) => {
+            return knex('posts')
+                .count('*')
+                .whereIn('user_id', communities)
+                .first()
+                .then((count) => {
+                    return Object.assign(
+                        {}, { user_id: userId, count: count.count },
+                        { posts: rows }
+                    );
+                });
+        })
+        .catch((err) => {
+            return err;
+        });
+}
 
 /* comments */
 
@@ -335,14 +609,6 @@ function deletePostLike(likeId, userId) {
 }
 
 
-
-
-
-
-
-// ///////////////////////////////////////////////////////////////
-
-
 /* tags */
 
 function getTrendingTags(offset) {
@@ -359,33 +625,8 @@ function getTrendingTags(offset) {
                 .where('id', _row.tag_id)
                 .first();
         })
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getPostTags(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return knex('posts_tags')
-                .count('*')
-                .where('created_at', '>', lastWeek)
-                .first()
-                .then((count) => {
-                    return Object.assign(
-                        {}, { count: count.count },
-                        { tags: rows }
-                    );
-                });
+        .then((row) => {
+            return row;
         })
         .catch((err) => {
             return err;
@@ -400,266 +641,46 @@ function getSearchedTags(searchPattern, offset) {
         .orderBy('posts_tags.created_at', 'desc')
         .limit(limit)
         .offset(limit * offset)
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getPostTags(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return knex('tags')
-                .count('*')
-                .whereRaw('LOWER(title) like ?', `%${searchPattern}%`)
-                .first()
-                .then((count) => {
-                    return Object.assign(
-                        {}, { count: count.count },
-                        { tags: rows }
-                    );
-                });
+        .then((row) => {
+            return row;
         })
         .catch((err) => {
             return err;
         });
 }
 
-/* posts */
-
-function getTrendingPosts(offset) {
-    return knex('posts')
-        .distinct('id')
-        .select(['slug', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 40) as description'))
-        .where('created_at', '>', lastWeek)
-        .orderBy('views', 'desc')
-        .limit(limit)
-        .offset(offset * limit)
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getPostTags(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return knex('posts')
-                .count('*')
-                .where('created_at', '>', lastWeek)
-                .first()
-                .then((count) => {
-                    return Object.assign(
-                        {}, { count: count.count },
-                        { posts: rows }
-                    );
-                });
-        })
-        .catch((err) => {
-            return err;
-        });
-}
-
-function getSearchedPosts(searchPattern, offset) {
-    return knex('posts')
-        .select(['id', 'slug', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 40) as description'))
-        .whereRaw('LOWER(description) like ?', `%${searchPattern}%`)
-        .orderBy('created_at', 'desc')
-        .limit(limit)
-        .offset(limit * offset)
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getPostTags(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return knex('posts')
-                .count('*')
-                .whereRaw('LOWER(description) like ?', `%${searchPattern}%`)
-                .first()
-                .then((count) => {
-                    return Object.assign(
-                        {}, { count: count.count },
-                        { posts: rows }
-                    );
-                });
-        })
-        .catch((err) => {
-            return err;
-        });
-}
-
-function getPostsByTag(tag, offset) {
-    return knex('posts')
-        .select(['id', 'slug', 'user_id', 'views', 'created_at'])
-        .select(knex.raw('left (description, 40) as description'))
-        .leftJoin('posts_tags', 'posts.id', 'posts_tags.post_id')
-        .leftJoin('tags', 'posts_tags.tag_id', 'tags.id')
-        .where('tags.title', tag)
-        .orderBy('created_at', 'desc')
-        .limit(limit)
-        .offset(limit * offset)
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getPostTags(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return knex('posts')
-                .count('*')
-                .leftJoin('posts_tags', 'posts.id', 'posts_tags.post_id')
-                .leftJoin('tags', 'posts_tags.tag_id', 'tags.id')
-                .where('tags.title', tag)
-                .first()
-                .then((count) => {
-                    return Object.assign(
-                        {}, { count: count.count },
-                        { posts: rows }
-                    );
-                });
-        })
-        .catch((err) => {
-            return err;
-        });
-}
-
-function getProfilesPosts(userId, profiles, offset, concise = false) {
-    return knex('posts')
-        .select(['id', 'slug', 'user_id', 'community_id', 'views_cnt', 'created_at'])
-        .select(knex.raw('left (description, 40) as description'))
-        .whereIn('user_id', profiles)
-        .andWhere('archived', profiles !== userId ? false : false || true)
-        .orderBy('created_at', 'desc')
-        .limit(concise ? usersPostsPerOneLimit : limit)
-        .offset(limit * offset)
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getPostTags(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return knex('posts')
-                .count('*')
-                .where('user_id', userId)
-                .andWhere('archived', profiles !== userId ? false : false || true)
-                .first()
-                .then((count) => {
-                    return Object.assign(
-                        {}, { count: count.count },
-                        { posts: rows }
-                    );
-                });
-        })
-        .catch((err) => {
-            return err;
-        });
-}
-
-function getCommunitiesPosts(userId, communities, offset, concise = false) {
-    return knex('posts')
-        .select(['id', 'slug', 'user_id', 'community_id', 'views_cnt', 'created_at'])
-        .select(knex.raw('left (description, 40) as description'))
-        .whereIn('user_id', communities)
-        .andWhere('archived', false)
-        .orderBy('created_at', 'desc')
-        .limit(concise ? usersPostsPerOneLimit : limit)
-        .offset(limit * offset)
-        .map((_row) => {
-            if (_row) return getPostThumbs(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getPostTags(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getLikesCount(_row);
-            return _row;
-        })
-        .map((_row) => {
-            if (_row) return getCommentsCount(_row);
-            return _row;
-        })
-        .then((rows) => {
-            return knex('posts')
-                .count('*')
-                .whereIn('user_id', communities)
-                .first()
-                .then((count) => {
-                    return Object.assign(
-                        {}, { user_id: userId, count: count.count },
-                        { posts: rows }
-                    );
-                });
-        })
-        .catch((err) => {
-            return err;
-        });
-}
-
+// ////////////////
+// function getUserPostsCount(userId) {
+//     return knex('posts')
+//         .count('*')
+//         .where('user_id', userId)
+//         .first()
+//         .then((count) => {
+//             return count;
+//         })
+//         .catch((err) => {
+//             return err;
+//         });
+// }
 
 module.exports = {
     addFiles,
     addLink,
+    addPoll,
+    addPollOption,
     saveTag,
     addTagToPost,
     createPost,
+    getPost,
+    updatePost,
+    deletePost,
 
+    getTrendingPosts,
+    getSearchedPosts,
+    getProfilesPosts,
+    getCommunitiesPosts,
+    getPostsByTag,
 
-    getUserPosts,
-    getUserPostsCount,
-    getDashboardPosts,
     getPostComments,
     addPostComment,
     updatePostComment,
@@ -668,18 +689,8 @@ module.exports = {
     addPostLike,
     deletePostLike,
 
-    getPost,
-    addPost,
-    updatePost,
-    deletePost,
-
-
     getTrendingTags,
     getSearchedTags,
-    getProfilesPosts,
-    getCommunitiesPosts,
-    getTrendingPosts,
-    getSearchedPosts,
-    getPostsByTag,
 
+    // getUserPostsCount,
 };

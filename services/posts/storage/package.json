@@ -1,5 +1,5 @@
 {
-    "name": "restpublica-posts-files-server-microservice",
+    "name": "restpublica-mocking-files-storage-microservice",
     "version": "0.0.1",
     "scripts": {
         "start": "gulp --gulpfile app/gulpfile.js"

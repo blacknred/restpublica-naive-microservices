@@ -1,6 +1,4 @@
-/* esmlint-disable */
-const request = require('request-promise');
-
+// const request = require('request-promise');
 
 // function getUserPostsCount(userId) {
 //     const options = {

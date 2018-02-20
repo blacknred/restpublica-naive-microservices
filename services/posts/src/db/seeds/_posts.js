@@ -3,9 +3,10 @@ const helpers = require('../_helpers');
 
 const createPost = (knex, i) => {
     const post = {
-        user_id: Math.floor(Math.random() * 40) + 1,
         slug: helpers.genSlug(),
+        author_id: Math.floor(Math.random() * 40) + 1,
         description: faker.lorem.sentences(),
+        type: 'file',
         views_cnt: Math.floor(Math.random() * 500) + 1,
         created_at: faker.date.past()
     };

@@ -1,4 +1,7 @@
-FROM node:latest
+FROM node:alpine
+
+# install graphicsmagick
+RUN apk update && apk add graphicsmagick && rm -rf /var/cache/apk/*
 
 # set working directory
 RUN mkdir -p /usr/src/app
@@ -9,8 +12,7 @@ ENV PATH /usr/src/node_modules/.bin:$PATH
 
 # install and cache app dependencies
 ADD package.json /usr/src/package.json
-ADD package-lock.json /usr/src/app/package-lock.json
-#RUN npm install
+RUN npm install
 
 # start app
 CMD ["npm", "start"]

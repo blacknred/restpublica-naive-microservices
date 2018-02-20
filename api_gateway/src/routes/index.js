@@ -1,89 +1,171 @@
 const Router = require('koa-router');
-const router = new Router();
+const { authentication } = require('../consumer_registry');
+// const routeHelpers = require('./_helpers');
 
-const routeHelpers = require('./_helpers');
+const router = new Router({ prefix: '/api/v1' });
 
-// http codes: 301, 307 - repeated post request
-
+/* Gateway proxies API requests from API endpoints to
+microservices referenced in service endpoints. */
 
 router.get('/ping', async (ctx) => {
     ctx.body = 'pong';
 });
 
-/* users API */
+/* Users API */
 
-// register, update, delete, login
-router.post('/users', async (ctx) => {
-    ctx.redirect(307, `${ctx.users_api_host}/${ctx.path}`);
-});
-router.put('/users', async (ctx) => {
-    ctx.redirect(307, `${ctx.users_api_host}/${ctx.path}`);
-});
-router.delete('/users', async (ctx) => {
-    ctx.redirect(307, `${ctx.users_api_host}/${ctx.path}`);
-});
-router.get('/profile', async (ctx) => {
-    ctx.redirect(301, `${ctx.users_api_host}/${ctx.path}`);
-});
-router.get('/login', async (ctx) => {
-    ctx.redirect(301, `${ctx.users_api_host}/api/v1/users/${ctx.path}`);
-});
+router
+    .post('/users', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .put('/users', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .delete('/users', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .get('/users/user', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .post('/users/login', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .get('/users/:name', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .get('/users/:name/id', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .post('/users/:uid/follow', authentication, async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .delete('/users/:uid/follow/:sid', authentication, async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .get('/users/:uid/followers', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .get('/users/:uid/following', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .get('/users', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    });
+
+/* Communities API */
+
+router
+    .post('/communities', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .put('/communities/:cid', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .delete('/communities/:cid', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .get('/communities/:name', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .get('/communities/:name/id', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.users_api_host + ctx.path);
+    })
+    .post('/communities/:cid/follow', authentication, async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .delete('/communities/:cid/follow/:sid', authentication, async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .get('/communities/:cid/followers', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .get('/communities', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .post('/communities/:cid/ban', authentication, async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    })
+    .get('/communities/:cid/bans', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.communities_api_host + ctx.path);
+    });
+
+/* Posts API */
+
+router
+    .post('/posts', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .put('/posts/:pid', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .delete('/posts/:pid', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .get('/posts/:slug', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .post('/posts/:pid/comments', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .put('/posts/:pid/comment/:cid', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .delete('/posts/:pid/comment/:cid', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .get('/posts/:pid/comments', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .post('/posts/:pid/likes', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .delete('/posts/:pid/likes/:lid', async (ctx) => {
+        ctx.status = 307;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .get('/posts/:pid/likes', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .get('/posts', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    })
+    .get('/tags', authentication, async (ctx) => {
+        ctx.status = 301;
+        ctx.redirect(ctx.posts_api_host + ctx.path);
+    });
 
 
-router.post('/users', async (ctx) => {
-    ctx.body = {
-        status: 'success',
-        message: 'Wellcome to Koa!'
-    };
-});
 module.exports = router;
-
-
-router.get('/dashboard', async (req, res, next) => {
-
-    /*
-    users ids from:
-    users where i follow and communities i follow
-    sort by 'last_post_at'
-    2 requests
-    */
-    /*
-    posts where user_id in UsersArr orWhere community_id in CommsArr
-    sort by created_at
-    */
-
-
-    // -> authors -> posts by authors
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset)
-        ? --req.query.offset : 0;
-    return helpers.getFollowing(req)
-        .then((following) => {
-            if (!following) throw new Error(`User has no following users`);
-            return postsQueries.getDashboardPosts(
-                following.map(sub => sub.user_id), offset
-            );
-        })
-        .then((data) => {
-            if (data.name) throw new Error(data.detail || data.message);
-            return Promise.all([
-                data,
-                helpers.getUsersData(data.posts.map(u => u.user_id))
-            ]);
-        })
-        .then((arrs) => {
-            const [data, users] = arrs;
-            if (data.count > 0 && !users) throw new Error(`Users data not fetched`);
-            // eslint-disable-next-line
-            data.posts.forEach(x => x.author = users.find(y => y.user_id == x.user_id));
-            res.status(200).json({
-                status: 'success',
-                data
-            });
-        })
-        .catch((err) => {
-            res.status(500).json({
-                status: 'error',
-                message: err.message
-            });
-        });
-});

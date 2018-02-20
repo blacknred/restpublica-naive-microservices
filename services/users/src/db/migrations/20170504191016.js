@@ -13,15 +13,13 @@ exports.up = (knex) => {
             table.datetime('last_post_at');
             table.timestamp('activity_at').notNullable().defaultTo(knex.raw('now()'));
         })
-        // RelatingUserID
-        // RelatedUserID
-        // Type[friend, block, etc]
         .createTable('users_subscriptions', (table) => {
             table.increments();
             table.integer('user_id').notNullable();
             table.foreign('user_id').references('users.id');
             table.integer('sub_user_id').notNullable();
             table.foreign('sub_user_id').references('users.id');
+            // table.enu('type', ['friend', 'block' ...]).notNullable();
             table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
         })
         .alterTable('users_subscriptions', (table) => {
@@ -34,3 +32,4 @@ exports.down = (knex) => {
         .dropTable('users')
         .dropTable('users_subscriptions');
 };
+

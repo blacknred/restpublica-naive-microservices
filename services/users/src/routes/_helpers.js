@@ -10,9 +10,6 @@ function createAvatar(fullname) {
         .then((data) => {
             return data.buffer();
         })
-        .then((buffer) => {
-            return buffer;
-        })
         .catch((err) => {
             console.log(err.message);
         });

@@ -66,7 +66,7 @@ function profiles(req, res, next) {
 function subscriptions(req, res, next) {
     const pattern = new RegExp(`^((?!${req.user})[0-9]*)$`);
     if (req.method === 'GET') {
-        req.checkParams('userid')
+        req.checkParams('uid')
             .isInt()
             .withMessage('Profile id must be integer');
     } else if (req.method === 'POST') {
@@ -76,7 +76,7 @@ function subscriptions(req, res, next) {
             .matches(pattern)
             .withMessage('Trying subscribe self');
     } else if (req.method === 'DELETE') {
-        req.checkParams('subid')
+        req.checkParams('sid')
             .isInt()
             .withMessage('Subscription id must be integer');
     }

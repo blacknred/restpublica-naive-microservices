@@ -14,33 +14,51 @@ router.get('/ping', (req, res) => {
     res.send('pong');
 });
 
-/* post */
+/* posts */
 
 router.post('/posts', validate.post, async (req, res, next) => {
     const newPost = {
         slug: dbHelpers.genSlug(),
         author_id: req.user,
+        type: req.body.type,
         commentable: req.body.commentable,
-        archived: req.body.archived
+        archived: req.body.archived,
+        community_id: req.body.communityId,
+        description: req.body.description
     };
-    if (req.body.communityId) newPost.community_id = req.body.communityId;
-    if (req.body.description) newPost.description = req.body.description;
     try {
         const post = await postsQueries.createPost(newPost);
         // if (data.name) throw new Error(data.detail || data.message);
-        switch (req.body.contentType) {
+        switch (req.body.type) {
             /* eslint-disable */
-            case 'imgs' || 'video':
+            case 'file':
                 Object.keys(req.files).map(async (fileKey) => {
                     const file = req.files[fileKey]
-                    if (file.truncated) throw new Error('file is over the size limit: 10mB');
-                    let thumbBuffer;
-                    if (req.body.contentType === 'img') thumbBuffer = await helpers.createImageThumb(file.data);
-                    else { thumbBuffer = await helpers.createVideoThumb(file); }
-                    const [filePath, thumbPath] = await helpers.saveFile(file, thumbBuffer);
+                    if (file.truncated) throw new Error('File is over the size limit: 10mB');
+                    let mine, fileBuffer, thumbBuffer;
+                    switch (req.body.fileType) {
+                        case 'img':
+                            mime = 'image/jpg';
+                            fileBuffer = helpers.imageToJpg(file.data);
+                            thumbBuffer = await helpers.imageThumb(fileBuffer);
+                            break;
+                        case 'gif':
+                            mime = 'image/gif';
+                            fileBuffer = file.data;
+                            thumbBuffer = await helpers.imageThumb(fileBuffer);
+                            break;
+                        case 'video':
+                            mime = 'video/mp4';
+                            fileBuffer = helpers.videoToMp4(file.data);
+                            thumbBuffer = await helpers.videoThumb(fileBuffer);
+                            break;
+                        default:
+                    }
+                    const [filePath, thumbPath] =
+                        await helpers.fileToStorage(file.name, mime, fileBuffer, thumbBuffer);
                     const fileObj = {
                         post_id: post.id,
-                        mime: file.mimetype,
+                        mime,
                         file: filePath,
                         thumb: thumbPath
                     };
@@ -48,41 +66,45 @@ router.post('/posts', validate.post, async (req, res, next) => {
                 });
                 break;
             case 'link':
-                const link = JSON.parse(req.body.link);
-                // create new link
                 const newLink = {
                     post_id: post.id,
-                    type: link.type,
-                    link: link.url
+                    type: req.body.linkType,
+                    link: req.body.linkUrl,
+                    src: req.body.linkSrc,
+                    title: req.body.linkTitle
                 };
-                if (data.title) newLink.title = link.title;
-                if (data.thumb) newLink.thumb = link.thumb;
-                if (link.type === 'img') newLink.thumb = await helpers.createImageThumb(link.url);
+                if (req.body.linkThumb !== null) {
+                    const thumbBuffer = await helpers.fetchImageUrl(req.body.linkThumb);
+                    const thumbBufferJpg = await helpers.imageToJpg(thumbBuffer);
+                    newLink.thumb = await helpers.imageThumb(thumbBufferJpg);                
+                }
                 await postsQueries.addLink(newLink);
                 break;
             case 'poll':
-                const poll = JSON.parse(req.body.poll);
-                // create new poll
                 const newPoll = {
                     post_id: post.id,
-                    subject: data.subject
+                    subject: req.body.pollSubject,
+                    ends_at: req.body.pollendsAt
                 };
-                if (data.endsAt) newPoll.ands_at = data.endsAt;
                 const addedPoll = await postsQueries.addPoll(newPoll);
-                // add poll options
-                Object.keys(poll.options).map(async (objKey, i) => {
+                const pollOptions = Object.keys(JSON.parse(req.body.pollOptions));
+                pollOptions.forEach(async (opt) => {
                     const newPollOption = {
                         poll_id: addedPoll.id,
-                        option: poll.options[objKey]
+                        option: pollOptions[opt]
                     };
-                    if (req.files.option_[i]) newPollOption.img = req.files.option_[i].data;
+                    if (req.files[opt]) {
+                        const thumbBuffer = await helpers.imageToJpg(req.files[opt].data);
+                        newPollOption.img = await helpers.imageThumb(thumbBuffer);
+                    }
                     await postsQueries.addPollOption(newPollOption);
                 });
                 break;
             default:
         }
-        if (req.body.tags) {
-            req.body.tags.forEach(async (tag) => {
+        if (req.body.tags !== null) {
+            const tags = req.body.tags.split(/^$|#[0-9a-zA-Z]+/g);
+            tags.forEach(async (tag) => {
                 const tagId = await postsQueries.saveTag(tag);
                 await postsQueries.addTagToPost(tagId, post.id);
             });
@@ -90,6 +112,33 @@ router.post('/posts', validate.post, async (req, res, next) => {
         res.status(200).json({
             status: 'success',
             data: post
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.get('/posts', validate.posts, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const tag = req.query.tag.toLowerCase() || null;
+    const query = req.query.query.toLowerCase() || null;
+    const profiles = req.query.profiles.split(',') || null;
+    const comms = req.query.communities.split(',') || null;
+    let data;
+    try {
+        if (query) data = await postsQueries.getSearchedPosts(query, offset, req.user);
+        else if (tag) data = await postsQueries.getPostsByTag(tag, offset, req.user);
+        else if (profiles) data = await postsQueries.getProfilesPosts(profiles, offset, req.user);
+        else if (comms) data = await postsQueries.getCommunitiesPosts(comms, offset, req.user);
+        else data = await postsQueries.getTrendingPosts(offset, req.user);
+        // if (data.name) throw new Error(data.detail || data.message);
+        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
+        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
+        // // eslint-disable-next-line
+        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
+        res.status(200).json({
+            status: 'success',
+            data
         });
     } catch (err) {
         return next(err);
@@ -109,13 +158,13 @@ router.get('/posts/:slug', validate.post, async (req, res, next) => {
     }
 });
 
-router.put('/posts/:id', validate.post, async (req, res, next) => {
+router.put('/posts/:pid', validate.post, async (req, res, next) => {
     const updatedPost = {
-        post_id: req.params.Id,
+        post_id: req.params.pid,
         description: req.body.description
     };
     try {
-        const data = await postsQueries.updatePost(req.user, updatedPost);
+        const data = await postsQueries.updatePost(updatedPost, req.user);
         // if (data.name) throw new Error(data.detail || data.message);
         res.status(200).json({
             status: 'success',
@@ -126,13 +175,14 @@ router.put('/posts/:id', validate.post, async (req, res, next) => {
     }
 });
 
-router.delete('/posts/:id', validate.post, async (req, res, next) => {
+router.delete('/posts/:pid', validate.post, async (req, res, next) => {
     try {
-        const data = await postsQueries.deletePost(req.params.id, req.user);
+        const data = await postsQueries.deletePost(req.params.pid, req.user);
         // if (data.name) throw new Error(data.detail || data.message);
+        await helpers.deleteStorageFiles(data);
         res.status(200).json({
             status: 'success',
-            data
+            data: req.params.pid
         });
     } catch (err) {
         return next(err);
@@ -141,7 +191,7 @@ router.delete('/posts/:id', validate.post, async (req, res, next) => {
 
 /* comments */
 
-router.post('/posts/:id/comments', validate.comments, async (req, res, next) => {
+router.post('/posts/:pid/comments', validate.comments, async (req, res, next) => {
     const newComment = {
         post_id: req.body.id,
         user_id: req.user,
@@ -159,10 +209,10 @@ router.post('/posts/:id/comments', validate.comments, async (req, res, next) => 
     }
 });
 
-router.get('/posts/:id/comments', validate.comments, async (req, res, next) => {
+router.get('/posts/:pid/comments', validate.comments, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
     try {
-        const data = await postsQueries.getPostComments(req.params.id, offset);
+        const data = await postsQueries.getPostComments(req.params.pid, offset);
         // if (communityData.name) throw new Error(communityData.detail || communityData.message);
         res.status(200).json({
             status: 'success',
@@ -173,12 +223,12 @@ router.get('/posts/:id/comments', validate.comments, async (req, res, next) => {
     }
 });
 
-router.put('/posts/:id/comment/:commid', validate.comments, async (req, res, next) => {
+router.put('/posts/:pid/comment/:cid', validate.comments, async (req, res, next) => {
     const newComment = {
         comment: req.body.comment
     };
     try {
-        const data = await postsQueries.updatePostComment(req.params.commid, req.user, newComment);
+        const data = await postsQueries.updatePostComment(req.params.cid, req.user, newComment);
         // if (data.name) throw new Error(data.detail || data.message);
         res.status(200).json({
             status: 'success',
@@ -189,9 +239,9 @@ router.put('/posts/:id/comment/:commid', validate.comments, async (req, res, nex
     }
 });
 
-router.delete('/posts/comment/:commid', validate.comments, async (req, res, next) => {
+router.delete('/posts/:pid/comment/:cid', validate.comments, async (req, res, next) => {
     try {
-        const data = await postsQueries.deletePostComment(req.params.commid, req.user);
+        const data = await postsQueries.deletePostComment(req.params.cid, req.user);
         // if (data.name) throw new Error(data.detail || data.message);
         res.status(200).json({
             status: 'success',
@@ -204,7 +254,7 @@ router.delete('/posts/comment/:commid', validate.comments, async (req, res, next
 
 /* likes */
 
-router.post('/posts/:id/likes', validate.likes, async (req, res, next) => {
+router.post('/posts/:pid/likes', validate.likes, async (req, res, next) => {
     const newLike = {
         post_id: req.body.id,
         user_id: req.user
@@ -221,10 +271,10 @@ router.post('/posts/:id/likes', validate.likes, async (req, res, next) => {
     }
 });
 
-router.get('/posts/:id/likes', validate.likes, async (req, res, next) => {
+router.get('/posts/:pid/likes', validate.likes, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
     try {
-        const data = await postsQueries.getPostLikes(req.params.id, req.user, offset);
+        const data = await postsQueries.getPostLikes(req.params.pid, req.user, offset);
         // if (communityData.name) throw new Error(communityData.detail || communityData.message);
         res.status(200).json({
             status: 'success',
@@ -235,9 +285,9 @@ router.get('/posts/:id/likes', validate.likes, async (req, res, next) => {
     }
 });
 
-router.delete('/posts/:id/likes/:likeid', validate.likes, async (req, res, next) => {
+router.delete('/posts/:pid/likes/:lid', validate.likes, async (req, res, next) => {
     try {
-        const data = await postsQueries.deletePostLike(req.params.likeid, req.user);
+        const data = await postsQueries.deletePostLike(req.params.lid, req.user);
         // if (data.name) throw new Error(data.detail || data.message);
         res.status(200).json({
             status: 'success',
@@ -258,35 +308,6 @@ router.get('/tags', validate.tags, async (req, res, next) => {
         if (query) data = await postsQueries.getSearchedTags(query, offset);
         else data = await postsQueries.getTrendingTags(offset);
         // if (data.name) throw new Error(data.detail || data.message);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-/* posts */
-
-router.get('/posts', validate.posts, async (req, res, next) => {
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const tag = req.query.tag.toLowerCase() || null;
-    const query = req.query.query.toLowerCase() || null;
-    const profiles = req.query.profiles.split(',') || null;
-    const comms = req.query.communities.split(',') || null;
-    let data;
-    try {
-        if (query) data = await postsQueries.getSearchedPosts(query, req.user, offset);
-        else if (tag) data = await postsQueries.getPostsByTag(tag, req.user, offset);
-        else if (profiles) data = await postsQueries.getProfilesPosts(req.user, profiles, offset);
-        else if (comms) data = await postsQueries.getCommunitiesPosts(req.user, comms, offset);
-        else data = await postsQueries.getTrendingPosts(req.user, offset);
-        // if (data.name) throw new Error(data.detail || data.message);
-        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
-        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
-        // // eslint-disable-next-line
-        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
         res.status(200).json({
             status: 'success',
             data

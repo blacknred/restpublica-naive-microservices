@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 const sharp = require('sharp');
-const fetch = require('node-fetch');
 const request = require('request-promise');
 const fs = require('fs');
 const path = require('path');
@@ -29,7 +28,7 @@ const fsReadDir = async () => {
 
 /* fake url populating */
 const fetchImg = (image) => {
-    return fetch(image)
+    return request(image)
         .then(res => res.buffer())
         .then((buffer) => {
             // console.log(`fetched file length: ${buffer.length}`);
@@ -41,7 +40,7 @@ const fetchImg = (image) => {
 
 const createFile = (knex, i, imgBuffer) => {
     return sharp(imgBuffer)
-        .resize(200)
+        .resize(200, null)
         .toBuffer()
         .then((thumbBuffer) => {
             const fileOptions = {
@@ -68,12 +67,12 @@ const createFile = (knex, i, imgBuffer) => {
                 .then((data) => {
                     const datas = JSON.parse(data);
                     const [file, thumb] = datas;
-                    return knex('files')
+                    return knex('post_files')
                         .insert({
                             post_id: i,
-                            content_type: file.mime,
-                            file_path: file.url,
-                            thumb_path: thumb.url
+                            mime: 'image/jpg',
+                            file: file.url,
+                            thumb: thumb.url
                         });
                 })
                 .catch(err => console.log(err));

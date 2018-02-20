@@ -1,145 +1,147 @@
 # Restpublica Microservices - Social media posts App on Docker
 
 
-
 ## Architecture
 
-| Name            | Service     | Container       | Tech                       | Ports |
-|-----------------|-------------|-----------------|----------------------------|-------|
-| Web             | -           | web-client      | React, Redux, React-Router | 3000  |
-| Mobile          | -           | mobile-client   | React, Redux, React-Router | 3001  |
-| Restpublica API | -           | restpublica-api | Node, Koa                  | 3003  |
-| Users API       | Users       | users           | Node, Express              | 3004  |
-| Users DB        | Users       | users-db        | Postgres                   |       |
-| Communities API | Communities | communities     | Node, Express              | 3005  |
-| Communities DB  | Communities | communities-db  | Postgres                   |       |
-| Posts API       | Posts       | posts           | Node, Express              | 3006  |
-| Posts DB        | Posts       | posts-db        | Postgres                   |       |
-| Files Storage   | Posts       | files-storage   | Node, Koa                  | 3007  |
-| Swagger         | Posts       | swagger         | Swagger UI                 | 3008  |
+| Name            | Service      | Container       | Tech                       | Ports |
+|-----------------|--------------|-----------------|----------------------------|-------|
+| Web Client      | -            | web-client      | React, Redux, React-Router | 3000  |
+| Mobile Client   | -            | mobile-client   | React, Redux, React-Router | 3001  |
+| API Gateway     | -            | api-gateway     | Node, Koa                  | 3003  |
+| Redis Cache     | -            | redis-cache     | Node, Redis                | 6379  |
+| Users API       | Users        | users-api       | Node, Express              | 3004  |
+| Users DB        | Users        | users-db        | Postgres                   | 5433  |
+| Communities API | Communities  | communities-api | Node, Express              | 3005  |
+| Communities DB  | Communities  | communities-db  | Postgres                   | 5434  |
+| Posts API       | Posts        | posts-api       | Node, Express              | 3006  |
+| Posts DB        | Posts        | posts-db        | Postgres                   | 5435  |
+| Mock Storage    | Posts        | files-storage   | Node, Koa                  | 3007  |
+| Swagger         | Posts        | swagger         | Node, Swagger UI           | 3009  |
+| Partners API    | Partners     | partners-api    | Node, Express              | 3008  |
+| Partners DB     | Partners     | partners-db     | Mongo                      | 5436  |
+<!-- | Notifications   | Notifications| notifications   | Swagger UI                 | 3010 | -->
 
+#### API Gateway - http://localhost:3003
 
+Entry point API for microservices:
+* Cluster support to spawn multiple processes.
+* Logging
+* Consumers (users||apps) registry
+* Microservices registry mock
+* Js cron
 
-## API Gateway
+#### Mock Storage - http://localhost:3007
 
-#### Restpublica API - - http://localhost:3003
+Mock storage with API for CREATE, DELETE and GET static posts files
 
-| Endpoint                                   | HTTP Method | CRUD Method | Secure | Service         |Result                          |
-|----------------------------------------- --|-------------|-------------|--------|-----------------|--------------------------------|
-| /api/v1/ping                               | GET         | READ        |        | -               |`pong`
+#### Redis Cache
 
-| /api/v1/users                              | POST        | CREATE      |        | Users API       |
-| /api/v1/login                              | POST        | CREATE      |        | Users API       |
-| /api/v1/profile                            | GET         | READ        | true   | Users API       |
-| /api/v1/update                             | POST        | CREATE      | true   | Users API       |
-| /api/v1/update/userpic                     | DELETE      | DELETE      | true   | Users API       |
+Cache layer for rate/limit API policy
 
-| /api/v1/name/:name                         | GET         | CREATE      |        | Users API       |
-| /api/v1/id/:name                           | GET         | CREATE      |        | Users API       |
-| /api/v1/list/:userids                      | GET         | CREATE      | true   | Users API       |
+#### Swagger - http://localhost:3009/docs
 
+Posts API documentation at the above URL
 
-| /api/v1/posts/dashboard        | GET         | READ        | get a posts feed        |a
-
-## Services
-
-#### (1) Users API - http://localhost:3004
-
-| Endpoint                        | HTTP Method | CRUD Method | Result                         |
-|---------------------------------|-------------|-------------|--------------------------------|
-| /api/v1/users/ping              | GET         | READ        | `pong`                         |
-
-| /api/v1/users                   | POST        | CREATE      | add an user                    |
-| /api/v1/users                   | PUT         | UPDATE      | update an user data value/file |a
-| /api/v1/users                   | DELETE      | DELETE      | delete a user                  |a
-| /api/v1/users/user              | GET         | READ        | get an user all profile data   |a
-| /api/v1/users/check             | GET         | READ        | check an user, return an id    |
-| /api/v1/users/login             | POST        | CREATE      | log in an user                 |
-<!-- | /api/v1/users/followingids | GET         | READ        | get an user following ids list |a -->
-
-| /api/v1/users/:username         | GET         | READ        | get the profile data           |
-| /api/v1/users/:username/id      | GET         | READ        | get the profile id             |
-
-| /api/v1/users/:id/follow        | POST        | CREATE      | create the user subscription   |a
-| /api/v1/users/:id/follow/:subid | DELETE      | DELETE      | delete the user subscription   |a
-| /api/v1/users/:id/followers     | GET         | READ        | get the profile followers      |a
-| /api/v1/users/:id/following     | GET         | READ        | get the profile following      |a
-
-| /api/v1/users                   | GET         | READ        | get the trending profiles      |
-| /api/v1/users?query=query       | GET         | READ        | get the searched profiles      |
-| /api/v1/users?users=ids         | GET         | READ        | get the profiles list lim data |
-
-#### (2) Communities API - http://localhost:3005
-
-| Endpoint                              | HTTP Method | CRUD Method | Result                            |
-|---------------------------------------|-------------|-------------|-----------------------------------|
-| /api/v1/communities/ping              | GET         | READ        | `pong`                            |
-
-| /api/v1/communities                   | POST        | CREATE      | add a community                   |a
-| /api/v1/communities/:id               | PUT         | UPDATE      | update the community value/file   |a
-| /api/v1/communities/:id               | DELETE      | DELETE      | delete the community              |a
-<!-- | /api/v1/communities/followingids | GET         | READ        | get the user following ids list  |a-->
-| /api/v1/communities/:name             | GET         | READ        | get the community data            |
-| /api/v1/communities/:name/id          | GET         | READ        | get the community id              |
-
-| /api/v1/communities/:id/follow        | POST        | CREATE      | create the community subscription |a
-| /api/v1/communities/:id/follow/:subid | DELETE      | DELETE      | delete the community subscriptio  |a
-| /api/v1/communities/:id/followers     | GET         | READ        | get the community followers       |a
-
-| /api/v1/communities/:id/ban           | POST        | CREATE      | create the community ban          |a
-| /api/v1/communities/:id/bans          | GET         | READ        | get the community ban list        |a
-
-| /api/v1/communities                   | GET         | READ        | get the trending communities      |
-| /api/v1/communities?query=query       | GET         | READ        | get the searched communities      |
-| /api/v1/communities?communities=ids   | GET         | READ        | get the communities lim data      |
-| /api/v1/communities?admin=username    | GET         | READ        | get the communities by admin      |a
-
-#### (3) Posts API - http://localhost:3006
-
-| Endpoint                           | HTTP Method | CRUD Method | Result                    |
-|------------------------------------|-------------|-------------|---------------------------|
-| /api/v1/posts/ping                 | GET         | READ        | `pong`                    |
-
-| /api/v1/posts                      | POST        | CREATE      | add a post                |a
-| /api/v1/posts/:slug                | GET         | READ        | get the post              |
-| /api/v1/posts/:id                  | PUT         | UPDATE      | update the post           |a
-| /api/v1/posts/:id                  | DELETE      | DELETE      | delete the post           |a
-
-| /api/v1/posts/:id/comments         | POST        | CREATE      | create the post comment   |a
-| /api/v1/posts/:id/comments         | GET         | READ        | get the post comments     |
-| /api/v1/posts/:id/comments/:commid | PUT         | UPDATE      | update the post comment   |a
-| /api/v1/posts/:id/comments/:commid | DELETE      | DELETE      | delete the post comment   |a
-
-| /api/v1/posts/:id/likes            | POST        | CREATE      | create the post like      |a
-| /api/v1/posts/:id/likes            | GET         | READ        | get the post likes list   |a
-| /api/v1/posts/:id/likes/:likeid    | DELETE      | DELETE      | delete the post like      |a
-
-| /api/v1/posts                      | GET         | READ        | get the trending posts    |
-| /api/v1/posts?tag=tag              | GET         | READ        | get the posts by tag      |
-| /api/v1/posts?query=query          | GET         | READ        | get the searched posts    |
-| /api/v1/posts?profiles=ids         | GET         | READ        | get the profiles posts    |
-| /api/v1/posts?communities=ids      | GET         | READ        | get the communities posts |
-
-| /api/v1/tags                       | GET         | READ        | get the trending tags     |
-| /api/v1/tags?query=query           | GET         | READ        | get the tags by search    |
-
-<!-- | /api/v1/posts/getcount/:id       | GET         | READ        | get user posts count      | -->
-
-#### Files Static Storage - http://localhost:3007
-
-Upload and static server for posts files
-
-#### Swagger - http://localhost:3008/docs
-
-Access Swagger Posts API docs at the above URL
-
-#### Users Database, Communities Database and Posts Database
+#### Users, Communities, Posts and Partners Databases
 
 To access, get the container id from `docker ps` and then open `psql`:
 
 ```sh
 $ docker exec -ti <container-id> psql -U postgres
 ```
+
+
+## Services
+
+#### (1) Users API - http://localhost:3004
+
+| Endpoint                       | HTTP Method | CRUD Method | Result                         |
+|--------------------------------|-------------|-------------|--------------------------------|
+| /api/v1/users/ping             | GET         | READ        | `pong`                         |
+| /api/v1/users                  | POST        | CREATE      | add an user                    |
+| /api/v1/users/login            | POST        | CREATE      | log in an user                 |
+| /api/v1/users/check            | GET         | READ        | check an user, return an id    |
+| /api/v1/users/user             | GET         | READ        | get an user all profile data   |a
+| /api/v1/users                  | GET         | READ        | get the trending profiles      |
+| /api/v1/users?query=query      | GET         | READ        | get the searched profiles      |
+| /api/v1/users?users=uids       | GET         | READ        | get the profiles list lim data |
+| /api/v1/users/:name            | GET         | READ        | get the profile data           |
+| /api/v1/users/:name/id         | GET         | READ        | get the profile id             |
+| /api/v1/users                  | PUT         | UPDATE      | update an user data value/file |a
+| /api/v1/users                  | DELETE      | DELETE      | delete a user                  |a
+<!--|/api/v1/users/followingids  | GET         | READ        | get an user following ids list |a -->
+| /api/v1/users/:uid/follow      | POST        | CREATE      | create the user subscription   |a
+| /api/v1/users/:uid/followers   | GET         | READ        | get the profile followers      |a
+| /api/v1/users/:uid/following   | GET         | READ        | get the profile following      |a
+| /api/v1/users/:uid/follow/:sid | DELETE      | DELETE      | delete the user subscription   |a
+
+#### (2) Communities API - http://localhost:3005
+
+| Endpoint                             | HTTP Method | CRUD Method | Result                            |
+|--------------------------------------|-------------|-------------|-----------------------------------|
+| /api/v1/communities/ping             | GET         | READ        | `pong`                            |
+| /api/v1/communities                  | POST        | CREATE      | add a community                   |a
+| /api/v1/communities                  | GET         | READ        | get the trending communities      |
+| /api/v1/communities?query=query      | GET         | READ        | get the searched communities      |
+| /api/v1/communities?communities=cids | GET         | READ        | get the communities lim data      |
+| /api/v1/communities?admin=username   | GET         | READ        | get the communities by admin      |a
+| /api/v1/communities/:name            | GET         | READ        | get the community data            |
+| /api/v1/communities/:name/id         | GET         | READ        | get the community id              |
+| /api/v1/communities/:cid             | PUT         | UPDATE      | update the community value/file   |a
+| /api/v1/communities/:cid             | DELETE      | DELETE      | delete the community              |a
+<!--| /api/v1/communities/followingids | GET         | READ        | get the user following ids list   |a-->
+| /api/v1/communities/:cid/follow      | POST        | CREATE      | create the community subscription |a
+| /api/v1/communities/:cid/followers   | GET         | READ        | get the community followers       |a
+| /api/v1/communities/:cid/follow/:sid | DELETE      | DELETE      | delete the community subscriptio  |a
+| /api/v1/communities/:cid/ban         | POST        | CREATE      | create the community ban          |a
+| /api/v1/communities/:cid/bans        | GET         | READ        | get the community ban list        |a
+
+
+#### (3) Posts API - http://localhost:3006
+
+| Endpoint                         | HTTP Method | CRUD Method | Result                    |
+|----------------------------------|-------------|-------------|---------------------------|
+| /api/v1/posts/ping               | GET         | READ        | `pong`                    |
+| /api/v1/posts                    | POST        | CREATE      | add a post                |a
+| /api/v1/posts                    | GET         | READ        | get the trending posts    |
+| /api/v1/posts?tag=tag            | GET         | READ        | get the posts by tag      |
+| /api/v1/posts?query=query        | GET         | READ        | get the searched posts    |
+| /api/v1/posts?profiles=pids      | GET         | READ        | get the profiles posts    |
+| /api/v1/posts?communities=cids   | GET         | READ        | get the communities posts |
+| /api/v1/posts/:slug              | GET         | READ        | get the post              |
+| /api/v1/posts/:pid               | PUT         | UPDATE      | update the post           |a
+| /api/v1/posts/:pid               | DELETE      | DELETE      | delete the post           |a
+| /api/v1/posts/:pid/comments      | POST        | CREATE      | create the post comment   |a
+| /api/v1/posts/:pid/comments      | GET         | READ        | get the post comments     |
+| /api/v1/posts/:pid/comments/:cid | PUT         | UPDATE      | update the post comment   |a
+| /api/v1/posts/:pid/comments/:cid | DELETE      | DELETE      | delete the post comment   |a
+| /api/v1/posts/:pid/likes         | POST        | CREATE      | create the post like      |a
+| /api/v1/posts/:pid/likes         | GET         | READ        | get the post likes list   |a
+| /api/v1/posts/:pid/likes/:lid    | DELETE      | DELETE      | delete the post like      |a
+| /api/v1/tags                     | GET         | READ        | get the trending tags     |
+| /api/v1/tags?query=query         | GET         | READ        | get the tags by search    |
+
+
+#### (4) Partners API - http://localhost:3008
+
+| Endpoint                       | HTTP Method | CRUD Method | Result                         |
+|--------------------------------|-------------|-------------|--------------------------------|
+| /api/v1/partners/ping          | GET         | READ        | `pong`                         |
+| /api/v1/partners/plans         | POST        | CREATE      | add an api plan                |a
+| /api/v1/partners/plans         | GET         | READ        | get all api plans              |a
+| /api/v1/partners/plans/:pid    | GET         | READ        | get an api plan data           | 
+| /api/v1/partners/plans/:pid    | PUT         | UPDATE      | update an api plan data        |a
+| /api/v1/partners/plans/:pid    | DELETE      | DELETE      | delete an api plan             |a
+| /api/v1/partners/apps          | POST        | CREATE      | add an partner app             |a
+| /api/v1/partners/apps/check    | POST        | CREATE      | check partner app existance    |a
+| /api/v1/partners/apps          | GET         | READ        | get all partner apps           |a
+| /api/v1/partners/apps/:pid     | GET         | READ        | get an partner app data        |
+| /api/v1/partners/apps/:pid     | PUT         | UPDATE      | update an partner app data     |a
+| /api/v1/partners/apps/:pid     | DELETE      | DELETE      | delete an partner app          |a
+
+
+<!-- #### Notifications - http://localhost:3010 -->
+
 
 
 ## Clients
@@ -155,7 +157,6 @@ $ docker exec -ti <container-id> psql -U postgres
 | /trending    | GET         | READ        | render popular content            |
 | /search      | GET         | READ        | render searched content           |
 | /communities | GET         | READ        | render user communities           |
-
 | /activity    | GET         | READ        | render user related activity      |
 | /p/:id       | GET         | READ        | render post                       |
 | /settings    | GET         | READ        | render settings                   |
