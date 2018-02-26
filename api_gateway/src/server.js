@@ -1,5 +1,6 @@
+const debug = require('debug')('api-gateway');
+const http = require('http');
 const app = require('./app');
-const debug = require('debug')('api-gateway:server');
 
 function normalizePort(val) {
     const port = parseInt(val, 10);
@@ -24,18 +25,22 @@ function onError(error) {
     }
 }
 
+const server = http.createServer(app.callback());
+
 function onListening() {
-    const addr = app.address();
+    const addr = server.address();
     const bind = typeof addr === 'string' ? `Pipe ${port}` : `Port ${port}`;
     debug(`Listening on ${bind}`);
 }
 
-app.listen(port);
-app.on('error', onError);
-app.on('listening', onListening);
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
 
 
 /*
+const https = require('https');
+https.createServer(app.callback()).listen(3001);
 // SSL Certificate
 var options = {
   key: fs.readFileSync(__dirname+'/SSL/cert.key'),

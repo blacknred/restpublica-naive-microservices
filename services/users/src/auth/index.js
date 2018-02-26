@@ -1,18 +1,15 @@
 /* eslint-disable */
 const auth = require('./local');
 
-function ensureAuthenticated(req, res, next) {
+module.exports = function ensureAuthenticated(req, res, next) {
     if (process.env.NODE_ENV === 'test') {
-        ensureAuthenticated = (req, res, next) => {
-            req.user = 1;
-            return next();
-        };
+        req.user = 1;
+        return next();
     }
-    if (!(req.headers && req.headers.authorization)) {
+    if (!req.headers.authorization) {
         return res.status(401)
             .json({
-                status: 'error',
-                message: 'No access token.'
+                status: 'No access token'
             });
     }
     // decode the token
@@ -28,6 +25,5 @@ function ensureAuthenticated(req, res, next) {
         req.user = parseInt(payload.sub, 10);
         return next();
     });
-}
+};
 
-module.exports.ensureAuthenticated = ensureAuthenticated;

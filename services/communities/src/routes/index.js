@@ -1,17 +1,12 @@
 /* eslint-disable consistent-return */
+/* eslint-disable no-param-reassign */
 const express = require('express');
 const gm = require('gm');
-const communitiesQueries = require('../db/queries.js');
+const queries = require('../db/queries.js');
 const validate = require('./validation');
 const helpers = require('./_helpers');
 
 const router = express.Router();
-
-/* status */
-
-router.get('/ping', (req, res) => {
-    res.status(200).send('pong');
-});
 
 /* communities */
 
@@ -25,7 +20,7 @@ router.post('/', validate.community, async (req, res, next) => {
     };
     const errors = [];
     try {
-        const name = await communitiesQueries.findCommunityByName(newCommunity.name);
+        const name = await queries.findCommunityByName(newCommunity.name);
         if (name) {
             errors.push({
                 param: 'name',
@@ -51,8 +46,7 @@ router.post('/', validate.community, async (req, res, next) => {
                     return buffer;
                 });
         }
-        const community = await communitiesQueries.createCommunity(newCommunity);
-        // if (newUserData.name) throw new Error(newUserData.detail || newUserData.message);
+        const community = await queries.createCommunity(newCommunity);
         community.avatar = community.avatar.toString('base64');
         community.theme = community.theme.toString('base64');
         res.status(200).json({
@@ -74,25 +68,40 @@ router.post('/', validate.community, async (req, res, next) => {
 router.get('/', validate.communities, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
     const query = req.query.query.toLowerCase() || null;
-    const comms = req.query.communities.split(',') || null;
+    const list = req.query.communities.split(',') || null;
     const admin = req.query.admin || null;
+    const limiter = req.query.limiter || null;
     let data;
     try {
-        if (query) data = await communitiesQueries.getSearchedCommunities(query, req.user, offset);
-        else if (comms) data = await communitiesQueries.getCommunitiesData(comms, req.user);
-        else if (admin) data = await communitiesQueries.getUserCommunities(req.user, offset);
-        else data = await communitiesQueries.getTrendingCommunities(req.user, offset);
-        // if (data.name) throw new Error(data.detail || data.message);
-        /* eslint-disable */
-        data.communities.forEach(com => {
-            com.avatar = com.avatar.toString('base64');
-            com.background = com.background.toString('base64');
+        if (query) data = await queries.getSearchedCommunities(query, req.user, offset);
+        else if (list) data = await queries.getCommunitiesData(list, req.user);
+        else if (admin) data = await queries.getUserCommunities(req.user, offset);
+        else if (limiter) {
+            switch (limiter) {
+                case 'dash': data = await queries.getFollowingCommunities(req.user, offset);
+                break;
+                default:
+            }
+        } else data = await queries.getTrendingCommunities(req.user, offset);
+        if (!limiter) {
+            data.communities.forEach((com) => {
+                com.avatar = com.avatar.toString('base64');
+                com.background = com.background.toString('base64');
+            });
+        }
+        res.status(200).json({
+            status: 'success',
+            data
         });
-        /* eslint-enable */
-        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
-        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
-        // // eslint-disable-next-line
-        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.get('/count', validate.communities, async (req, res, next) => {
+    const profileId = req.query.profile || req.user;
+    try {
+        const data = await queries.getCommunitiesCountByProfile(profileId);
         res.status(200).json({
             status: 'success',
             data
@@ -103,15 +112,13 @@ router.get('/', validate.communities, async (req, res, next) => {
 });
 
 router.get('/:name', validate.community, async (req, res, next) => {
+    console.log('name');
     const name = req.params.name;
     try {
-        const isCommunity = await communitiesQueries.findCommunityByName(name);
+        const isCommunity = await queries.findCommunityByName(name);
         if (!isCommunity) throw new Error(`Community ${name} is not found`);
-        const community = await communitiesQueries.getCommunityData(name, req.user);
-        // if (communityData.name) throw new Error(communityData.detail || communityData.message);
-        // eslint-disable-next-line
+        const community = await queries.getCommunityData(name, req.user);
         community.avatar = community.avatar.toString('base64');
-        // eslint-disable-next-line
         community.background = community.background.toString('base64');
         res.status(200).json({
             status: 'success',
@@ -125,7 +132,7 @@ router.get('/:name', validate.community, async (req, res, next) => {
 router.get('/:name/id', validate.community, async (req, res, next) => {
     const name = req.params.name;
     try {
-        const community = await communitiesQueries.findCommunityByName(name);
+        const community = await queries.findCommunityByName(name);
         if (!community) throw new Error(`Community ${name} is not found`);
         res.status(200).json({
             status: 'success',
@@ -142,7 +149,7 @@ router.put('/:cid', validate.community, async (req, res, next) => {
     try {
         if (!req.files) {
             const newCommunityData = { [req.body.option]: req.body.value };
-            data = await communitiesQueries.updateCommunity(newCommunityData, id, req.user);
+            data = await queries.updateCommunity(newCommunityData, id, req.user);
         } else if (req.files.avatar) {
             const avatar = await gm(req.files.avatar.data)
                 .resize(100, 100)
@@ -150,7 +157,7 @@ router.put('/:cid', validate.community, async (req, res, next) => {
                     if (err) throw new Error(err);
                     return buffer;
                 });
-            data = await communitiesQueries.updateCommunity({ avatar }, id, req.user);
+            data = await queries.updateCommunity({ avatar }, id, req.user);
         } else {
             const theme = await gm(req.files.theme.data)
                 .resize(800, 100)
@@ -158,9 +165,8 @@ router.put('/:cid', validate.community, async (req, res, next) => {
                     if (err) throw new Error(err);
                     return buffer;
                 });
-            data = await communitiesQueries.updateCommunity({ theme }, id, req.user);
+            data = await queries.updateCommunity({ theme }, id, req.user);
         }
-        // if (data.name) throw new Error(data.detail || data.message);
         res.status(200).json({
             status: 'success',
             data: !req.files ? data : data.toString('base64')
@@ -172,8 +178,7 @@ router.put('/:cid', validate.community, async (req, res, next) => {
 
 router.delete('/:cid', validate.community, async (req, res, next) => {
     try {
-        const data = await communitiesQueries.deleteCommunity(req.params.cid);
-        // if (data.name) throw new Error(data.detail || data.message);
+        const data = await queries.deleteCommunity(req.params.cid);
         res.status(200).json({
             status: 'success',
             data
@@ -191,8 +196,7 @@ router.post('/:cid/follow', validate.subscriptions, async (req, res, next) => {
         user_id: req.user
     };
     try {
-        const data = await communitiesQueries.createSubscription(newSubscription);
-        // if (data.name) throw new Error(data.detail || data.message);
+        const data = await queries.createSubscription(newSubscription);
         res.status(200).json({
             status: 'success',
             data
@@ -206,8 +210,7 @@ router.get('/:cid/followers', validate.subscriptions, async (req, res, next) => 
     const id = req.params.cid;
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
     try {
-        const data = await communitiesQueries.getFollowers(id, req.user, offset);
-        // if (communityData.name) throw new Error(communityData.detail || communityData.message);
+        const data = await queries.getFollowers(id, req.user, offset);
         res.status(200).json({
             status: 'success',
             data
@@ -219,8 +222,7 @@ router.get('/:cid/followers', validate.subscriptions, async (req, res, next) => 
 
 router.delete('/:cid/follow/:sid', validate.subscriptions, async (req, res, next) => {
     try {
-        const data = await communitiesQueries.deleteSubscription(req.params.sid, req.user);
-        // if (data.name) throw new Error(data.detail || data.message);
+        const data = await queries.deleteSubscription(req.params.sid, req.user);
         res.status(200).json({
             status: 'success',
             data
@@ -229,20 +231,6 @@ router.delete('/:cid/follow/:sid', validate.subscriptions, async (req, res, next
         return next(err);
     }
 });
-
-// router.get('/user/following/list', async (req, res, next) => {
-//    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-//     try {
-//         const data = await communitiesQueries.getFollowinIds(req.user, offset);
-//         // if (data.name) throw new Error(data.detail || data.message);
-//         res.status(200).json({
-//             status: 'success',
-//             data
-//         });
-//     } catch (err) {
-//         return next(err);
-//     }
-// });
 
 /* bans */
 
@@ -253,8 +241,7 @@ router.post('/:cid/ban', validate.bans, async (req, res, next) => {
         end_date: req.body.endDate
     };
     try {
-        const data = await communitiesQueries.createBan(newBan);
-        // if (data.name) throw new Error(data.detail || data.message);
+        const data = await queries.createBan(newBan);
         res.status(200).json({
             status: 'success',
             data
@@ -268,8 +255,7 @@ router.get('/:cid/bans', validate.bans, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
     const id = req.params.cid;
     try {
-        const data = await communitiesQueries.getBans(id, req.user, offset);
-        // if (data.name) throw new Error(data.detail || data.message);
+        const data = await queries.getBans(id, req.user, offset);
         res.status(200).json({
             status: 'success',
             data

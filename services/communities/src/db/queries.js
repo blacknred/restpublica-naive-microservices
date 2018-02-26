@@ -10,7 +10,6 @@ const limit = 12;
 const today = new Date();
 const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 20);
 
-
 /* community */
 
 function findCommunityByName(name) {
@@ -41,10 +40,21 @@ function updateCommunity(communityObj, communityId, adminId) {
 }
 
 function deleteCommunity(communityId, adminId) {
-    return knex('communities')
-        .del()
-        .where('id', communityId)
-        .andWhere('admin_id', adminId)
+    knex.transaction((trx) => {
+        knex('communities')
+            .del()
+            .where('id', communityId)
+            .andWhere('admin_id', adminId)
+            .transacting(trx)
+            .then((data) => {
+                return knex('communities_subscriptions')
+                    .del()
+                    .where('community_id', communityId)
+                    .transacting(trx);
+            })
+            .then(trx.commit)
+            .catch(trx.rollback);
+    })
         .then((data) => {
             return data;
         })
@@ -230,7 +240,50 @@ function getUserCommunities(userId, offset) {
         });
 }
 
+function getFollowingCommunities(userId, offset) {
+    return knex('communities_subscriptions')
+        .select('community_id')
+        .where('user_id', userId)
+        .andWhere('approved', true)
+        .orderBy('created_at', 'desc')
+        .limit(limit)
+        .offset(offset * limit)
+        .catch((err) => {
+            return err;
+        });
+}
+
+function getCommunitiesCountByProfile(userId) {
+    return knex('communities_subscriptions')
+        .count('*')
+        .where('user_id', userId)
+        .andWhere('approved', true)
+        .first()
+        .catch((err) => {
+            return err;
+        });
+}
+
 /* subscriptions */
+
+function createSubscription(newSubscription) {
+    // upsert
+    const insert = knex('communities_subscriptions').insert(newSubscription);
+    const update = knex('communities_subscriptions').update(newSubscription);
+    const query = util.format(
+        '%s ON CONFLICT (community_id, user_id) DO UPDATE SET %s RETURNING id',
+        insert.toString(),
+        update.toString().replace(/^update\s.*\sset\s/i, '')
+    );
+    return knex.raw(query)
+        .first()
+        .then((data) => {
+            return data.rows.id;
+        })
+        .catch((err) => {
+            return err;
+        });
+}
 
 function getFollowers(id, userId, offset) {
     return knex('communities_subscriptions')
@@ -253,38 +306,6 @@ function getFollowers(id, userId, offset) {
                         { subscriptions: rows }
                     );
                 });
-        })
-        .catch((err) => {
-            return err;
-        });
-}
-
-function getFollowingIds(userId, offset) {
-    return knex('communities_subscriptions')
-        .select('community_id')
-        .where('user_id', userId)
-        .andWhere('approved', true)
-        .orderBy('created_at', 'desc')
-        .limit(limit)
-        .offset(offset * limit)
-        .catch((err) => {
-            return err;
-        });
-}
-
-function createSubscription(newSubscription) {
-    // upsert
-    const insert = knex('communities_subscriptions').insert(newSubscription);
-    const update = knex('communities_subscriptions').update(newSubscription);
-    const query = util.format(
-        '%s ON CONFLICT (community_id, user_id) DO UPDATE SET %s RETURNING id',
-        insert.toString(),
-        update.toString().replace(/^update\s.*\sset\s/i, '')
-    );
-    return knex.raw(query)
-        .first()
-        .then((data) => {
-            return data.rows.id;
         })
         .catch((err) => {
             return err;
@@ -347,16 +368,17 @@ function getBans(commId, userId, offset) {
 module.exports = {
     findCommunityByName,
     createCommunity,
-    updateCommunity,
-    deleteCommunity,
-    getCommunityData,
     getCommunitiesData,
     getTrendingCommunities,
     getSearchedCommunities,
     getUserCommunities,
-    getFollowers,
-    getFollowingIds,
+    getFollowingCommunities,
+    getCommunitiesCountByProfile,
+    getCommunityData,
+    updateCommunity,
+    deleteCommunity,
     createSubscription,
+    getFollowers,
     deleteSubscription,
     createBan,
     getBans

@@ -1,171 +1,37 @@
 const Router = require('koa-router');
-const { authentication } = require('../consumer_registry');
-// const routeHelpers = require('./_helpers');
+const redirections = require('./redirections');
+const compositions = require('./compositions');
 
 const router = new Router({ prefix: '/api/v1' });
 
-/* Gateway proxies API requests from API endpoints to
-microservices referenced in service endpoints. */
+/*
+API Gateway router should:
+- TODO: Proxy all requests to the microservices
+- Route requests:
+    - filter client type and use related endpoints
+    - by simply routing them to the appropriate backend service(?redirect)
+    - by composition multiple backend services and aggregating the results
+        - implement independent requests concurrently
+        - Use timeouts in promises
+- In case of some service is not answering:
+    - Use Circuit breaker pattern – Track the number of successful
+        and failed requests. If the error rate exceeds a configured
+        threshold, trip the circuit breaker so that further attempts
+        fail immediately. If a large number of requests are failing,
+        that suggests the service is unavailable and that sending
+        requests is pointless. After a timeout period, the client
+        should try again and, if successful, close the circuit breaker.
+    - define a fallback action when a request fails - Perform fallback
+        logic when a request fails. For example, return cached data or a
+        default value such as empty set of recommendations.
+*/
 
-router.get('/ping', async (ctx) => {
-    ctx.body = 'pong';
-});
+/* check */
+router.get('/ping', (ctx) => { ctx.body = 'pong'; });
 
-/* Users API */
-
-router
-    .post('/users', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .put('/users', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .delete('/users', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .get('/users/user', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .post('/users/login', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .get('/users/:name', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .get('/users/:name/id', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .post('/users/:uid/follow', authentication, async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .delete('/users/:uid/follow/:sid', authentication, async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .get('/users/:uid/followers', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .get('/users/:uid/following', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .get('/users', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    });
-
-/* Communities API */
-
-router
-    .post('/communities', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .put('/communities/:cid', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .delete('/communities/:cid', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .get('/communities/:name', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .get('/communities/:name/id', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.users_api_host + ctx.path);
-    })
-    .post('/communities/:cid/follow', authentication, async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .delete('/communities/:cid/follow/:sid', authentication, async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .get('/communities/:cid/followers', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .get('/communities', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .post('/communities/:cid/ban', authentication, async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    })
-    .get('/communities/:cid/bans', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.communities_api_host + ctx.path);
-    });
-
-/* Posts API */
-
-router
-    .post('/posts', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .put('/posts/:pid', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .delete('/posts/:pid', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .get('/posts/:slug', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .post('/posts/:pid/comments', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .put('/posts/:pid/comment/:cid', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .delete('/posts/:pid/comment/:cid', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .get('/posts/:pid/comments', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .post('/posts/:pid/likes', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .delete('/posts/:pid/likes/:lid', async (ctx) => {
-        ctx.status = 307;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .get('/posts/:pid/likes', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .get('/posts', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    })
-    .get('/tags', authentication, async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.posts_api_host + ctx.path);
-    });
-
+/* compose routes */
+router.use(compositions.routes());
+router.use(redirections.routes());
 
 module.exports = router;
+

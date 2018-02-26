@@ -2,6 +2,26 @@ version: '2.1'
 
 services:
 
+  redis-cache:
+    container_name: redis-cache
+    image: redis:alpine
+    volumes:
+      - ./api_gateway/redis-data:/data
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: exit 0
+
+  partners-db:
+    container_name: partners-db
+    build: ./services/partners/src/db
+    volumes:
+      - ./services/partners/src/db/mongo-data:/data/db
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test: exit 0
+
   users-db:
     container_name: users-db
     build: ./services/users/src/db
@@ -41,37 +61,66 @@ services:
     healthcheck:
       test: exit 0
 
-  partners-db:
-    container_name: partners-db
-    build: ./services/partners/src/db
-    volumes:
-      - ./services/partners/src/db/mongo-data:/data/db
-    ports:
-      - '27017:27017'
-    healthcheck:
-      test: exit 0
-
   files-storage:
     container_name: files-storage
     build: ./services/posts/storage/
     volumes:
       - './services/posts/storage:/usr/src/app'
       - './services/posts/storage/package.json:/usr/src/package.json'
+      #- '/usr/src/app/node_modules'
+      - './services/posts/storage/node_modules:/usr/src/node_modules'
     ports:
       - '3007:3007'
-
-  redis-cache:
-    container_name: redis-cache
-    image: redis:alpine
-    volumes:
-      - ./api_gateway/redis-data:/data
-    ports:
-      - '6379:6379'
-    healthcheck:
-      test: exit 0
   
-  users-api:
-    container_name: users-api
+  api-gateway:
+    container_name: api-gateway
+    build: ./api_gateway/
+    volumes:
+      - './api_gateway:/usr/src/app'
+      #- '/usr/src/app/node_modules'
+      - './api_gateway/package.json:/usr/src/package.json'
+      - './api_gateway/node_modules:/usr/src/node_modules'
+    ports:
+      - '3003:3003'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+      - USERS_API_HOST=http://users-service:3004
+      - PARTNERS_API_HOST=http://partners-service:3008
+      - COMMUNITIES_API_HOST=http://communities-service:3005
+      - POSTS_API_HOST=http://posts-service:3006
+    depends_on:
+      redis-cache:
+        condition: service_started
+    links:
+      - redis-cache
+      
+  partners-service:
+    container_name: posts-service
+    build: ./services/partners/
+    volumes:
+      - './services/partners:/usr/src/app'
+      - './services/partners/package.json:/usr/src/package.json'
+      #- '/usr/src/app/node_modules'
+      - './services/partners/node_modules:/usr/src/node_modules'
+    ports:
+      - '3008:3008'
+    environment:
+      - DATABASE_URL=mongodb://mongo:27017/partners_api
+      - DATABASE_TEST_URL=mongodb://mongo:27017/partners_api_test
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+    depends_on:
+      partners-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+    links:
+      - partners-db
+      - redis-cache
+
+  users-service:
+    container_name: users-service
     build: ./services/users/
     volumes:
       - './services/users:/usr/src/app'
@@ -86,11 +135,14 @@ services:
     depends_on:
       users-db:
         condition: service_healthy
+      redis-cache:
+        condition: service_started
     links:
       - users-db
+      - redis-cache
 
-  communities-api:
-    container_name: communities-api
+  communities-service:
+    container_name: communities-service
     build: ./services/communities/
     volumes:
       - './services/communities:/usr/src/app'
@@ -105,14 +157,14 @@ services:
     depends_on:
       communities-db:
         condition: service_healthy
-      users-service:
+      redis-cache:
         condition: service_started
     links:
       - communities-db
-      - users-api
+      - redis-cache
 
-  posts-api:
-    container_name: posts-api
+  posts-service:
+    container_name: posts-service
     build: ./services/posts/
     volumes:
       - './services/posts:/usr/src/app'
@@ -130,16 +182,21 @@ services:
         condition: service_healthy
       files-storage:
         condition: service_started
+      redis-cache:
+        condition: service_started
     links:
       - posts-db
       - files-storage
+      - redis-cache
 
   swagger:
     container_name: swagger
     build: ./services/posts/swagger/
     volumes:
       - './services/posts/swagger:/usr/src/app'
-      - '/usr/src/app/node_modules'
+      #- '/usr/src/app/node_modules'
+      - './services/posts/swagger/package.json:/usr/src/package.json'
+      - './services/posts/swagger/node_modules:/usr/src/node_modules'
     ports:
       - '3009:3009'
     environment:
@@ -147,60 +204,8 @@ services:
     depends_on:
       posts-service:
         condition: service_started
-      links:
-        - posts-service
-
-  partners-api:
-    container_name: posts-api
-    build: ./services/partners/
-    volumes:
-      - './services/partners:/usr/src/app'
-      - './services/partners/package.json:/usr/src/package.json'
-    ports:
-      - '3008:3008'
-    environment:
-      - DATABASE_URL=mongodb://mongo:27017/partners_api
-      - DATABASE_TEST_URL=mongodb://mongo:27017/partners_api_test
-      - NODE_ENV=${NODE_ENV}
-      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
-    depends_on:
-      partners-db:
-        condition: service_healthy
     links:
-      - partners-db
-
-  api-gateway:
-    container_name: api-gateway
-    build: ./api_gateway/
-    volumes:
-      - './api_gateway:/usr/src/app'
-      - '/usr/src/app/node_modules'
-    ports:
-      - '3003:3003'
-    environment:
-      - NODE_ENV=${NODE_ENV}
-      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
-      - USERS_API_HOST=http://localhost:3004
-      - PARTNERS_API_HOST=http://localhost:3008
-      - COMMUNITIES_API_HOST=http://localhost:3005
-      - POSTS_API_HOST=http://localhost:3006
-    depends_on:
-      redis-cache:
-        condition: service_started
-      users-api:
-        condition: service_started
-      partners-api:
-        condition: service_started
-      communities-api:
-        condition: service_started
-      posts-api:
-        condition: service_started
-    links:
-      - redis-cache
-      - users-api
-      - partners-api
-      - communities-api
-      - posts-api
+      - posts-service
 
 
   # web-client:

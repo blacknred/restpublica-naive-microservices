@@ -5,13 +5,6 @@ const validate = require('./validation');
 
 const router = express.Router();
 
-/* status */
-
-router.get('/ping', (req, res) => {
-    res.status(200).send('pong');
-});
-
-
 /* api plans */
 
 router.post(`/plans`, validate.plan, async (req, res, next) => {

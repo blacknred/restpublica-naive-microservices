@@ -74,7 +74,7 @@ function subscriptions(req, res, next) {
             .isInt()
             .withMessage('User id must be integer')
             .matches(pattern)
-            .withMessage('Trying subscribe self');
+            .withMessage('Attempt to subscribe to yourself');
     } else if (req.method === 'DELETE') {
         req.checkParams('sid')
             .isInt()
@@ -91,6 +91,6 @@ function subscriptions(req, res, next) {
 
 module.exports = {
     user,
-    subscriptions,
-    profiles
+    profiles,
+    subscriptions
 };

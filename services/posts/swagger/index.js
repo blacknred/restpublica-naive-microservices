@@ -1,11 +1,8 @@
 const app = require('connect')();
 const http = require('http');
 const fs = require('fs');
-
-
 const swaggerTools = require('swagger-tools');
 const jsyaml = require('js-yaml');
-
 
 const serverPort = 3008;
 const options = {};

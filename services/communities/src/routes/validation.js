@@ -62,26 +62,15 @@ function communities(req, res, next) {
             .isInt()
             .withMessage('Admin id must be integer');
     }
-    const failures = req.validationErrors();
-    if (failures) {
-        return res.status(422)
-            .json({ status: `Validation failed`, failures });
+    if (req.query.limiter) {
+        req.checkQuery('limiter')
+            .matches(/[dash]/g)
+            .withMessage('Limiter mode must be valid');
     }
-    return next();
-}
-
-function bans(req, res, next) {
-    if (req.method === 'GET') {
-        req.checkParams('cid')
-            .notEmpty()
-            .withMessage('Community id cannot be empty');
-    } else if (req.method === 'POST') {
-        req.checkBody('id')
-            .isInt()
-            .withMessage('Id must be integer');
-        req.checkBody('endDate')
-            .notEmpty()
-            .withMessage('endDate value cannot be empty');
+    if (req.query.profile) {
+        req.checkQuery('profile')
+            .matches(/[0-9]+/g)
+            .withMessage('Profile id must be integer');
     }
     const failures = req.validationErrors();
     if (failures) {
@@ -113,9 +102,30 @@ function subscriptions(req, res, next) {
     return next();
 }
 
+function bans(req, res, next) {
+    if (req.method === 'GET') {
+        req.checkParams('cid')
+            .notEmpty()
+            .withMessage('Community id cannot be empty');
+    } else if (req.method === 'POST') {
+        req.checkBody('id')
+            .isInt()
+            .withMessage('Id must be integer');
+        req.checkBody('endDate')
+            .notEmpty()
+            .withMessage('endDate value cannot be empty');
+    }
+    const failures = req.validationErrors();
+    if (failures) {
+        return res.status(422)
+            .json({ status: `Validation failed`, failures });
+    }
+    return next();
+}
+
 module.exports = {
     community,
-    bans,
+    communities,
     subscriptions,
-    communities
+    bans
 };

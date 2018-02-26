@@ -1,18 +1,14 @@
 /* eslint-disable consistent-return */
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-return-assign */
 const express = require('express');
 const gm = require('gm');
-const localAuth = require('../auth/local');
-const usersQueries = require('../db/queries.js');
+const auth = require('../auth/local');
+const queries = require('../db/queries.js');
 const validate = require('./validation');
 const helpers = require('./_helpers');
 
 const router = express.Router();
-
-/* status */
-
-router.get('/ping', (req, res) => {
-    res.send('pong');
-});
 
 /* profiles */
 
@@ -25,7 +21,7 @@ router.post('/', validate.user, async (req, res, next) => {
     };
     const errors = [];
     try {
-        const name = await usersQueries.findUserByName(newUser.username);
+        const name = await queries.findProfileByName(newUser.username);
         if (name) {
             errors.push({
                 param: 'username',
@@ -33,7 +29,7 @@ router.post('/', validate.user, async (req, res, next) => {
             });
             throw new Error(`Name ${newUser.name} is already in use`);
         }
-        const email = await usersQueries.findUserByEmail(newUser.email);
+        const email = await queries.findProfileByEmail(newUser.email);
         if (email) {
             errors.push({
                 param: 'email',
@@ -44,10 +40,9 @@ router.post('/', validate.user, async (req, res, next) => {
         if (newUser.avatar === null) {
             newUser.avatar = helpers.createAvatar(newUser.fullname);
         }
-        const user = await usersQueries.createUser(newUser);
-        // if (newUserData.name) throw new Error(newUserData.detail || newUserData.message);
+        const user = await queries.createUser(newUser);
         user.avatar = user.avatar.toString('base64');
-        const token = await localAuth.encodeToken(user.id);
+        const token = await auth.encodeToken(user.id);
         user.token = token;
         res.status(200).json({
             status: 'success',
@@ -70,7 +65,7 @@ router.post('/login', async (req, res, next) => {
     const password = req.body.password;
     const errors = [];
     try {
-        const user = await usersQueries.findUserByName(username);
+        const user = await queries.findProfileByName(username);
         if (!user) {
             errors.push({
                 param: 'username',
@@ -78,7 +73,7 @@ router.post('/login', async (req, res, next) => {
             });
             throw new Error(`Name ${username} is not in use`);
         }
-        if (!usersQueries.comparePass(password, user.password)) {
+        if (!queries.comparePass(password, user.password)) {
             errors.push({
                 param: 'password',
                 msg: 'Incorrect password'
@@ -86,7 +81,7 @@ router.post('/login', async (req, res, next) => {
             throw new Error('Incorrect password');
         }
         user.avatar = user.avatar.toString('base64');
-        const token = await localAuth.encodeToken(user.id);
+        const token = await auth.encodeToken(user.id);
         user.token = token;
         res.status(200).json({
             status: 'success',
@@ -104,9 +99,28 @@ router.post('/login', async (req, res, next) => {
     }
 });
 
+router.get('/', validate.profiles, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const query = req.query.query ? req.query.query.toLowerCase() : null;
+    const list = req.query.users ? req.query.users.split(',') : null;
+    let data;
+    try {
+        if (query) data = await queries.getSearchedProfiles(query, req.user, offset);
+        else if (list) data = await queries.getProfilesData(list, req.user);
+        else data = await queries.getTrendingProfiles(req.user, offset);
+        // data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
 router.get('/check', async (req, res, next) => {
     try {
-        const user = await usersQueries.checkUser(req.user);
+        const user = await queries.checkUser(req.user);
         res.status(200).json({
             status: 'success',
             id: user.id
@@ -118,35 +132,8 @@ router.get('/check', async (req, res, next) => {
 
 router.get('/user', async (req, res, next) => {
     try {
-        const data = await usersQueries.getUserData(req.user);
-        // if (data.name) throw new Error(data.detail || data.message);
-        // eslint-disable-next-line
+        const data = await queries.getUserData(req.user);
         data.avatar = data.avatar.toString('base64');
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-router.get('/', validate.profiles, async (req, res, next) => {
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const query = req.query.query.toLowerCase() || null;
-    const usersArr = req.query.users.split(',') || null;
-    let data;
-    try {
-        if (query) data = await usersQueries.getSearchedProfiles(query, req.user, offset);
-        else if (usersArr) data = await usersQueries.getProfilesData(usersArr, req.user);
-        else data = await usersQueries.getTrendingProfiles(req.user, offset);
-        // if (data.name) throw new Error(data.detail || data.message);
-        // eslint-disable-next-line
-        data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
-        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
-        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
-        // // eslint-disable-next-line
-        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
         res.status(200).json({
             status: 'success',
             data
@@ -159,14 +146,10 @@ router.get('/', validate.profiles, async (req, res, next) => {
 router.get('/:name', async (req, res, next) => {
     const name = req.params.name;
     try {
-        const isUser = await usersQueries.findUserByName(name);
-        if (!isUser) throw new Error(`User ${name} is not found`);
-        const profile = await usersQueries.getProfileData(name, req.user);
-        // if (profile.name) throw new Error(profile.detail || profile.message);
-        // eslint-disable-next-line
+        let profile = await queries.findProfileByName(name);
+        if (!profile) throw new Error(`User ${name} is not found`);
+        profile = await queries.getProfileData(name, req.user);
         profile.avatar = profile.avatar.toString('base64');
-        // const userPostsCount = await helpers.getUserPostsCount(profile.id);
-        // profile.posts_count = userPostsCount;
         res.status(200).json({
             status: 'success',
             data: profile
@@ -179,11 +162,11 @@ router.get('/:name', async (req, res, next) => {
 router.get('/:name/id', async (req, res, next) => {
     const name = req.params.name;
     try {
-        const user = await usersQueries.findUserByName(name);
-        if (!user) throw new Error(`Name ${name} is not in use`);
+        const profile = await queries.findProfileByName(name);
+        if (!profile) throw new Error(`User ${name} is not found`);
         res.status(200).json({
             status: 'success',
-            data: user.id
+            data: profile.id
         });
     } catch (err) {
         return next(err);
@@ -200,12 +183,11 @@ router.put('/', validate.user, async (req, res, next) => {
                     if (err) throw new Error(err);
                     return buffer;
                 });
-            data = await usersQueries.updateUser({ avatar }, req.user);
+            data = await queries.updateUser({ avatar }, req.user);
         } else {
             const newUserData = { [req.body.option]: req.body.value };
-            data = await usersQueries.updateUser(newUserData, req.user);
+            data = await queries.updateUser(newUserData, req.user);
         }
-        // if (data.name) throw new Error(data.detail || data.message);
         res.status(200).json({
             status: 'success',
             data: !req.files.avatar ? data : data.toString('base64')
@@ -217,8 +199,7 @@ router.put('/', validate.user, async (req, res, next) => {
 
 router.delete('/', async (req, res, next) => {
     try {
-        const data = await usersQueries.deleteUser(req.user);
-        // if (data.name) throw new Error(data.detail || data.message);
+        const data = await queries.deleteUser(req.user);
         res.status(200).json({
             status: 'success',
             data
@@ -227,21 +208,6 @@ router.delete('/', async (req, res, next) => {
         return next(err);
     }
 });
-
-// router.get('/user/following/list', async (req, res, next) => {
-//    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-//     try {
-//         const data = await usersQueries.getFollowinIds(req.user, offset);
-//         // if (data.name) throw new Error(data.detail || data.message);
-//         res.status(200).json({
-//             status: 'success',
-//             data
-//         });
-//     } catch (err) {
-//         return next(err);
-//     }
-// });
-
 
 /* subscriptions */
 
@@ -252,8 +218,7 @@ router.post('/:uid/follow', validate.subscriptions,
             sub_user_id: req.user
         };
         try {
-            const data = await usersQueries.createSubscription(newSubscription);
-            // if (data.name) throw new Error(data.detail || data.message);
+            const data = await queries.createSubscription(newSubscription);
             res.status(200).json({
                 status: 'success',
                 data
@@ -268,9 +233,7 @@ router.get('/:uid/followers', validate.subscriptions,
     async (req, res, next) => {
         const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
         try {
-            const data = await usersQueries.getFollowers(req.params.uid, req.user, offset);
-            // if (data.name) throw new Error(data.detail || data.message);
-            // eslint-disable-next-line
+            const data = await queries.getFollowers(req.params.uid, req.user, offset);
             data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
             res.status(200).json({
                 status: 'success',
@@ -286,10 +249,23 @@ router.get('/:uid/following', validate.subscriptions,
     async (req, res, next) => {
         const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
         try {
-            const data = await usersQueries.getFollowing(req.params.uid, req.user, offset);
-            // if (data.name) throw new Error(data.detail || data.message);
-            // eslint-disable-next-line
+            const data = await queries.getFollowing(req.params.uid, req.user, offset);
             data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
+            res.status(200).json({
+                status: 'success',
+                data
+            });
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.get('/:uid/following/ids', validate.subscriptions,
+    async (req, res, next) => {
+        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+        try {
+            const data = await queries.getFollowingIds(req.params.uid, offset, req.user);
             res.status(200).json({
                 status: 'success',
                 data
@@ -303,8 +279,7 @@ router.get('/:uid/following', validate.subscriptions,
 router.delete('/:uid/follow/:sid', validate.subscriptions,
     async (req, res, next) => {
         try {
-            const data = await usersQueries.deleteSubscription(req.params.sid, req.user);
-            // if (data.name) throw new Error(data.detail || data.message);
+            const data = await queries.deleteSubscription(req.params.sid, req.user);
             res.status(200).json({
                 status: 'success',
                 data

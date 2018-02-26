@@ -30,14 +30,14 @@ function comparePass(userPassword, databasePassword) {
 
 /* user */
 
-function findUserByName(username) {
+function findProfileByName(username) {
     return knex('users')
         .select(['id', 'password', 'avatar'])
         .where('username', username)
         .first();
 }
 
-function findUserByEmail(email) {
+function findProfileByEmail(email) {
     return knex('users')
         .select('id')
         .where('email', email)
@@ -66,18 +66,6 @@ function updateUser(userObj, userId) {
         });
 }
 
-function deleteUser(userId) {
-    return knex('users')
-        .del()
-        .where('id', userId)
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
-}
-
 function getUserData(userId) {
     return knex('users')
         .select(['username', 'fullname', 'description', 'email', 'avatar'])
@@ -87,6 +75,31 @@ function getUserData(userId) {
             return err;
         });
 }
+
+function deleteUser(userId) {
+    knex.transaction((trx) => {
+        knex('users')
+            .del()
+            .where('id', userId)
+            .transacting(trx)
+            .then((data) => {
+                return knex('users_subscriptions')
+                    .del()
+                    .where('sub_user_id', userId)
+                    .andWhere('user_id', userId)
+                    .transacting(trx);
+            })
+            .then(trx.commit)
+            .catch(trx.rollback);
+    })
+        .then((data) => {
+            return data;
+        })
+        .catch((err) => {
+            return err;
+        });
+}
+
 
 /* profile */
 
@@ -192,10 +205,10 @@ function getTrendingProfiles(offset, authUserId) {
                         { users: rows }
                     );
                 });
-        })
-        .catch((err) => {
-            return err;
         });
+        // .catch((err) => {
+        //     return err;
+        // });
 }
 
 function getSearchedProfiles(searchPattern, offset, authUserId) {
@@ -234,7 +247,25 @@ function getSearchedProfiles(searchPattern, offset, authUserId) {
 
 /* subscriptions */
 
-function getFollowers(userId, offset, authUserId) {
+function createSubscription(newSubscription) {
+    // upsert
+    const insert = knex('users_subscriptions').insert(newSubscription);
+    const update = knex('users_subscriptions').update(newSubscription);
+    const query = util.format(
+        '%s ON CONFLICT (user_id, sub_user_id) DO UPDATE SET %s RETURNING id',
+        insert.toString(),
+        update.toString().replace(/^update\s.*\sset\s/i, '')
+    );
+    return knex.raw(query)
+        .then((data) => {
+            return data.rows[0].id;
+        })
+        .catch((err) => {
+            return err;
+        });
+}
+
+function getFollowers(userId, authUserId, offset) {
     return knex('users_subscriptions')
         .select(['subscriptions.id as subscription_id', 'sub_user_id as user_id',
             'username', 'fullname', 'avatar'])
@@ -265,7 +296,7 @@ function getFollowers(userId, offset, authUserId) {
         });
 }
 
-function getFollowing(userId, offset, authUserId) {
+function getFollowing(userId, authUserId, offset, limiter) {
     return knex('users_subscriptions')
         .select(['subscriptions.id as subscription_id', 'user_id',
             'username', 'fullname', 'avatar'])
@@ -308,24 +339,6 @@ function getFollowingIds(userId, offset) {
         });
 }
 
-function createSubscription(newSubscription) {
-    // upsert
-    const insert = knex('users_subscriptions').insert(newSubscription);
-    const update = knex('users_subscriptions').update(newSubscription);
-    const query = util.format(
-        '%s ON CONFLICT (user_id, sub_user_id) DO UPDATE SET %s RETURNING id',
-        insert.toString(),
-        update.toString().replace(/^update\s.*\sset\s/i, '')
-    );
-    return knex.raw(query)
-        .then((data) => {
-            return data.rows[0].id;
-        })
-        .catch((err) => {
-            return err;
-        });
-}
-
 function deleteSubscription(subscriptionId, userId) {
     return knex('users_subscriptions')
         .del()
@@ -342,8 +355,8 @@ function deleteSubscription(subscriptionId, userId) {
 
 module.exports = {
     comparePass,
-    findUserByName,
-    findUserByEmail,
+    findProfileByName,
+    findProfileByEmail,
     createUser,
     getUserData,
     getProfilesData,
@@ -351,9 +364,10 @@ module.exports = {
     getSearchedProfiles,
     getProfileData,
     updateUser,
+    deleteUser,
+    createSubscription,
     getFollowers,
     getFollowing,
     getFollowingIds,
-    createSubscription,
     deleteSubscription
 };

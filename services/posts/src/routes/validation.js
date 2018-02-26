@@ -88,6 +88,45 @@ function post(req, res, next) {
     return next();
 }
 
+function posts(req, res, next) {
+    if (req.query.query) {
+        req.checkQuery('query')
+            .matches(/^.{3,}$/)
+            .withMessage('Search query must has at least 3 chars');
+    }
+    if (req.query.query) {
+        req.checkQuery('tag')
+            .notEmpty()
+            .withMessage('Tag cannot be empty');
+    }
+    if (req.query.communities) {
+        req.checkQuery('communities')
+            .matches(/[0-9]+/g)
+            .withMessage('Communities ids must be integers');
+    }
+    if (req.query.profiles) {
+        req.checkQuery('profiles')
+            .matches(/[0-9]+/g)
+            .withMessage('Profiles ids must be integers');
+    }
+    if (req.query.community) {
+        req.checkQuery('community')
+            .matches(/[0-9]+/g)
+            .withMessage('Community id must be integer');
+    }
+    if (req.query.profile) {
+        req.checkQuery('profile')
+            .matches(/[0-9]+/g)
+            .withMessage('Profile id must be integer');
+    }
+    const failures = req.validationErrors();
+    if (failures) {
+        return res.status(422)
+            .json({ status: `Validation failed`, failures });
+    }
+    return next();
+}
+
 function comments(req, res, next) {
     if (req.method === 'GET') {
         req.checkParams('pid')
@@ -156,39 +195,10 @@ function tags(req, res, next) {
     return next();
 }
 
-function posts(req, res, next) {
-    if (req.query.query) {
-        req.checkQuery('query')
-            .matches(/^.{3,}$/)
-            .withMessage('Search query must has at least 3 chars');
-    }
-    if (req.query.query) {
-        req.checkQuery('tag')
-            .notEmpty()
-            .withMessage('Tag cannot be empty');
-    }
-    if (req.query.communities) {
-        req.checkQuery('communities')
-            .matches(/[0-9]+/g)
-            .withMessage('Communities ids must be integers');
-    }
-    if (req.query.profiles) {
-        req.checkQuery('profiles')
-            .matches(/[0-9]+/g)
-            .withMessage('Profiles ids must be integers');
-    }
-    const failures = req.validationErrors();
-    if (failures) {
-        return res.status(422)
-            .json({ status: `Validation failed`, failures });
-    }
-    return next();
-}
-
 module.exports = {
     post,
+    posts,
     comments,
     likes,
-    tags,
-    posts
+    tags
 };

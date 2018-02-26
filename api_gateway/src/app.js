@@ -1,18 +1,30 @@
 const Koa = require('koa');
 const bodyParser = require('koa-bodyparser');
 const morgan = require('koa-morgan');
+const cors = require('kcors');
+const userAgent = require('koa-useragent');
 const cron = require('node-cron');
+const rfs = require('rotating-file-stream');
 const fs = require('fs');
 const path = require('path');
-const rfs = require('rotating-file-stream');
 const routes = require('./routes/index');
-const { rateLimitPolicy, createToken } = require('./consumer_registry');
+const { rateLimitPolicy } = require('./consumer_registry');
 
 const app = new Koa();
 
-/* ** logger ** */
-// TODO: log stream to logger microservise
+/*
+Entry point API for microservices:
+* Cluster support to spawn multiple processes.
+* Logging
+* Js cron
+* Microservices registry mock
+* Consumers (users||apps) registry
+* Router logic based on user-agent
+*/
+
+// Logger
 if (process.env.NODE_ENV !== 'test') {
+    // TODO: log stream to logger microservise
     const logDir = path.join(__dirname, '..', 'logs');
     if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
     // create a rotating write stream
@@ -23,25 +35,36 @@ if (process.env.NODE_ENV !== 'test') {
         path: logDir
     });
     // setup the logger
+    const format = `:method :url :status :response-time ms\
+    - :res[content-length] - :user-agent - :remote-addr - :remote-user`;
     app.use(morgan('combined', { stream: accessLogStream }));
+    app.use(morgan(format));
 }
-
-/* ** js cron ** */
-cron.schedule('* 59 * * *', () => {
+// Js cron
+cron.schedule('10 * * * *', () => {
     console.log(process.memoryUsage());
     // ?log stream to logger microservise
 });
-
-/* ** services registry mock ** */
+// CORS
+app.use(cors());
+// Body parsing
+app.use(bodyParser({ multipart: true, jsonLimit: '100kb' }));
+// Services discovery mock
 app.use(async (ctx, next) => {
     // TODO: fetch services registry
-    app.context.users_api_host = process.env.USERS_API_HOST;
-    app.context.communities_api_host = process.env.COMMUNITIES_API_HOST;
-    app.context.posts_api_host = process.env.POSTS_API_HOST;
+    // ?jscron every 30 sec update adresses from redis-cache
+    // ping all services
+    app.context.users_host = process.env.USERS_API_HOST;
+    app.context.communities_host = process.env.COMMUNITIES_API_HOST;
+    app.context.posts_host = process.env.POSTS_API_HOST;
+    app.context.partners_host = process.env.PARTNERS_API_HOST;
+    app.context.users_host = 'http://users-service:3004';
+    app.context.communities_host = 'http://communities-service:3005';
+    app.context.partners_host = 'http://partners-service:3008';
+    app.context.posts_host = 'http://posts-service:3006';
     await next();
 });
-
-/* ** errors ** */
+// Errors
 app.use(async (ctx, next) => {
     try {
         await next();
@@ -51,31 +74,16 @@ app.use(async (ctx, next) => {
         ctx.status = err.status || 500;
         ctx.body = {
             status: 'error',
-            message: err.message || {}
+            message: process.env.NODE_ENV === 'production' ? {} : err.message
         };
-        // ctx.app.emit('error', err, ctx);
     }
 });
 
-/* ** CORS ** */
-app.use(async (ctx, next) => {
-    ctx.set('Access-Control-Allow-Origin', '*');
-    ctx.set('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE');
-    ctx.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    await next();
-});
-
-/* ** body parsing ** */
-app.use(bodyParser({ multipart: true, jsonLimit: '100kb' }));
-
-/* ** consumer rate limit ** */
+// User Agent
+app.use(userAgent);
+// Consumer rate limit
 app.use(rateLimitPolicy);
-
-/* ** createToken ** */
-app.use(createToken);
-
-/* ** router ** */
+// Router
 app.use(routes.routes());
-
 
 module.exports = app;

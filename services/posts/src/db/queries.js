@@ -195,68 +195,81 @@ function updatePost(newPost, userId) {
 
 function deletePost(postId, userId) {
     const filesToDelete = [];
-    return knex('posts')
-        .del()
-        .where('id', postId)
-        .andWhere('author_id', userId)
-        .returning('*')
-        .then((post) => {
-            if (!post) throw new Error();
-            switch (post.type) {
-                case 'file':
-                    knex('post_files')
-                        .del()
-                        .where('post_id', postId)
-                        .returning(['file', 'thumb'])
-                        .then((paths) => {
-                            filesToDelete.push(paths);
-                        });
-                    break;
-                case 'link':
-                    knex('post_links')
-                        .del()
-                        .where('post_id', postId)
-                        .returning('thumb')
-                        .then((path) => {
-                            filesToDelete.push(path);
-                        });
-                    break;
-                case 'poll':
-                    knex('post_polls')
-                        .del()
-                        .where('post_id', postId)
-                        .return('id')
-                        .then((pollId) => {
-                            knex('post_polls_options')
-                                .del()
-                                .where('poll_id', pollId)
-                                .return(['id', 'img'])
-                                .map((data) => {
-                                    filesToDelete.push(data.img);
-                                    return knex('post_polls_voices')
-                                        .del()
-                                        .where('option_id', data.id);
-                                });
-                        });
-                    break;
-                default:
-            }
-        })
-        .then(() => {
-            knex('comments')
-                .del()
-                .where('post_id', postId);
-        })
-        .then(() => {
-            knex('likes')
-                .del()
-                .where('post_id', postId);
-        })
-        .then(() => {
-            knex('posts_tags')
-                .del()
-                .where('post_id', postId);
-        })
+    knex.transaction((trx) => {
+        knex('posts')
+            .del()
+            .where('id', postId)
+            .andWhere('author_id', userId)
+            .returning('*')
+            .transacting(trx)
+            .then((post) => {
+                if (!post) throw new Error();
+                switch (post.type) {
+                    case 'file':
+                        knex('post_files')
+                            .del()
+                            .where('post_id', postId)
+                            .returning(['file', 'thumb'])
+                            .transacting(trx)
+                            .then((paths) => {
+                                filesToDelete.push(paths);
+                            });
+                        break;
+                    case 'link':
+                        knex('post_links')
+                            .del()
+                            .where('post_id', postId)
+                            .returning('thumb')
+                            .transacting(trx)
+                            .then((path) => {
+                                filesToDelete.push(path);
+                            });
+                        break;
+                    case 'poll':
+                        knex('post_polls')
+                            .del()
+                            .where('post_id', postId)
+                            .return('id')
+                            .transacting(trx)
+                            .then((pollId) => {
+                                knex('post_polls_options')
+                                    .del()
+                                    .where('poll_id', pollId)
+                                    .return(['id', 'img'])
+                                    .transacting(trx)
+                                    .map((data) => {
+                                        filesToDelete.push(data.img);
+                                        return knex('post_polls_voices')
+                                            .del()
+                                            .where('option_id', data.id)
+                                            .transacting(trx);
+                                    });
+                            });
+                        break;
+                    default:
+                }
+            })
+            .then(() => {
+                return knex('comments')
+                    .del()
+                    .where('post_id', postId)
+                    .transacting(trx);
+            })
+            .then(() => {
+                return knex('likes')
+                    .del()
+                    .where('post_id', postId)
+                    .transacting(trx);
+            })
+            .then(() => {
+                return knex('posts_tags')
+                    .del()
+                    .where('post_id', postId)
+                    .transacting(trx);
+            })
+            .then(trx.commit)
+            .catch(trx.rollback);
+    })
         .then(() => {
             return filesToDelete;
         })
@@ -484,6 +497,32 @@ function getCommunitiesPosts(communities, offset, userId, concise = false) {
         });
 }
 
+function getProfilePostsCount(userId) {
+    return knex('posts')
+        .count('*')
+        .where('user_id', userId)
+        .first()
+        .then((count) => {
+            return count;
+        })
+        .catch((err) => {
+            return err;
+        });
+}
+
+function getCommunityPostsCount(communityId) {
+    return knex('posts')
+        .count('*')
+        .where('community_id', communityId)
+        .first()
+        .then((count) => {
+            return count;
+        })
+        .catch((err) => {
+            return err;
+        });
+}
+
 /* comments */
 
 function getPostComments(postId, offset) {
@@ -649,19 +688,6 @@ function getSearchedTags(searchPattern, offset) {
         });
 }
 
-// ////////////////
-// function getUserPostsCount(userId) {
-//     return knex('posts')
-//         .count('*')
-//         .where('user_id', userId)
-//         .first()
-//         .then((count) => {
-//             return count;
-//         })
-//         .catch((err) => {
-//             return err;
-//         });
-// }
 
 module.exports = {
     addFiles,
@@ -672,25 +698,24 @@ module.exports = {
     addTagToPost,
     createPost,
     getPost,
-    updatePost,
-    deletePost,
-
     getTrendingPosts,
     getSearchedPosts,
     getProfilesPosts,
     getCommunitiesPosts,
     getPostsByTag,
-
-    getPostComments,
+    getProfilePostsCount,
+    getCommunityPostsCount,
+    updatePost,
+    deletePost,
     addPostComment,
+    getPostComments,
     updatePostComment,
     deletePostComment,
-    getPostLikes,
     addPostLike,
+    getPostLikes,
     deletePostLike,
-
     getTrendingTags,
     getSearchedTags,
 
-    // getUserPostsCount,
+    
 };
