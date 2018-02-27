@@ -7,10 +7,7 @@ module.exports = function ensureAuthenticated(req, res, next) {
         return next();
     }
     if (!(req.headers && req.headers.authorization)) {
-        return res.status(401)
-            .json({
-                status: 'No access token'
-            });
+        return res.status(401).json({ status: 'No access token' });
     }
     // decode the token
     const header = req.headers.authorization.split(' ');

@@ -27,9 +27,10 @@ Limit, Filter, Secure
 Entry point API for microservices:
 * Cluster support to spawn multiple processes.
 * Logging
-* Consumers (users||apps) registry
-* Microservices registry mock
 * Js cron
+* Microservices registry mock
+* Consumers (users||apps) registry
+* Circuit breaker and fallbacks
 
 #### Mock Storage - http://localhost:3007
 
@@ -54,47 +55,45 @@ $ docker exec -ti <container-id> psql -U postgres
 
 ## Services
 
-#### (1) Users API - http://localhost:3004
+#### (1) Users API - http://localhost:3004/api/v1
 
-##### ping: /api/v1/ping
-##### prefix: /api/v1/users
+| Endpoint                 | HTTP Method | CRUD Method | Result                       |
+|--------------------------|-------------|-------------|------------------------------|
+| /ping                    | GET         | READ        | `pong`                       |
+| /users                   | POST        | CREATE      | add an user                  |
+| /users/login             | POST        | CREATE      | log in an user               |
+| /users/check             | GET         | READ        | check an user, return an id  |a
+| /users/user              | GET         | READ        | get all user data            |a
+| /users                   | PUT         | UPDATE      | update an user value/file    |a
+| /users                   | DELETE      | DELETE      | delete an user               |a
+| /users                   | GET         | READ        | get the trending profiles    |
+| /users?query=query       | GET         | READ        | get the profiles by search   |
+| /users?list=uids         | GET         | READ        | get the profiles by list     |
+| /users/:name             | GET         | READ        | get the profile data         |
+| /users/:name/id          | GET         | READ        | get the profile id           |
+| /users/:uid/follow       | POST        | CREATE      | create the user subscription |a
+| /users/:uid/followers    | GET         | READ        | get the profile followers    |a
+| /users/:uid/following    | GET         | READ        | get the profile following    |a
+| /users/:uid/following/id | GET         | READ        | get the user following ids   |a
+| /users/:uid/follow/:sid  | DELETE      | DELETE      | delete the user subscription |a
 
-| Endpoint           | HTTP Method | CRUD Method | Result                         |
-|--------------------|-------------|-------------|--------------------------------|
-| /                  | POST        | CREATE      | add an user                    |
-| /login             | POST        | CREATE      | log in an user                 |
-| /                  | GET         | READ        | get the trending profiles      |
-| /?query=query      | GET         | READ        | get the profiles by search     |
-| /?list=uids        | GET         | READ        | get the profiles data by list  |
-| /check             | GET         | READ        | check an user, return an id    |
-| /user              | GET         | READ        | get all user data              |a
-| /:name             | GET         | READ        | get the profile data           |
-| /:name/id          | GET         | READ        | get the profile id             |
-| /                  | PUT         | UPDATE      | update an user value/file      |a
-| /                  | DELETE      | DELETE      | delete an user                 |a
-| /:uid/follow       | POST        | CREATE      | create the user subscription   |a
-| /:uid/followers    | GET         | READ        | get the profile followers      |a
-| /:uid/following    | GET         | READ        | get the profile following      |a
-| /:uid/following/id | GET         | READ        | get the user following ids     |a
-| /:uid/follow/:sid  | DELETE      | DELETE      | delete the user subscription   |a
-
-#### (2) Communities API - http://localhost:3005
+#### (2) Communities API - http://localhost:3005/api/v1
 
 ##### ping: /api/v1/ping
 ##### prefix: /api/v1/communities
 
 | Endpoint           | HTTP Method | CRUD Method | Result                            |
-|--------------------|-------------|-------------|-----------------------------------|
+|--------------------|-------------|-------------|-----------------------------------| 
 | /                  | POST        | CREATE      | add a community                   |a
-| /                  | GET         | READ        | get the trending communities      |
-| /?query=query      | GET         | READ        | get the communities by search     |
-| /?list=cids        | GET         | READ        | get the communities data by list  |
+| /                  | GET         | READ        | get the trending communities      | 
+| /?query=query      | GET         | READ        | get the communities by search     | 
+| /?list=cids        | GET         | READ        | get the communities data by list  | 
 | /?admin=username   | GET         | READ        | get the communities by admin      |a
-| /?limiter=dash     | GET         | READ        | get the user following comms ids  |a
-| /count?profile=uid | GET         | READ        | get communities count             |
-| /:name             | GET         | READ        | get the community data            |
+| /?limiter=dash     | GET         | READ        | get the user following comms ids  |a 
+| /count?profile=uid | GET         | READ        | get communities count             |  
+| /:name             | GET         | READ        | get the community data            | 
 | /:name/id          | GET         | READ        | get the community id              |a
-| /:cid              | PUT         | UPDATE      | update the community value/file   |a
+| /:cid              | PUT         | UPDATE      | update the community value/file   |a 
 | /:cid              | DELETE      | DELETE      | delete the community              |a
 | /:cid/follow       | POST        | CREATE      | create the community subscription |a
 | /:cid/followers    | GET         | READ        | get the community followers       |a
@@ -131,13 +130,11 @@ $ docker exec -ti <container-id> psql -U postgres
 | /tags?query=query          | GET         | READ        | get the tags by search    |
 
 
-#### (4) Partners API - http://localhost:3008
-
-##### ping: /api/v1/ping
-##### prefix: /api/v1/partners
+#### (4) Partners API - http://localhost:3008/api/v1/
 
 | Endpoint       | HTTP Method | CRUD Method | Result                         |
 |----------------|-------------|-------------|--------------------------------|
+| /ping          | GET         | READ        | `pong`                         |a
 | /plans         | POST        | CREATE      | add an api plan                |a
 | /plans         | GET         | READ        | get all api plans              |a
 | /plans/:pid    | GET         | READ        | get an api plan data           | 
@@ -224,6 +221,16 @@ With the apps up, run:
 
 ```sh
 $ sh init_db.sh
+```
+or run for each service:
+
+```sh
+$ npm migrate && npm seed
+```
+or
+
+```sh
+$ docker-compose run users-service npm seed
 ```
 
 #### Databases

@@ -1,31 +1,23 @@
 /* eslint-disable no-return-assign */
-const axios = require('axios');
+const { request } = require('../services');
+const { genApiSecret } = require('./local');
 const redis = require('redis');
 const bluebird = require('bluebird');
-const { encodeToken, genApiSecret } = require('./local');
 
 const client = redis.createClient(6379, 'redis-cache');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
-client.on('ready', async () => {
-    const keys = await client.keysAsync('*');
-    console.log(`keys ${keys.length}:`);
-    keys.forEach(async (key) => {
-        const val = await client.getAsync(key);
-        console.log(`${key} - ${val}`);
-    });
-});
 
 /*
-    Here we register consumers requests: users or apps.
+Register consumers requests: users or apps.
 
-** At first we implement rateLimitPolicy. **
-    Every consumer has limitation on count of requests at hour to prevent
-    Denial of Service (DoS) attacks and memory exhaustation.
+- At first we implement rateLimitPolicy.
+    Every consumer has limitation on count of requests at pariod
+    to prevent Denial of Service (DoS) attacks and memory exhaustation.
     Additionally partner apps (which needs much more traffic)
     might have higher limits based on partner api plan.
     The concept:
-    - There are separated cnt_ip and ban_ip strings in Redis with EXPIRE
+    - There are ip counters and blockers strings in Redis with EXPIRE
     functionality that allows avoid having to handle all the timing stuff.
     - Initialy check if there is a "blocked" consumer ip
     - Check if there is a "counter" for consumer ip
@@ -38,18 +30,19 @@ client.on('ready', async () => {
     block any subsequent requests
     - Accept requests again after a freeze period of 5 minutes
     - if consumer logout or changed api_plan - remove ip data from redis
-    - if all ok - set default consumer: ctx.state.consumer = 0(success flag)
+    - if all ok - set default not authorized consumer:
+    ctx.state.consumer = 0(success flag)
 
-** In case of secure API routes needs to implement authentication. **
-    - In case of app - check api_secret
-    - In case of user - get user_id from Users microservice and
-    set it to ctx.state.consumer(user_id flag)
-    - If authentication fails set ctx.state.consumer = null(failure flag)
-    for prevent token generating
+- In case of secure API routes needs to implement authentication.
+    - In case of app - check api_secret.
+    There is not change: ctx.state.consumer = 0
+    - In case of user - get user id from Users microservice
+    and set authorized consumer: ctx.state.consumer = user_id
 
-** Finally create a short-lived token **
-    If ctx.state.consumer !== null (restricted flag) generate
-    a short-lived token for related microservices access
+- Create a short-lived token for related microservices access
+    ctx.state.consumer === 0 - non authorized request
+    ctx.state.consumer > 0 - authorized request(user id)
+    else - breaks request
 */
 
 const rateLimitPolicy = async (ctx, next) => {
@@ -57,12 +50,12 @@ const rateLimitPolicy = async (ctx, next) => {
         ctx.state.consumer = 0;
         await next();
     }
-    // "freeze" period in seconds
+    // "freeze" period in sec
     const blockingTimespan = 600;
-    // time-span to count the requests(1 hour)
+    // time-span to count the requests in sec
     const watchingTimespan = 60 * 30;
     // default requests limit
-    const defaultRequestLimit = 50;
+    const defaultLimit = 50;
     // compose key for identifying blocked ips
     const blockedIp = `blocked_ip_${ctx.ip}`;
     // compose key for counting requests
@@ -72,15 +65,15 @@ const rateLimitPolicy = async (ctx, next) => {
     const limitMessage = `API requests limit is reached. Try later or change API plan.`;
     try {
         // check if there is a "blocked" ip
-        const isBlocked = await client.getAsync(blockedIp);
-        if (isBlocked) throw new Error(limitMessage);
+        const isIpBlocked = await client.getAsync(blockedIp);
+        if (isIpBlocked) throw new Error(limitMessage);
         // check if there is ip counter
         let cnt = await client.getAsync(ipCounter);
         if (cnt) {
             // increment ip counter
             await client.incr(ipCounter);
             // get requests limit for ip
-            const requestsLimit = await client.getAsync(ipRequestsLimit) || defaultRequestLimit;
+            const requestsLimit = await client.getAsync(ipRequestsLimit) || defaultLimit;
             // check limit
             if (++cnt > requestsLimit) {
                 // mark the consumer ip as "blocked"
@@ -94,21 +87,21 @@ const rateLimitPolicy = async (ctx, next) => {
             const apiKey = ctx.headers.api_key;
             const apiSecret = ctx.headers.api_secret;
             if (typeof apiKey !== 'undefined' && typeof apiSecret !== 'undefined') {
-                // call partner api: check api_key and domain matching in db
-                const options = {
-                    method: 'POST',
-                    url: `${ctx.partner_host}/api/v1/apps/check`,
-                    headers: { Authorization: `Bearer ${encodeToken()}` },
-                    body: {
-                        api_key: apiKey,
-                        domain: ctx.request.origin
-                    },
-                    validateStatus: status => status >= 200,
+                // call partners service: check api_key and domain matching in db
+                ctx.state.method = 'POST';
+                ctx.state.body = {
+                    api_key: apiKey,
+                    domain: ctx.request.origin
                 };
-                const res = await axios(options);
-                if (res.data.status === 'error') throw new Error('Consumer app is not found');
-                // set requests limit
-                client.set(ipRequestsLimit, res.data.data);
+                const url = '/api/v1/apps/check';
+                const res = await request(ctx, ctx.partners_host, url, true);
+                try {
+                    if (typeof res.limit !== 'number') throw new Error();
+                    // set requests limit
+                    client.set(ipRequestsLimit, res.data.limit);
+                } catch (err) {
+                    ctx.throw(401, 'Invalid API key');
+                }
             }
             client.set(ipCounter, 1);
             client.expire(ipCounter, watchingTimespan);
@@ -128,28 +121,24 @@ const authentication = async (ctx, next) => {
     }
     const apiKey = ctx.headers.api_key;
     const apiSecret = ctx.headers.api_secret;
-    // app auth
+    // app auth: check api_secret
     if (typeof apiKey !== 'undefined' && typeof apiSecret !== 'undefined') {
         try {
-            // check api_secret
             if (apiSecret !== genApiSecret(apiKey)) throw new Error();
-            ctx.state.consumer = 0;
-        } catch (err) {
-            ctx.throw(401, 'Invalid API secret');
+        } catch (e) {
+            ctx.throw(401, 'Invalid API secret token');
         }
     } else {
-        // user auth
+        // user auth: check user id from users service
         try {
-            // get user id from users service
-            const authHeader = ctx.headers.authentication;
-            if (typeof authHeader === 'undefined') throw new Error();
-            const options = {
-                method: 'GET',
-                url: `${ctx.users_host}/api/v1/users/check`,
-                headers: { Authorization: `Bearer ${authHeader.split(' ')[1]}` }
-            };
-            const user = await axios(options);
-            ctx.state.consumer = user.id || 0;
+            const userToken = ctx.headers.authorization.split(' ')[1];
+            if (typeof userToken === 'undefined') throw new Error();
+            const url = '/api/v1/users/check';
+            ctx.state.method = 'GET';
+            ctx.state.userToken = userToken;
+            const res = await request(ctx, ctx.users_host, url, true);
+            if (typeof res.user !== 'number') throw new Error();
+            ctx.state.consumer = res.user;
         } catch (err) {
             ctx.throw(401, 'Please log in');
         }

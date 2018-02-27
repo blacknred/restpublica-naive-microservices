@@ -15,9 +15,9 @@ function check(req, res, next) {
 
 function plan(req, res, next) {
     if (req.method === 'GET') {
-        req.checkParams('pid')
-            .isInt()
-            .withMessage('API plan id must be integer');
+        req.checkParams('name')
+            .notEmpty()
+            .withMessage('Name cannot be empty');
     } else if (req.method === 'POST') {
         req.checkBody('name')
             .notEmpty()
@@ -29,9 +29,9 @@ function plan(req, res, next) {
             .isInt()
             .withMessage(`Limit must be integer`);
     } else if (req.method === 'PUT') {
-        req.checkParams('pid')
-            .isInt()
-            .withMessage('API plan id must be integer');
+        req.checkParams('name')
+            .notEmpty()
+            .withMessage('Name cannot be empty');
         req.checkBody('option')
             .notEmpty()
             .withMessage('Update option cannot be empty');
@@ -39,9 +39,9 @@ function plan(req, res, next) {
             .notEmpty()
             .withMessage('Update value cannot be empty');
     } else if (req.method === 'DELETE') {
-        req.checkParams('pid')
-            .isInt()
-            .withMessage('API plan id must be integer');
+        req.checkParams('name')
+            .notEmpty()
+            .withMessage('Name cannot be empty');
     }
     const failures = req.validationErrors();
     if (failures) {

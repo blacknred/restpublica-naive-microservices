@@ -5,8 +5,9 @@ const fileUpload = require('express-fileupload');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 
-const routes = require('./routes/');
 const authentication = require('./auth/');
+const usersRoutes = require('./routes/users');
+const subscriptionsRoutes = require('./routes/subscriptions');
 
 const app = express();
 
@@ -21,7 +22,8 @@ app.use(authentication);
 
 /* router */
 app.get('/api/v1/ping', (req, res) => res.status(200).send('pong'));
-app.use('/api/v1/users', routes);
+app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/users', subscriptionsRoutes);
 
 /* 404 and errors handling */
 app.use((req, res, next) => {

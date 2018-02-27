@@ -5,140 +5,62 @@ const ApiPlan = mongoose.model('ApiPlan');
 const PartnerApp = mongoose.model('PartnerApp');
 
 /* api plans */
-const findPlanByName = (name) => {
-    ApiPlan.find({ name })
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
-};
 
 const createPlan = (planObj) => {
     const plan = new ApiPlan(planObj);
-    plan.save()
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+    plan.save().then(data => data);
 };
+
 const getAllPlans = () => {
-    ApiPlan.find({})
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+    ApiPlan.find({}).then(data => data);
 };
 
-const getPlan = (planId) => {
-    ApiPlan.findById(planId)
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+const getPlan = (name) => {
+    ApiPlan.find({ name }).then(data => data);
 };
 
-const updatePlan = (planId, planObj) => {
-    ApiPlan.findOneAndUpdate({ _id: planId }, planObj, { new: true })
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+const updatePlan = (name, planObj) => {
+    ApiPlan.findOneAndUpdate({ name }, planObj, { new: true })
+        .then(data => data);
 };
 
-const deletePlan = (planId) => {
-    ApiPlan.remove({ _id: planId })
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+const deletePlan = (name) => {
+    ApiPlan.remove({ name }).then(data => data);
 };
 
 /* partner apps */
 
 const findAppByDomain = (domain) => {
-    PartnerApp.find({ domain })
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+    PartnerApp.find({ domain }).then(data => data);
 };
 
 const checkApp = (apiKey, domain) => {
     PartnerApp.find({ apiKey, domain })
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+        .then(data => data);
 };
 
 const createApp = (appObj) => {
     const app = new PartnerApp(appObj);
-    app.save()
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+    app.save().then(data => data);
 };
 const getAllApps = () => {
-    PartnerApp.find({})
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+    PartnerApp.find({}).then(data => data);
 };
 
 const getApp = (appId) => {
-    PartnerApp.findById(appId)
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+    PartnerApp.findById(appId).then(data => data);
 };
 
 const updateApp = (appId, appObj) => {
     PartnerApp.findOneAndUpdate({ _id: appId }, appObj, { new: true })
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+        .then(data => data);
 };
 
 const deleteApp = (appId) => {
-    PartnerApp.remove({ _id: appId })
-        .then((data) => {
-            return data;
-        })
-        .catch((err) => {
-            return err;
-        });
+    PartnerApp.remove({ _id: appId }).then(data => data);
 };
 
 module.exports = {
-    findPlanByName,
     getAllPlans,
     getPlan,
     createPlan,

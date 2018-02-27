@@ -6,7 +6,8 @@ const morgan = require('morgan');
 const mongoose = require('mongoose');
 
 const dbConfig = require('./db-config');
-const routes = require('./routes/');
+const plansRoutes = require('./routes/plans');
+const appsRoutes = require('./routes/apps');
 const authentication = require('./auth/');
 
 const app = express();
@@ -24,8 +25,9 @@ mongoose.connect(dbConfig[process.env.NODE_ENV]);
 app.use(authentication);
 
 /* router */
-app.get('/api/v1/ping', (req, res) => res.status(200).send('pong'));
-app.use('/api/v1/partners', routes);
+app.get('/api/v1/ping', res => res.status(200).send('pong'));
+app.use('/api/v1/plans', plansRoutes);
+app.use('/api/v1/apps', appsRoutes);
 
 /* 404 and errors handling */
 app.use((req, res, next) => {

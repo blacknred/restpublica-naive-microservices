@@ -1,8 +1,8 @@
 /* eslint-disable no-return-assign */
 /* eslint-disable no-param-reassign */
 const Router = require('koa-router');
-const { authentication } = require('../consumer_registry');
-const request = require('./_helpers');
+const { authentication } = require('../auth');
+const { request } = require('../services');
 
 const router = new Router();
 
@@ -10,7 +10,7 @@ const router = new Router();
 router
     .get('/users', async (ctx) => {
         // get profiles data
-        const sUsers = await request(ctx, ctx.users_host, ctx.url, () => { });
+        const sUsers = await request(ctx, ctx.users_host, ctx.url, true);
         console.log(sUsers);
         // get preview posts if req not from mobile
         if (!ctx.userAgent.isMobile) {

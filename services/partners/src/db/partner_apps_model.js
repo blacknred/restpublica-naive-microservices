@@ -9,8 +9,17 @@ const PartnerApp = new Schema({
         trim: true,
         required: true
     },
-    planId: { type: Number, required: true, index: true, ref: 'ApiPlan' },
-    adminId: { type: Number, required: true, index: true },
+    planId: {
+        type: Number,
+        required: true,
+        index: true,
+        ref: 'ApiPlan'
+    },
+    adminId: {
+        type: Number,
+        required: true,
+        index: true
+    },
     domain: {
         type: String,
         unique: true,
@@ -27,7 +36,10 @@ const PartnerApp = new Schema({
         required: true,
         match: /^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,5})$/
     },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
 });
 
 module.exports = mongoose.model('PartnerApp', PartnerApp);

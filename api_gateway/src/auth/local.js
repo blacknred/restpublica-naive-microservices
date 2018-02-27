@@ -2,7 +2,7 @@ const jwt = require('jwt-simple');
 const moment = require('moment');
 const bcrypt = require('bcryptjs');
 
-function encodeToken(userId = 0) {
+function genToken(userId = 0) {
     const playload = {
         exp: moment().add(5, 'seconds').unix(),
         iat: moment().unix(),
@@ -17,6 +17,6 @@ function genApiSecret(apiKey) {
 }
 
 module.exports = {
-    encodeToken,
+    genToken,
     genApiSecret
 };

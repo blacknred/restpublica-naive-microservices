@@ -1,6 +1,6 @@
 const Router = require('koa-router');
-const { authentication } = require('../consumer_registry');
-const request = require('./_helpers');
+const { authentication } = require('../auth');
+const { request } = require('../services');
 
 const router = new Router();
 

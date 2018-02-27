@@ -3,14 +3,14 @@
 /* eslint-disable no-return-assign */
 const express = require('express');
 const gm = require('gm');
-const auth = require('../auth/local');
+const { encodeToken } = require('../auth/local');
 const queries = require('../db/queries.js');
 const validate = require('./validation');
 const helpers = require('./_helpers');
 
 const router = express.Router();
 
-/* profiles */
+/* users */
 
 router.post('/', validate.user, async (req, res, next) => {
     const newUser = {
@@ -42,7 +42,7 @@ router.post('/', validate.user, async (req, res, next) => {
         }
         const user = await queries.createUser(newUser);
         user.avatar = user.avatar.toString('base64');
-        const token = await auth.encodeToken(user.id);
+        const token = await encodeToken(user.id);
         user.token = token;
         res.status(200).json({
             status: 'success',
@@ -51,7 +51,7 @@ router.post('/', validate.user, async (req, res, next) => {
     } catch (err) {
         if (errors.length) {
             res.status(422).json({
-                status: 'Validation failed',
+                status: 'validation failed',
                 failures: errors
             });
         } else {
@@ -60,7 +60,7 @@ router.post('/', validate.user, async (req, res, next) => {
     }
 });
 
-router.post('/login', async (req, res, next) => {
+router.post('/login', validate.user, async (req, res, next) => {
     const username = req.body.username;
     const password = req.body.password;
     const errors = [];
@@ -81,7 +81,7 @@ router.post('/login', async (req, res, next) => {
             throw new Error('Incorrect password');
         }
         user.avatar = user.avatar.toString('base64');
-        const token = await auth.encodeToken(user.id);
+        const token = await encodeToken(user.id);
         user.token = token;
         res.status(200).json({
             status: 'success',
@@ -90,7 +90,7 @@ router.post('/login', async (req, res, next) => {
     } catch (err) {
         if (errors.length) {
             res.status(422).json({
-                status: 'Validation failed',
+                status: 'validation failed',
                 failures: errors
             });
         } else {
@@ -99,31 +99,12 @@ router.post('/login', async (req, res, next) => {
     }
 });
 
-router.get('/', validate.profiles, async (req, res, next) => {
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const query = req.query.query ? req.query.query.toLowerCase() : null;
-    const list = req.query.users ? req.query.users.split(',') : null;
-    let data;
-    try {
-        if (query) data = await queries.getSearchedProfiles(query, req.user, offset);
-        else if (list) data = await queries.getProfilesData(list, req.user);
-        else data = await queries.getTrendingProfiles(req.user, offset);
-        // data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
 router.get('/check', async (req, res, next) => {
     try {
         const user = await queries.checkUser(req.user);
         res.status(200).json({
             status: 'success',
-            id: user.id
+            user: user.id
         });
     } catch (err) {
         return next(err);
@@ -137,36 +118,6 @@ router.get('/user', async (req, res, next) => {
         res.status(200).json({
             status: 'success',
             data
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-router.get('/:name', async (req, res, next) => {
-    const name = req.params.name;
-    try {
-        let profile = await queries.findProfileByName(name);
-        if (!profile) throw new Error(`User ${name} is not found`);
-        profile = await queries.getProfileData(name, req.user);
-        profile.avatar = profile.avatar.toString('base64');
-        res.status(200).json({
-            status: 'success',
-            data: profile
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-router.get('/:name/id', async (req, res, next) => {
-    const name = req.params.name;
-    try {
-        const profile = await queries.findProfileByName(name);
-        if (!profile) throw new Error(`User ${name} is not found`);
-        res.status(200).json({
-            status: 'success',
-            data: profile.id
         });
     } catch (err) {
         return next(err);
@@ -209,85 +160,53 @@ router.delete('/', async (req, res, next) => {
     }
 });
 
-/* subscriptions */
-
-router.post('/:uid/follow', validate.subscriptions,
-    async (req, res, next) => {
-        const newSubscription = {
-            user_id: req.body.id,
-            sub_user_id: req.user
-        };
-        try {
-            const data = await queries.createSubscription(newSubscription);
-            res.status(200).json({
-                status: 'success',
-                data
-            });
-        } catch (err) {
-            return next(err);
-        }
+router.get('/', validate.profiles, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const query = req.query.query ? req.query.query.toLowerCase() : null;
+    const list = req.query.users ? req.query.users.split(',') : null;
+    let data;
+    try {
+        if (query) data = await queries.getSearchedProfiles(query, req.user, offset);
+        else if (list) data = await queries.getProfilesData(list, req.user);
+        else data = await queries.getTrendingProfiles(req.user, offset);
+        // data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
     }
-);
+});
 
-router.get('/:uid/followers', validate.subscriptions,
-    async (req, res, next) => {
-        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-        try {
-            const data = await queries.getFollowers(req.params.uid, req.user, offset);
-            data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
-            res.status(200).json({
-                status: 'success',
-                data
-            });
-        } catch (err) {
-            return next(err);
-        }
+router.get('/:name', async (req, res, next) => {
+    const name = req.params.name;
+    try {
+        let profile = await queries.findProfileByName(name);
+        if (!profile) throw new Error(`User ${name} is not found`);
+        profile = await queries.getProfileData(name, req.user);
+        profile.avatar = profile.avatar.toString('base64');
+        res.status(200).json({
+            status: 'success',
+            data: profile
+        });
+    } catch (err) {
+        return next(err);
     }
-);
+});
 
-router.get('/:uid/following', validate.subscriptions,
-    async (req, res, next) => {
-        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-        try {
-            const data = await queries.getFollowing(req.params.uid, req.user, offset);
-            data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
-            res.status(200).json({
-                status: 'success',
-                data
-            });
-        } catch (err) {
-            return next(err);
-        }
+router.get('/:name/id', async (req, res, next) => {
+    const name = req.params.name;
+    try {
+        const profile = await queries.findProfileByName(name);
+        if (!profile) throw new Error(`User ${name} is not found`);
+        res.status(200).json({
+            status: 'success',
+            data: profile.id
+        });
+    } catch (err) {
+        return next(err);
     }
-);
-
-router.get('/:uid/following/ids', validate.subscriptions,
-    async (req, res, next) => {
-        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-        try {
-            const data = await queries.getFollowingIds(req.params.uid, offset, req.user);
-            res.status(200).json({
-                status: 'success',
-                data
-            });
-        } catch (err) {
-            return next(err);
-        }
-    }
-);
-
-router.delete('/:uid/follow/:sid', validate.subscriptions,
-    async (req, res, next) => {
-        try {
-            const data = await queries.deleteSubscription(req.params.sid, req.user);
-            res.status(200).json({
-                status: 'success',
-                data
-            });
-        } catch (err) {
-            return next(err);
-        }
-    }
-);
+});
 
 module.exports = router;

@@ -7,7 +7,7 @@ const routeHelpers = require('../../routes/_helpers');
 const salt = bcrypt.genSaltSync();
 
 const createUser = (knex, username) => {
-    const hash = bcrypt.hashSync('herman5', salt);
+    const hash = bcrypt.hashSync('password5', salt);
     const fullname = faker.name.findName();
     return routeHelpers.createAvatar(fullname)
         .then((avatar) => {
@@ -29,7 +29,9 @@ exports.seed = (knex, Promise) => {
         .del()
         .then(() => {
             const records = [];
-            const usernames = helpers.genUniqueNamesArr(40);
+            let usernames;
+            if (process.env.NODE_ENV === 'test') usernames = ['mark', 'hugo'];
+            else usernames = helpers.genUniqueNamesArr(40);
             console.log(`usersnames: ${usernames.length}`);
             usernames.forEach(username => records.push(createUser(knex, username)));
             return Promise.all(records);
