@@ -6,11 +6,11 @@ module.exports = function ensureAuthenticated(req, res, next) {
         req.user = 1;
         return next();
     }
-    if (!req.headers.X-Auth-Token) {
+    if (!req.headers['x-auth-token']) {
         return res.status(401).json({ status: 'No access token' });
     }
     // decode the token
-    const token = req.headers.X-Auth-Token;
+    const token = req.headers['x-auth-token'];
     decodeToken(token, (err, payload) => {
         if (err) {
             return res.status(401).json({

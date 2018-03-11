@@ -2,16 +2,18 @@ const faker = require('faker');
 const helpers = require('../_helpers');
 const routeHelpers = require('../../routes/_helpers');
 
-const createCommunity = (knex, title, adminId) => {
-    return Promise.all([
-        routeHelpers.createAvatar(title),
-        routeHelpers.createTheme()
-    ])
-        .then((imgs) => {
-            const [avatar, theme] = imgs;
+function createCommunity(knex, name, adminId) {
+    let avatar;
+    return routeHelpers.createAvatar(name)
+        .then((res) => {
+            avatar = res;
+            return routeHelpers.createTheme();
+        })
+        .then((theme) => {
             return knex('communities')
                 .insert({
-                    title,
+                    name,
+                    title: name,
                     description: faker.lorem.sentences(),
                     avatar,
                     theme,
@@ -19,19 +21,24 @@ const createCommunity = (knex, title, adminId) => {
                 });
         })
         .catch(err => console.log(err));
-};
+}
 
 exports.seed = (knex, Promise) => {
     return knex('communities')
         .del()
         .then(() => {
             const records = [];
-            const titles = helpers.genUniqueTitlesArr(10);
-            console.log(`titles: ${titles.length}`);
-            const admins = helpers.genUniqueNumbersArr(10, 40);
-            console.log(`admins: ${admins.length}`);
-            titles.forEach((title, i) => {
-                records.push(createCommunity(knex, title, admins[i]));
+            let names;
+            let admins;
+            if (process.env.NODE_ENV === 'test') {
+                names = ['Chelsea', 'Winter'];
+                admins = [1, 2];
+            } else {
+                names = helpers.genUniqueNamesArr(10);
+                admins = helpers.genUniqueNumbersArr(10, 40);
+            }
+            names.forEach((name, i) => {
+                records.push(createCommunity(knex, name, admins[i]));
             });
             return Promise.all(records);
         })

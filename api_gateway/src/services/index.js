@@ -24,14 +24,11 @@ const serviceDiscovery = async (ctx, next) => {
     - ?every 60 sec calls 'ping' all microservices and then updates hosts
     */
     // mock
-    ctx.app.context.users_host = process.env.USERS_API_HOST;
-    ctx.app.context.communities_host = process.env.COMMUNITIES_API_HOST;
-    ctx.app.context.posts_host = process.env.POSTS_API_HOST;
-    ctx.app.context.partners_host = process.env.PARTNERS_API_HOST;
-    ctx.app.context.users_host = 'http://users-service:3004';
-    ctx.app.context.communities_host = 'http://communities-service:3005';
-    ctx.app.context.partners_host = 'http://partners-service:3008';
-    ctx.app.context.posts_host = 'http://posts-service:3006';
+    const version = '/v1';
+    ctx.app.context.users_host = process.env.USERS_API_HOST + version;
+    ctx.app.context.communities_host = process.env.COMMUNITIES_API_HOST + version;
+    ctx.app.context.posts_host = process.env.POSTS_API_HOST + version;
+    ctx.app.context.partners_host = process.env.PARTNERS_API_HOST + version;
     await next();
 };
 
@@ -58,9 +55,9 @@ const request = async (ctx, host, url, r = false, fallback) => {
     */
 
     // "freeze" period in sec
-    const blockingTimespan = 600;
+    const blockingTimespan = 60;
     // limit of failed requests
-    const failsLimit = 5;
+    const failsLimit = 15;
     // compose key for identifying blocked hosts
     const blockedHost = `blocked_host_${host}`;
     // compose counter for failed requests
@@ -70,11 +67,12 @@ const request = async (ctx, host, url, r = false, fallback) => {
         url: host + url,
         method: ctx.state.method || ctx.method,
         headers: {
-            'X-Auth-Token': genToken(ctx.state.userToken || ctx.state.consumer)
+            'X-Auth-Token': ctx.state.userAuthToken || genToken(ctx.state.consumer),
+            'Content-Type': ctx.request.headers['content-type']
         },
         data: ctx.state.body || ctx.request.body,
-        timeout: 100, // main
-        maxContentLength: 2000,
+        timeout: 2000, // !!time to response
+        // maxContentLength: 55000,
         maxRedirects: 5,
         validateStatus: status => status >= 200 && status < 500,
         // proxy: {
@@ -87,6 +85,7 @@ const request = async (ctx, host, url, r = false, fallback) => {
         // }
     };
     try {
+        console.log(ctx.state.body, ctx.request.body);
         // if host is blocked run fallback or throw error
         const isBlocked = await client.getAsync(blockedHost);
         if (isBlocked) {

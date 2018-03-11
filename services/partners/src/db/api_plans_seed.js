@@ -1,7 +1,6 @@
 const ApiPlan = require('mongoose').model('ApiPlan');
 
-const seedApiPlans = () => {
-    // create some plans
+module.exports = function seedApiPlans() {
     const plans = [
         { name: 'light', limit: 50, price: 0 },
         { name: 'Medium', limit: 1000, price: 5 },
@@ -13,8 +12,6 @@ const seedApiPlans = () => {
         newPlan.save();
     });
 
-    // seeded!
     console.log('ApiPlan model seeded!');
 };
 
-module.exports.seedApiPlans = seedApiPlans;

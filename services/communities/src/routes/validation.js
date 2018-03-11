@@ -1,8 +1,37 @@
-function community(req, res, next) {
-    if (req.method === 'POST') {
+function communities(req, res, next) {
+    if (req.method === 'GET') {
+        if (req.query.query) {
+            req.checkQuery('query')
+                .matches(/^.{3,}$/)
+                .withMessage('Search query have to have at least 3 chars');
+        }
+        if (req.query.list) {
+            req.checkQuery('list')
+                .matches(/[0-9]+/g)
+                .withMessage('List ids must be integer');
+        }
+        if (req.query.admin) {
+            req.checkQuery('admin')
+                .isInt()
+                .withMessage('Admin id must be integer');
+        }
+        if (req.query.profiles) {
+            req.checkQuery('profiles')
+                .matches(/[0-9]+/g)
+                .withMessage('Profile id must be integer');
+        }
+        if (req.query.lim) {
+            req.checkQuery('lim')
+                .matches(/[id|count|name]/g)
+                .withMessage('Limiter must be valid');
+        }
+    } else if (req.method === 'POST') {
         req.checkBody('name')
             .notEmpty()
             .withMessage('Name cannot be empty');
+        req.checkBody('title')
+            .notEmpty()
+            .withMessage('Title cannot be empty');
         req.checkBody('description')
             .notEmpty()
             .withMessage('Description cannot be empty');
@@ -37,40 +66,6 @@ function community(req, res, next) {
         req.checkBody('value')
             .notEmpty()
             .withMessage('Update value cannot be empty');
-    }
-    const failures = req.validationErrors();
-    if (failures) {
-        return res.status(422)
-            .json({ status: `Validation failed`, failures });
-    }
-    return next();
-}
-
-function communities(req, res, next) {
-    if (req.query.query) {
-        req.checkQuery('query')
-            .matches(/^.{3,}$/)
-            .withMessage('Search query must has at least 3 chars');
-    }
-    if (req.query.communities) {
-        req.checkQuery('communities')
-            .matches(/[0-9]+/g)
-            .withMessage('Communities ids must be integers');
-    }
-    if (req.query.admin) {
-        req.checkQuery('admin')
-            .isInt()
-            .withMessage('Admin id must be integer');
-    }
-    if (req.query.limiter) {
-        req.checkQuery('limiter')
-            .matches(/[dash]/g)
-            .withMessage('Limiter mode must be valid');
-    }
-    if (req.query.profile) {
-        req.checkQuery('profile')
-            .matches(/[0-9]+/g)
-            .withMessage('Profile id must be integer');
     }
     const failures = req.validationErrors();
     if (failures) {
@@ -124,7 +119,6 @@ function bans(req, res, next) {
 }
 
 module.exports = {
-    community,
     communities,
     subscriptions,
     bans

@@ -5,8 +5,10 @@ const fileUpload = require('express-fileupload');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 
-const routes = require('./routes/');
 const authentication = require('./auth/');
+const communitiesRoutes = require('./routes/communities');
+const subscriptionsRoutes = require('./routes/subscriptions');
+const bansRoutes = require('./routes/bans');
 
 const app = express();
 
@@ -20,8 +22,10 @@ app.use(expressValidator());
 app.use(authentication);
 
 /* router */
-app.get('/api/v1/ping', (req, res) => res.status(200).send('pong'));
-app.use('/api/v1/communities', routes);
+app.get('/v1/ping', (req, res) => res.status(200).send('pong'));
+app.use('/v1/communities', communitiesRoutes);
+app.use('/v1/communities', subscriptionsRoutes);
+app.use('/v1/communities', bansRoutes);
 
 /* 404 and errors handling */
 app.use((req, res, next) => {

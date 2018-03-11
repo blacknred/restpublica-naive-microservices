@@ -13,6 +13,7 @@ build
 npm-debug.log
 _ignore
 env.sh
+posts_schema.md
 
 #ide
 .vscode

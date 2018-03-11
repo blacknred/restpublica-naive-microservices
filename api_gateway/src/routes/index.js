@@ -2,7 +2,7 @@ const Router = require('koa-router');
 const redirections = require('./redirections');
 const compositions = require('./compositions');
 
-const router = new Router({ prefix: '/api/v1' });
+const router = new Router();
 
 /*
 Router:
@@ -15,9 +15,9 @@ Router:
 /* check */
 router.get('/ping', (ctx) => { ctx.body = 'pong'; });
 
-/* compose routes */
-router.use(compositions.routes());
+/* routers */
 router.use(redirections.routes());
+router.use(compositions.routes());
 
 module.exports = router;
 

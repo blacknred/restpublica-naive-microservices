@@ -1,18 +1,17 @@
 /* eslint-disable */
-const auth = require('./local');
+const { decodeToken } = require('./local');
 
 module.exports = function ensureAuthenticated(req, res, next) {
     if (process.env.NODE_ENV === 'test') {
         req.user = 1;
         return next();
     }
-    if (!(req.headers && req.headers.authorization)) {
+    if (!req.headers.X-Auth-Token) {
         return res.status(401).json({ status: 'No access token' });
     }
     // decode the token
-    const header = req.headers.authorization.split(' ');
-    const token = header[1];
-    auth.decodeToken(token, (err, payload) => {
+    const token = req.headers.X-Auth-Token;
+    decodeToken(token, (err, payload) => {
         if (err) {
             return res.status(401).json({
                 status: 'error',

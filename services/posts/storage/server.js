@@ -23,9 +23,8 @@ app.use(async (ctx, next) => {
         ctx.status = err.status || 500;
         ctx.body = {
             status: 'error',
-            message: err.message || {}
+            message: err.message
         };
-        // ctx.app.emit('error', err, ctx);
     }
 });
 
@@ -40,43 +39,37 @@ app.use(async (ctx, next) => {
     /* eslint-disable no-case-declarations */
     switch (ctx.method) {
         case 'POST':
-            const d = Math.random().toString(36).slice(2); // filesDir
-            const dir = path.join(__dirname, 'static', d);
-            const reqFiles = Object.values(ctx.request.body.files || {});
-            const resFilesPaths = [];
+            const response = [];
+            const dir = Math.random().toString(36).slice(2);
+            const dest = path.join(__dirname, 'static', dir);
+            const reqArr = Object.values(ctx.request.body.files);
             try {
-                await mkdir(dir);
-                // handle files and files paths
-                reqFiles.forEach(async (file) => {
-                    // check names
-                    if (!file.path) {
-                        return ctx.throw(400, 'The files must have names');
-                    }
-                    const fileName = (file.name).replace(/\s/g, '');
-                    const filePath = path.join(dir, fileName);
+                await mkdir(dest);
+                reqArr.forEach(async (file) => {
+                    const name = Math.random().toString(36).slice(2) + path.extname(file.name);
                     const reader = await fs.createReadStream(file.path);
-                    const writer = await fs.createWriteStream(filePath);
-                    await reader.pipe(writer);
-                    console.log('uploading %s -> %s', fileName, writer.path);
-                    resFilesPaths.push({
-                        url: `http://localhost:3007/${d}/${fileName}`, /* ctx.request.URL */
-                        mime: (file.type).replace('-', '/')
-                    });
+                    await reader.pipe(fs.createWriteStream(path.join(dest, name)));
+                    console.log('uploading %s -> %s', file.name, name);
+                    response.push(`http://localhost:3007/${dir}/${name}`); // ctx.request.URL
                 });
+                ctx.body = {
+                    status: 'success',
+                    data: response
+                };
             } catch (err) {
-                console.log(err.message);
                 ctx.throw(500, err.message);
             }
-            // return file locations
-            ctx.body = resFilesPaths;
             break;
         case 'DELETE':
             const filePath = path.join(__dirname, 'static', ctx.path);
             try {
                 await fs.unlinkSync(filePath);
                 console.log('deleting %s from %s', ctx.path, filePath);
+                ctx.body = {
+                    status: 'success',
+                    data: ctx.path
+                };
             } catch (err) {
-                console.log(err.message);
                 ctx.throw(500, err.message);
             }
             break;
@@ -87,5 +80,5 @@ app.use(async (ctx, next) => {
 /* listen */
 if (!module.parent) {
     app.listen(3007);
-    console.log('Mock files storage is listening on port 3007');
+    console.log('Mocking files storage is listening on port 3007');
 }

@@ -15,8 +15,8 @@ services:
   partners-db:
     container_name: partners-db
     build: ./services/partners/src/db
-    volumes:
-      - ./services/partners/src/db/mongo-data:/data/db
+    # volumes:
+    #   - ./services/partners/src/db/mongo-data:/data/db
     ports:
       - '27017:27017'
     healthcheck:
@@ -25,8 +25,8 @@ services:
   users-db:
     container_name: users-db
     build: ./services/users/src/db
-    volumes:
-      - ./services/users/src/db/pg-data:/var/lib/postgresql/data
+    # volumes:
+    #   - ./services/users/src/db/pg-data:/var/lib/postgresql/data
     ports:
       - '5433:5432'
     environment:
@@ -38,8 +38,8 @@ services:
   communities-db:
     container_name: communities-db
     build: ./services/communities/src/db
-    volumes:
-      - ./services/communities/src/db/pg-data:/var/lib/postgresql/data
+    # volumes:
+    #   - ./services/communities/src/db/pg-data:/var/lib/postgresql/data
     ports:
       - '5434:5432'
     environment:
@@ -51,8 +51,8 @@ services:
   posts-db:
     container_name: posts-db
     build: ./services/posts/src/db
-    volumes:
-      - ./services/posts/src/db/pg-data:/var/lib/postgresql/data
+    # volumes:
+    #   - ./services/posts/src/db/pg-data:/var/lib/postgresql/data
     ports:
       - '5435:5432'
     environment:
@@ -67,8 +67,6 @@ services:
     volumes:
       - './services/posts/storage:/usr/src/app'
       - './services/posts/storage/package.json:/usr/src/package.json'
-      #- '/usr/src/app/node_modules'
-      - './services/posts/storage/node_modules:/usr/src/node_modules'
     ports:
       - '3007:3007'
   
@@ -77,9 +75,7 @@ services:
     build: ./api_gateway/
     volumes:
       - './api_gateway:/usr/src/app'
-      #- '/usr/src/app/node_modules'
       - './api_gateway/package.json:/usr/src/package.json'
-      - './api_gateway/node_modules:/usr/src/node_modules'
     ports:
       - '3003:3003'
     environment:
@@ -96,18 +92,16 @@ services:
       - redis-cache
       
   partners-service:
-    container_name: posts-service
+    container_name: partners-service
     build: ./services/partners/
     volumes:
       - './services/partners:/usr/src/app'
       - './services/partners/package.json:/usr/src/package.json'
-      #- '/usr/src/app/node_modules'
-      - './services/partners/node_modules:/usr/src/node_modules'
     ports:
       - '3008:3008'
     environment:
-      - DATABASE_URL=mongodb://mongo:27017/partners_api
-      - DATABASE_TEST_URL=mongodb://mongo:27017/partners_api_test
+      - DATABASE_URL=mongodb://partners-db:27017/partners_dev
+      - DATABASE_TEST_URL=mongodb://partners-db:27017/partners_test
       - NODE_ENV=${NODE_ENV}
       - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
     depends_on:
@@ -194,9 +188,7 @@ services:
     build: ./services/posts/swagger/
     volumes:
       - './services/posts/swagger:/usr/src/app'
-      #- '/usr/src/app/node_modules'
       - './services/posts/swagger/package.json:/usr/src/package.json'
-      - './services/posts/swagger/node_modules:/usr/src/node_modules'
     ports:
       - '3009:3009'
     environment:
@@ -207,37 +199,19 @@ services:
     links:
       - posts-service
 
-
-  # web-client:
-  #   container_name: web-client
-  #   build: ./clients/web/
-  #   volumes:
-  #     - './services/web:/usr/src/app'
-  #     - './services/web/node_modules:/usr/src/node_modules'
-  #   ports:
-  #     - '3000:3000'
-  #   environment:
-  #     - NODE_ENV=${NODE_ENV}
-  #     - RESTPUBLICA_API_HOST=http://localhost:3003
-  #   depends_on:
-  #     restpublica-api:
-  #       condition: service_started
-  #   links:
-  #     - restpublica-api
-  
-  # mobile-client:
-    # container_name: mobile-client
-    # build: ./clients/mobile/
-    # volumes:
-    #   - './services/mobile:/usr/src/app'
-    #   - './services/mobile/node_modules:/usr/src/node_modules'
-    # ports:
-    #   - '3001:3001'
-    # environment:
-    #   - NODE_ENV=${NODE_ENV}
-    #   - RESTPUBLICA_API_HOST=http://localhost:3003
-    # depends_on:
-    #   restpublica-api:
-    #     condition: service_started
-    # links:
-    #   - restpublica-api
+  web-client:
+    container_name: web-client
+    build: ./clients/web/
+    volumes:
+      - './clients/web:/usr/src/app'
+      - './clients/web/package.json:/usr/src/package.json'
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - API_HOST=http://localhost:3003
+    depends_on:
+      api-gateway:
+        condition: service_started
+    links:
+      - api-gateway

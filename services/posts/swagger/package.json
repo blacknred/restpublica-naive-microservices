@@ -1,5 +1,5 @@
 {
-    "name": "restpublica-posts-api-swagger-microservice",
+    "name": "restpublica-posts-api-swagger",
     "version": "0.0.1",
     "scripts": {
         "start": "node index.js"

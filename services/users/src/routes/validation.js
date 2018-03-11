@@ -1,5 +1,21 @@
-function user(req, res, next) {
-    if (req.method === 'POST') {
+function users(req, res, next) {
+    if (req.method === 'GET') {
+        if (req.query.query) {
+            req.checkQuery('query')
+                .matches(/^.{3,}$/)
+                .withMessage('Search query must has at least 3 chars');
+        }
+        if (req.query.list) {
+            req.checkQuery('list')
+                .matches(/[0-9]+/g)
+                .withMessage('Users ids must be integers');
+        }
+        if (req.query.lim) {
+            req.checkQuery('lim')
+                .matches(/[id]/g)
+                .withMessage('Limiter must be valid');
+        }
+    } else if (req.method === 'POST') {
         if (req.path === '/login') {
             req.checkBody('username')
                 .notEmpty()
@@ -24,36 +40,14 @@ function user(req, res, next) {
                 .withMessage('Must be an valid email');
         }
     } else if (req.method === 'PUT') {
-        if (!req.files) {
+        if (!req.files.avatar) {
             req.checkBody('option')
-                .notEmpty()
-                .withMessage('Update option cannot be empty');
+                .matches(/^(username|email|fullname|description|active)+$/)
+                .withMessage('Option is not valid');
             req.checkBody('value')
                 .notEmpty()
                 .withMessage('Update value cannot be empty');
-        } else if (!req.files.avatar) {
-            return res.status(422)
-                .json({ status: `Validation failed`, failures: 'No image was uploaded' });
         }
-    }
-    const failures = req.validationErrors();
-    if (failures) {
-        return res.status(422)
-            .json({ status: `Validation failed`, failures });
-    }
-    return next();
-}
-
-function profiles(req, res, next) {
-    if (req.query.query) {
-        req.checkQuery('query')
-            .matches(/^.{3,}$/)
-            .withMessage('Search query must has at least 3 chars');
-    }
-    if (req.query.users) {
-        req.checkQuery('users')
-            .matches(/[0-9]+/g)
-            .withMessage('Users ids must be integers');
     }
     const failures = req.validationErrors();
     if (failures) {
@@ -69,6 +63,11 @@ function subscriptions(req, res, next) {
         req.checkParams('uid')
             .isInt()
             .withMessage('Profile id must be integer');
+        if (req.query.lim) {
+            req.checkQuery('lim')
+                .matches(/[id]/g)
+                .withMessage('Limiter must be valid');
+        }
     } else if (req.method === 'POST') {
         req.checkBody('id')
             .isInt()
@@ -90,7 +89,6 @@ function subscriptions(req, res, next) {
 
 
 module.exports = {
-    user,
-    profiles,
+    users,
     subscriptions
 };

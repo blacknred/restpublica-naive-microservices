@@ -40,15 +40,15 @@ exports.up = (knex) => {
         .createTable('post_polls_options', (table) => {
             table.increments();
             table.integer('poll_id').notNullable();
-            table.foreign('poll_id').references('polls.id');
+            table.foreign('poll_id').references('post_polls.id');
             table.string('option').notNullable();
             table.string('img');
         })
         .createTable('post_polls_voices', (table) => {
             table.increments();
             table.integer('option_id').notNullable();
-            table.foreign('option_id').references('polls_options.id');
-            table.number('user_id').notNullable();
+            table.foreign('option_id').references('post_polls_options.id');
+            table.integer('user_id').notNullable();
         })
         .createTable('comments', (table) => {
             table.increments();

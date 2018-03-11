@@ -1,29 +1,34 @@
 /* eslint-disable no-unused-vars */
 const express = require('express');
 const expressValidator = require('express-validator');
-const fileUpload = require('express-fileupload');
+const multyparty = require('multiparty');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
-
 const authentication = require('./auth/');
 const usersRoutes = require('./routes/users');
 const subscriptionsRoutes = require('./routes/subscriptions');
 
 const app = express();
 
-if (process.env.NODE_ENV !== 'test') { app.use(logger('dev')); }
-app.use(bodyParser.json());
+if (process.env.NODE_ENV !== 'test') app.use(logger('dev'));
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(fileUpload({ limits: { fileSize: 10 * 1024 * 1024 } }));
+app.use(bodyParser.json());
+app.use((req, res) => {
+    console.log(req);
+    (new multyparty.Form()).parse(req, (err, fields, files) => {
+        if (err) console.log(err);
+        console.log(files);
+    });
+});
 app.use(expressValidator());
 
 /* auth */
 app.use(authentication);
 
 /* router */
-app.get('/api/v1/ping', (req, res) => res.status(200).send('pong'));
-app.use('/api/v1/users', usersRoutes);
-app.use('/api/v1/users', subscriptionsRoutes);
+app.get('/v1/ping', (req, res) => res.status(200).send('pong'));
+app.use('/v1/users', usersRoutes);
+app.use('/v1/users', subscriptionsRoutes);
 
 /* 404 and errors handling */
 app.use((req, res, next) => {
@@ -32,7 +37,7 @@ app.use((req, res, next) => {
     next(err);
 });
 app.use((err, req, res, next) => {
-    console.log(err);
+    console.log(err.message);
     res.status(err.status || 500);
     res.json({
         status: 'error',

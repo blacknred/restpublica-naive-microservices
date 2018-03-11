@@ -12,7 +12,7 @@
         "body-parser": "~1.17.1",
         "debug": "~2.6.6",
         "express": "~4.15.2",
-        "express-fileupload": "^0.3.0",
+        "express-fileupload": "^0.4.0",
         "express-validator": "^2.21.0",
         "faker": "*",
         "gm": "^1.23.1",
@@ -20,6 +20,7 @@
         "knex": "0.13.0",
         "moment": "^2.15.2",
         "morgan": "~1.8.1",
+        "multiparty": "^4.1.3",
         "node-fetch": "^2.0.0-alpha.9",
         "pg": "^6.1.4"
     },

@@ -133,12 +133,13 @@ const authentication = async (ctx, next) => {
         try {
             const userToken = ctx.headers.authorization.split(' ')[1];
             if (typeof userToken === 'undefined') throw new Error();
-            const url = '/api/v1/users/check';
+            const url = '/users/check';
             ctx.state.method = 'GET';
-            ctx.state.userToken = userToken;
+            ctx.state.userAuthToken = userToken;
             const res = await request(ctx, ctx.users_host, url, true);
             if (typeof res.user !== 'number') throw new Error();
             ctx.state.consumer = res.user;
+            delete ctx.state.method;
         } catch (err) {
             ctx.throw(401, 'Please log in');
         }

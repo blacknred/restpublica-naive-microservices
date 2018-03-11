@@ -8,20 +8,26 @@ const router = new Router();
 router
     .post('/users', ctx => request(ctx, ctx.users_host, ctx.url))
     .post('/users/login', ctx => request(ctx, ctx.users_host, ctx.url))
-    .put('/users', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
+    .get('/users/user', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
+    .put('/users', (ctx) => {
+        console.log(ctx.request);
+        ctx.status = 308;
+        ctx.redirect(`http://localhost:3004/v1${ctx.path}`);
+        // request(ctx, ctx.users_host, ctx.url);
+    })
     .post('/users/:uid/follow', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
     .get('/users/:uid/followers', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
     .get('/users/:uid/following', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
     .delete('/users/:uid/follow/:sid', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
 
+
     .post('/communities', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
     .put('/communities/:cid', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
     .delete('/communities/:cid', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
     .post('/communities/:cid/follow', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
-    .get('/communities/:cid/followers', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
     .delete('/communities/:cid/follow/:sid', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
     .post('/communities/:cid/ban', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
-    .get('/communities/:cid/bans', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
+
 
     .post('/posts', authentication, ctx => request(ctx, ctx.posts_host, ctx.url))
     .put('/posts/:pid', authentication, ctx => request(ctx, ctx.posts_host, ctx.url))

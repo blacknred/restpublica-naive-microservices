@@ -15,11 +15,21 @@ exports.seed = (knex, Promise) => {
     return knex('communities_subscriptions')
         .del()
         .then(() => {
+            return knex('communities')
+                .count('*')
+                .first();
+        })
+        .then((cnt) => {
+            console.log(cnt);
             const records = [];
-            for (let i = 1; i <= 10; i++) {
-                const subUsersLength = Math.floor(Math.random() * 40) + 1;
-                const subUsers = helpers.genUniqueNumbersArr(subUsersLength, 40);
-                subUsers.forEach(userId => records.push(createSubscription(knex, i, userId)));
+            if (process.env.NODE_ENV === 'test') {
+                records.push(createSubscription(knex, 1, 2));
+            } else {
+                for (let i = 1; i <= cnt.count; i++) {
+                    const subUsersLength = Math.floor(Math.random() * cnt.count) + 1;
+                    const subUsers = helpers.genUniqueNumbersArr(subUsersLength, cnt.count);
+                    subUsers.forEach(userId => records.push(createSubscription(knex, i, userId)));
+                }
             }
             return Promise.all(records);
         })

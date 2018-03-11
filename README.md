@@ -1,31 +1,31 @@
-# Restpublica Microservices - Social media posts App on Docker
+# Restpublica Social Media App - Microservices on Docker
 
 
 ## Architecture
 
-| Name            | Service      | Container       | Tech             | Ports |
-|-----------------|--------------|-----------------|------------------|-------|
-| Web Client      | -            | web-client      | React, Redux     | 3000  |
-| Mobile Client   | -            | mobile-client   | React, Redux     | 3001  |
-| API Gateway     | -            | api-gateway     | Node, Koa        | 3003  |
-| Redis Cache     | -            | redis-cache     | Node, Redis      | 6379  |
-| Users API       | Users        | users-api       | Node, Express    | 3004  |
-| Users DB        | Users        | users-db        | Postgres         | 5433  |
-| Communities API | Communities  | communities-api | Node, Express    | 3005  |
-| Communities DB  | Communities  | communities-db  | Postgres         | 5434  |
-| Posts API       | Posts        | posts-api       | Node, Express    | 3006  |
-| Posts DB        | Posts        | posts-db        | Postgres         | 5435  |
-| Mock Storage    | Posts        | files-storage   | Node, Koa        | 3007  |
-| Swagger         | Posts        | swagger         | Node, Swagger UI | 3009  |
-| Partners API    | Partners     | partners-api    | Node, Express    | 3008  |
-| Partners DB     | Partners     | partners-db     | Mongo            | 27017 |
-<!-- | Notifications   | Notifications| notifications   | Swagger UI     | 3010 | -->
+| Name            | Microservice  | Container             | Stack            | Ports |
+|-----------------|---------------|-----------------------|------------------|-------|
+| Web Client      | -             | web-client            | React, Redux     | 3000  |
+| Mobile Client   | -             | mobile-client         | React, Redux     | 3001  |
+| API Gateway     | -             | api-gateway           | Node, Koa        | 3003  |
+| Redis Cache     | -             | redis-cache           | Node, Redis      | 6379  |
+| Users API       | Users         | users-service         | Node, Express    | 3004  |
+| Users DB        | Users         | users-db              | Postgres         | 5433  |
+| Communities API | Communities   | communities-service   | Node, Express    | 3005  |
+| Communities DB  | Communities   | communities-db        | Postgres         | 5434  |
+| Posts API       | Posts         | posts-service         | Node, Express    | 3006  |
+| Posts DB        | Posts         | posts-db              | Postgres         | 5435  |
+| Mock Storage    | Posts         | files-storage         | Node, Koa        | 3007  |
+| Swagger         | Posts         | swagger               | Node, Swagger UI | 3009  |
+| Partners API    | Partners      | partners-service      | Node, Express    | 3008  |
+| Partners DB     | Partners      | partners-db           | Mongo            | 27017 |
+<!-- | Notifications   | Notifications | notifications-service |                  | 3010  | -->
 
 #### API Gateway - http://localhost:3003
 
 Limit, Filter, Secure
 Entry point API for microservices:
-* Cluster support to spawn multiple processes.
+* Cluster support to spawn multiple processes
 * Logging
 * Js cron
 * Microservices registry mock
@@ -55,127 +55,109 @@ $ docker exec -ti <container-id> psql -U postgres
 
 ## Services
 
-#### (1) Users API - http://localhost:3004/api/v1
+#### (1) Users API - http://localhost:3004/v1
 
-| Endpoint                 | HTTP Method | CRUD Method | Result                       |
-|--------------------------|-------------|-------------|------------------------------|
-| /ping                    | GET         | READ        | `pong`                       |
-| /users                   | POST        | CREATE      | add an user                  |
-| /users/login             | POST        | CREATE      | log in an user               |
-| /users/check             | GET         | READ        | check an user, return an id  |a
-| /users/user              | GET         | READ        | get all user data            |a
-| /users                   | PUT         | UPDATE      | update an user value/file    |a
-| /users                   | DELETE      | DELETE      | delete an user               |a
-| /users                   | GET         | READ        | get the trending profiles    |
-| /users?query=query       | GET         | READ        | get the profiles by search   |
-| /users?list=uids         | GET         | READ        | get the profiles by list     |
-| /users/:name             | GET         | READ        | get the profile data         |
-| /users/:name/id          | GET         | READ        | get the profile id           |
-| /users/:uid/follow       | POST        | CREATE      | create the user subscription |a
-| /users/:uid/followers    | GET         | READ        | get the profile followers    |a
-| /users/:uid/following    | GET         | READ        | get the profile following    |a
-| /users/:uid/following/id | GET         | READ        | get the user following ids   |a
-| /users/:uid/follow/:sid  | DELETE      | DELETE      | delete the user subscription |a
+| Endpoint                     | HTTP Method | CRUD Method | Result                      |
+|------------------------------|-------------|-------------|-----------------------------|
+| /ping                        | GET         | READ        | `pong`                      |
+| /users                       | POST        | CREATE      | add an user                 |
+| /users/login                 | POST        | CREATE      | log in an user              |
+| /users/check                 | GET         | READ        | check an user id            |a
+| /users/profile               | GET         | READ        | get logged user data        |a
+| /users                       | PUT         | UPDATE      | update an user value/file   |a
+| /users                       | DELETE      | DELETE      | delete an user              |ac
+| /users                       | GET         | READ        | get all trending profiles   | c
+| /users?query=query           | GET         | READ        | get all profiles by search  | c
+| /users?list=uids             | GET         | READ        | get all profiles by ids     | c
+| /users/:name?lim=id          | GET         | READ        | get a profile(id)           | c
+| /users/:uid/follow           | POST        | CREATE      | create a subscription       |a
+| /users/:uid/followers        | GET         | READ        | get a profile followers     |a
+| /users/:uid/following        | GET         | READ        | get a profile following(id) |a
+| /users/:uid/following?lim=id | GET         | READ        | get a user following ids    |a
+| /users/:uid/follow/:sid      | DELETE      | DELETE      | delete a subscription       |a
 
-#### (2) Communities API - http://localhost:3005/api/v1
+#### (2) Communities API - http://localhost:3005/v1
 
-##### ping: /api/v1/ping
-##### prefix: /api/v1/communities
+| Endpoint                           | HTTP Method | CRUD Method | Result                     |
+|------------------------------------|-------------|-------------|----------------------------|
+| /ping                              | GET         | READ        | `pong`                     |
+| /communities                       | POST        | CREATE      | add a com-ty               |a
+| /communities                       | GET         | READ        | get all trending com-s     | ?c
+| /communities?query=query           | GET         | READ        | get all com-s by search    | ?c
+| /communities?list=cids&lim=name    | GET         | READ        | get all com-s by ids       | ?c
+| /communities?profile=pid&lim=id    | GET         | READ        | get all com-s(id) by user  | ?c
+| /communities?profile=pid&lim=count | GET         | READ        | get all com-s(cnt) by user | ?c
+| /communities?admin=aid             | GET         | READ        | get all com-s by admin     |a
+| /communities/:name?lim=id          | GET         | READ        | get a com-ty(id)           | c
+| /communities/:cid                  | PUT         | UPDATE      | update a com-ty            |a 
+| /communities/:cid                  | DELETE      | DELETE      | delete a com-ty            |a
+| /communities/:cid/follow           | POST        | CREATE      | create a subscription      |a
+| /communities/:cid/followers        | GET         | READ        | get a com-ty followers     |ac
+| /communities/:cid/follow           | DELETE      | DELETE      | delete a subscription      |a
+| /communities/:cid/ban              | POST        | CREATE      | create a ban               |a
+| /communities/:cid/bans             | GET         | READ        | get all bans               |ac
 
-| Endpoint           | HTTP Method | CRUD Method | Result                            |
-|--------------------|-------------|-------------|-----------------------------------| 
-| /                  | POST        | CREATE      | add a community                   |a
-| /                  | GET         | READ        | get the trending communities      | 
-| /?query=query      | GET         | READ        | get the communities by search     | 
-| /?list=cids        | GET         | READ        | get the communities data by list  | 
-| /?admin=username   | GET         | READ        | get the communities by admin      |a
-| /?limiter=dash     | GET         | READ        | get the user following comms ids  |a 
-| /count?profile=uid | GET         | READ        | get communities count             |  
-| /:name             | GET         | READ        | get the community data            | 
-| /:name/id          | GET         | READ        | get the community id              |a
-| /:cid              | PUT         | UPDATE      | update the community value/file   |a 
-| /:cid              | DELETE      | DELETE      | delete the community              |a
-| /:cid/follow       | POST        | CREATE      | create the community subscription |a
-| /:cid/followers    | GET         | READ        | get the community followers       |a
-| /:cid/follow/:sid  | DELETE      | DELETE      | delete the community subscription |a
-| /:cid/ban          | POST        | CREATE      | create the community ban          |a
-| /:cid/bans         | GET         | READ        | get the community bans list       |a
+#### (3) Posts API - http://localhost:3006/v1/
 
-#### (3) Posts API - http://localhost:3006
+| Endpoint                           | HTTP Method | CRUD Method | Result                      |
+|------------------------------- ----|-------------|-------------|-----------------------------|
+| /posts                             | POST        | CREATE      | add a post                  |ac
+| /posts                             | GET         | READ        | get all trending posts      | c
+| /posts?tag=tag                     | GET         | READ        | get all posts by tag        | c
+| /posts?query=query                 | GET         | READ        | get all posts by search     | c
+| /posts?profiles=pids&lim=count     | GET         | READ        | get all posts(id) by user   | c
+| /posts?communities=cids&?lim=count | GET         | READ        | get all community posts(id) | c
+| /posts/:slug                       | GET         | READ        | get a post                  | c
+| /posts/:pid                        | PUT         | UPDATE      | update a post               |a
+| /posts/:pid                        | DELETE      | DELETE      | delete a post               |a
+| /posts/:pid/comments               | POST        | CREATE      | create a comment            |a
+| /posts/:pid/comments               | GET         | READ        | get all comments            | c
+| /posts/:pid/comments/:cid          | PUT         | UPDATE      | update a comment            |a
+| /posts/:pid/comments/:cid          | DELETE      | DELETE      | delete a comment            |a
+| /posts/:pid/likes                  | POST        | CREATE      | create a like               |a
+| /posts/:pid/likes                  | GET         | READ        | get all likes               |ac
+| /posts/:pid/likes/:lid             | DELETE      | DELETE      | delete a like               |a
+| /tags                              | GET         | READ        | get all trending tags       |
+| /tags?query=query                  | GET         | READ        | get all tags by search      |
 
-##### ping: /api/v1/ping
-##### prefix: /api/v1/
+#### (4) Partners API - http://localhost:3008/v1/
 
-| Endpoint                   | HTTP Method | CRUD Method | Result                    |
-|----------------------------|-------------|-------------|---------------------------|
-| /posts                     | POST        | CREATE      | add a post                |a
-| /posts                     | GET         | READ        | get the trending posts    |
-| /posts?tag=tag             | GET         | READ        | get the posts by tag      |
-| /posts?query=query         | GET         | READ        | get the searched posts    |
-| /posts?profiles=pids       | GET         | READ        | get the profiles posts    |
-| /posts?communities=cids    | GET         | READ        | get the communities posts |
-| /posts/count?profile=uid   | GET         | READ        | get posts count           |
-| /posts/count?community=cid | GET         | READ        | get posts count           |
-| /posts/:slug               | GET         | READ        | get the post              |
-| /posts/:pid                | PUT         | UPDATE      | update the post           |a
-| /posts/:pid                | DELETE      | DELETE      | delete the post           |a
-| /posts/:pid/comments       | POST        | CREATE      | create the post comment   |a
-| /posts/:pid/comments       | GET         | READ        | get the post comments     |
-| /posts/:pid/comments/:cid  | PUT         | UPDATE      | update the post comment   |a
-| /posts/:pid/comments/:cid  | DELETE      | DELETE      | delete the post comment   |a
-| /posts/:pid/likes          | POST        | CREATE      | create the post like      |a
-| /posts/:pid/likes          | GET         | READ        | get the post likes list   |a
-| /posts/:pid/likes/:lid     | DELETE      | DELETE      | delete the post like      |a
-| /tags                      | GET         | READ        | get the trending tags     |
-| /tags?query=query          | GET         | READ        | get the tags by search    |
-
-
-#### (4) Partners API - http://localhost:3008/api/v1/
-
-| Endpoint       | HTTP Method | CRUD Method | Result                         |
-|----------------|-------------|-------------|--------------------------------|
-| /ping          | GET         | READ        | `pong`                         |a
-| /plans         | POST        | CREATE      | add an api plan                |a
-| /plans         | GET         | READ        | get all api plans              |a
-| /plans/:pid    | GET         | READ        | get an api plan data           | 
-| /plans/:pid    | PUT         | UPDATE      | update an api plan data        |a
-| /plans/:pid    | DELETE      | DELETE      | delete an api plan             |a
-| /apps          | POST        | CREATE      | add an partner app             |a
-| /apps/check    | POST        | CREATE      | check partner app existance    |a
-| /apps          | GET         | READ        | get all partner apps           |a
-| /apps/:pid     | GET         | READ        | get an partner app data        |
-| /apps/:pid     | PUT         | UPDATE      | update an partner app data     |a
-| /apps/:pid     | DELETE      | DELETE      | delete an partner app          |a
-
+| Endpoint       | HTTP Method | CRUD Method | Result        |
+|----------------|-------------|-------------|---------------|
+| /ping          | GET         | READ        | `pong`        |a
+| /plans         | POST        | CREATE      | add a plan    |a
+| /plans         | GET         | READ        | get all plans |a
+| /plans/:pid    | GET         | READ        | get a plan    | 
+| /plans/:pid    | PUT         | UPDATE      | update a plan |a
+| /plans/:pid    | DELETE      | DELETE      | delete a plan |a
+| /apps          | POST        | CREATE      | add an app    |a
+| /apps/check    | POST        | CREATE      | check an app  |a
+| /apps          | GET         | READ        | get all apps  |a
+| /apps/:pid     | GET         | READ        | get an app    |
+| /apps/:pid     | PUT         | UPDATE      | update an app |a
+| /apps/:pid     | DELETE      | DELETE      | delete an app |a
 
 <!-- #### (5) Notifications - http://localhost:3010 -->
 
 
 ## Clients
 
-#### (1) Web Client (React SPA) - http://localhost:3000
+#### (1) Web Client (React-Router) - http://localhost:3000
 
-| Endpoint     | HTTP Method | CRUD Method | Result                            |
-|--------------|-------------|-------------|-----------------------------------|
-| /            | GET         | READ        | render dashboard or landing page  |
-| /login       | GET         | READ        | login form on landing page        |
-| /register    | GET         | READ        | register form on landing page     |
-| /logout      | GET         | READ        | log a user out to landing pag     |
-| /trending    | GET         | READ        | render popular content            |
-| /search      | GET         | READ        | render searched content           |
-| /communities | GET         | READ        | render user communities           |
-| /activity    | GET         | READ        | render user related activity      |
-| /p/:id       | GET         | READ        | render post                       |
-| /settings    | GET         | READ        | render settings                   |
-| /post        | GET         | READ        | render new post or edit post page |
-| /:username   | GET         | READ        | render user data and posts        |
-
-#### (2) Mobile Client (React SPA) - http://localhost:3001
-
-| Endpoint   | HTTP Method | CRUD Method | Result                            |
-|------------|-------------|-------------|-----------------------------------|
-| /          | GET         | READ        | render landing page               |
-
+| Endpoint     | Result                            |
+|--------------|-----------------------------------|
+| /            | render dashboard or landing page  |
+| /login       | login form on landing page        |
+| /register    | register form on landing page     |
+| /logout      | log a user out to landing pag     |
+| /trending    | render popular content            |
+| /search      | render searched content           |
+| /communities | render user communities           |
+| /activity    | render user related activity      |
+| /p/:id       | render post                       |
+| /settings    | render settings                   |
+| /post        | render new post or edit post page |
+| /:username   | render user data and posts        |
 
 
 ## Run the project

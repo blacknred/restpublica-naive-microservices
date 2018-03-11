@@ -5,17 +5,20 @@ const express = require('express');
 const gm = require('gm');
 const { encodeToken } = require('../auth/local');
 const queries = require('../db/queries.js');
-const validate = require('./validation');
+const { users } = require('./validation');
 const helpers = require('./_helpers');
+// const fs = require('fs');
 
 const router = express.Router();
 
+
 /* users */
 
-router.post('/', validate.user, async (req, res, next) => {
+router.post('/', users, async (req, res, next) => {
     const newUser = {
         username: req.body.username,
-        fullname: req.body.fullname,
+        fullname: req.body.fullname.toLowerCase().split(' ')
+            .map(word => word[0].toUpperCase() + word.substr(1)).join(' '),
         email: req.body.email,
         password: req.body.password
     };
@@ -37,16 +40,14 @@ router.post('/', validate.user, async (req, res, next) => {
             });
             throw new Error(`Email ${newUser.email} is already in use`);
         }
-        if (newUser.avatar === null) {
-            newUser.avatar = helpers.createAvatar(newUser.fullname);
-        }
-        const user = await queries.createUser(newUser);
-        user.avatar = user.avatar.toString('base64');
-        const token = await encodeToken(user.id);
-        user.token = token;
+        newUser.avatar = await helpers.createAvatar(newUser.fullname);
+        const data = await queries.createUser(newUser);
+        data.avatar = data.avatar.toString('base64');
+        const token = await encodeToken(data.id);
+        data.token = token;
         res.status(200).json({
             status: 'success',
-            data: user
+            data
         });
     } catch (err) {
         if (errors.length) {
@@ -60,7 +61,7 @@ router.post('/', validate.user, async (req, res, next) => {
     }
 });
 
-router.post('/login', validate.user, async (req, res, next) => {
+router.post('/login', users, async (req, res, next) => {
     const username = req.body.username;
     const password = req.body.password;
     const errors = [];
@@ -81,8 +82,10 @@ router.post('/login', validate.user, async (req, res, next) => {
             throw new Error('Incorrect password');
         }
         user.avatar = user.avatar.toString('base64');
+        delete user.password;
         const token = await encodeToken(user.id);
         user.token = token;
+        await queries.updateUser({ active: true }, user.id);
         res.status(200).json({
             status: 'success',
             data: user
@@ -104,7 +107,7 @@ router.get('/check', async (req, res, next) => {
         const user = await queries.checkUser(req.user);
         res.status(200).json({
             status: 'success',
-            user: user.id
+            user
         });
     } catch (err) {
         return next(err);
@@ -113,7 +116,7 @@ router.get('/check', async (req, res, next) => {
 
 router.get('/user', async (req, res, next) => {
     try {
-        const data = await queries.getUserData(req.user);
+        const data = await queries.getUser(req.user);
         data.avatar = data.avatar.toString('base64');
         res.status(200).json({
             status: 'success',
@@ -124,24 +127,30 @@ router.get('/user', async (req, res, next) => {
     }
 });
 
-router.put('/', validate.user, async (req, res, next) => {
+router.put('/', async (req, res, next) => {
+    let isAvatar = false;
     let data;
+    console.log('gg', req.body);
+    // console.log('ll', fs.createReadStream(req.body.files.avatar.path));
     try {
-        if (req.files.avatar) {
+        if (req.files && req.files.avatar.name) {
             const avatar = await gm(req.files.avatar.data)
                 .resize(100, 100)
-                .toBuffer('JPG', (err, buffer) => {
-                    if (err) throw new Error(err);
-                    return buffer;
+                .setFormat('jpeg')
+                .toBuffer((err, buffer) => {
+                    if (err) {
+                        throw new Error(err);
+                    } else { return buffer; }
                 });
             data = await queries.updateUser({ avatar }, req.user);
+            isAvatar = true;
         } else {
             const newUserData = { [req.body.option]: req.body.value };
             data = await queries.updateUser(newUserData, req.user);
         }
         res.status(200).json({
             status: 'success',
-            data: !req.files.avatar ? data : data.toString('base64')
+            data: isAvatar ? data.toString('base64') : data
         });
     } catch (err) {
         return next(err);
@@ -160,16 +169,19 @@ router.delete('/', async (req, res, next) => {
     }
 });
 
-router.get('/', validate.profiles, async (req, res, next) => {
+
+/* profies */
+
+router.get('/', users, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
     const query = req.query.query ? req.query.query.toLowerCase() : null;
     const list = req.query.users ? req.query.users.split(',') : null;
     let data;
     try {
         if (query) data = await queries.getSearchedProfiles(query, req.user, offset);
-        else if (list) data = await queries.getProfilesData(list, req.user);
+        else if (list) data = await queries.getProfiles(list, req.user);
         else data = await queries.getTrendingProfiles(req.user, offset);
-        // data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
+        data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
         res.status(200).json({
             status: 'success',
             data
@@ -179,34 +191,22 @@ router.get('/', validate.profiles, async (req, res, next) => {
     }
 });
 
-router.get('/:name', async (req, res, next) => {
+router.get('/:name', users, async (req, res, next) => {
     const name = req.params.name;
+    const lim = req.params.lim || null;
     try {
-        let profile = await queries.findProfileByName(name);
-        if (!profile) throw new Error(`User ${name} is not found`);
-        profile = await queries.getProfileData(name, req.user);
-        profile.avatar = profile.avatar.toString('base64');
+        const isExist = await queries.findProfileByName(name);
+        if (!isExist) throw new Error(`User ${name} is not found`);
+        const data = await queries.getProfile(name, lim, req.user);
+        data.avatar = data.avatar.toString('base64');
         res.status(200).json({
             status: 'success',
-            data: profile
+            data
         });
     } catch (err) {
         return next(err);
     }
 });
 
-router.get('/:name/id', async (req, res, next) => {
-    const name = req.params.name;
-    try {
-        const profile = await queries.findProfileByName(name);
-        if (!profile) throw new Error(`User ${name} is not found`);
-        res.status(200).json({
-            status: 'success',
-            data: profile.id
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
 
 module.exports = router;

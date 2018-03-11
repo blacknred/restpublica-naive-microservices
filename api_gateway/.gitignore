@@ -1,9 +1,0 @@
-# dependencies
-node_modules
-
-redis-data
-logs/*
-
-# misc
-.DS_Store
-npm-debug.log

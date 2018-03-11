@@ -11,7 +11,7 @@ function genUniqueNumbersArr(length, max) {
     return numbers;
 }
 
-function genUniqueTitlesArr(length) {
+function genUniqueNamesArr(length) {
     const strings = [];
     while (strings.length < length) {
         const item = faker.company.companyName();
@@ -24,5 +24,5 @@ function genUniqueTitlesArr(length) {
 
 module.exports = {
     genUniqueNumbersArr,
-    genUniqueTitlesArr
+    genUniqueNamesArr
 };

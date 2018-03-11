@@ -2,7 +2,8 @@ exports.up = (knex) => {
     return knex.schema
         .createTable('communities', (table) => {
             table.increments();
-            table.string('title').unique().notNullable();
+            table.string('name').unique().notNullable();
+            table.string('title').notNullable();
             table.text('description');
             table.binary('avatar').notNullable();
             table.binary('theme');
@@ -10,6 +11,7 @@ exports.up = (knex) => {
             table.boolean('posts_moderation').notNullable().defaultTo(false);
             table.integer('admin_id').notNullable();
             table.datetime('last_post_at');
+            table.boolean('active').notNullable().defaultTo(true);
             table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
         })
         .createTable('communities_subscriptions', (table) => {
@@ -28,6 +30,9 @@ exports.up = (knex) => {
             table.datetime('end_date').notNullable().defaultTo(knex.raw('now() + INTERVAL \'1 DAY\''));
         })
         .alterTable('communities_subscriptions', (table) => {
+            table.unique(['community_id', 'user_id']);
+        })
+        .alterTable('communities_bans', (table) => {
             table.unique(['community_id', 'user_id']);
         });
 };

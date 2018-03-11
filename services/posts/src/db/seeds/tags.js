@@ -1,5 +1,7 @@
 const helpers = require('../_helpers');
 
+const test = process.env.NODE_ENV === 'test';
+
 const createTagMapping = (knex, id, postId) => {
     return knex('posts_tags')
         .insert({
@@ -14,9 +16,9 @@ exports.seed = (knex, Promise) => {
         .del()
         .then(() => {
             const records = [];
-            for (let i = 1; i <= 30; i++) {
-                const postsLength = Math.floor(Math.random() * 30) + 1;
-                const posts = helpers.genUniqueNumbersArr(postsLength, 500);
+            for (let i = 1; i <= (test ? 3 : 30); i++) {
+                const postsCount = Math.floor(Math.random() * (test ? 1 : 30)) + 1;
+                const posts = helpers.genUniqueNumbersArr(postsCount, (test ? 10 : 500));
                 posts.forEach(postId => records.push(createTagMapping(knex, i, postId)));
             }
             return Promise.all(records);

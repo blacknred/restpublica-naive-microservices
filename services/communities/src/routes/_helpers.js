@@ -1,6 +1,7 @@
 /* eslint-disable */
 const faker = require('faker');
 const fetch = require('node-fetch');
+const gm = require('gm');
 
 function createAvatar(fullname) {
     const name = fullname.replace(' ', '+');
@@ -9,28 +10,22 @@ function createAvatar(fullname) {
     return fetch(url)
         .then((data) => {
             return data.buffer();
-        })
-        .catch((err) => {
-            console.log(err.message);
         });
 }
 
 function createTheme() {
-    const url = faker.image.abstract();
+    const url = 'https://picsum.photos/640/480/?random';
     return fetch(url)
         .then((data) => {
             return data.buffer();
         })
         .then((buffer) => {
             return gm(buffer)
-                .resize(800, 100)
+                .resize(640, 100)
                 .toBuffer('JPG', (err, buffer) => {
                     if (err) throw new Error(err);
                     return buffer;
                 });
-        })
-        .catch((err) => {
-            console.log(err.message);
         });
 }
 

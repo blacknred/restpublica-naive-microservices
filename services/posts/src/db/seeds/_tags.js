@@ -13,7 +13,9 @@ exports.seed = (knex, Promise) => {
         .del()
         .then(() => {
             const records = [];
-            const titles = helpers.genUniqueTitlesArr(30);
+            let titles;
+            if (process.env.NODE_ENV === 'test') titles = ['politic', 'netflix', 'thetruth'];
+            else titles = helpers.genUniqueTitlesArr(30);
             titles.forEach(title => records.push(createLike(knex, title)));
             return Promise.all(records);
         })

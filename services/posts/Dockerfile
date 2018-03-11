@@ -15,6 +15,8 @@ ENV PATH /usr/src/node_modules/.bin:$PATH
 # install and cache app dependencies
 ADD package.json /usr/src/package.json
 RUN npm install
+# ADD package-lock.json /usr/src/package-lock.json
+# COPY . /usr/src/app
 
 # start app
 CMD ["npm", "start"]

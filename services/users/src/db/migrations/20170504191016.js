@@ -9,6 +9,7 @@ exports.up = (knex) => {
             table.string('email').unique().notNullable();
             table.binary('avatar').notNullable();
             table.boolean('admin').notNullable().defaultTo(false);
+            table.boolean('active').notNullable().defaultTo(true);
             table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
             table.datetime('last_post_at');
             table.timestamp('activity_at').notNullable().defaultTo(knex.raw('now()'));

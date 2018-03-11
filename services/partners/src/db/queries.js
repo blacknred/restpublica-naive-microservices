@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-mongoose.Promise = global.Promise;
 const ApiPlan = mongoose.model('ApiPlan');
 const PartnerApp = mongoose.model('PartnerApp');
 

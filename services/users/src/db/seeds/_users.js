@@ -30,9 +30,8 @@ exports.seed = (knex, Promise) => {
         .then(() => {
             const records = [];
             let usernames;
-            if (process.env.NODE_ENV === 'test') usernames = ['mark', 'hugo'];
+            if (process.env.NODE_ENV === 'test') usernames = ['mark', 'hugo', 'ania'];
             else usernames = helpers.genUniqueNamesArr(40);
-            console.log(`usersnames: ${usernames.length}`);
             usernames.forEach(username => records.push(createUser(knex, username)));
             return Promise.all(records);
         })

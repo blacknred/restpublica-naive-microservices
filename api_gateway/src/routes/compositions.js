@@ -21,25 +21,6 @@ router
         }
         ctx.body = sUsers;
     })
-
-    .get('/users/user', authentication, async (ctx) => {
-        // get user data
-        const usersUrl = ctx.users_api_host + ctx.url;
-        const communitiesUrl = `${ctx.communities_api_host}
-        /communities/count?profile=${ctx.state.consumer}`;
-        const postsUrl = `${ctx.posts_api_host}
-        /posts/count?profile=${ctx.state.consumer}`;
-        try {
-            const sUser = await request(ctx, usersUrl);
-            // get communities subscriptions count
-            sUser.communities_count = await request(ctx, communitiesUrl);
-            // get posts count
-            sUser.posts_count = await request(ctx, postsUrl);
-            ctx.body = sUser;
-        } catch (err) {
-            ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
-        }
-    })
     .get('/users/:name', async (ctx) => {
         // get profile data
         const usersUrl = ctx.users_api_host + ctx.url;
@@ -55,6 +36,22 @@ router
         } catch (err) {
             ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
         }
+        // get user data
+        // const usersUrl = ctx.users_api_host + ctx.url;
+        // const communitiesUrl = `${ctx.communities_api_host}
+        // /communities/count?profile=${ctx.state.consumer}`;
+        // const postsUrl = `${ctx.posts_api_host}
+        // /posts/count?profile=${ctx.state.consumer}`;
+        // try {
+        //     const sUser = await request(ctx, usersUrl);
+        //     // get communities subscriptions count
+        //     sUser.communities_count = await request(ctx, communitiesUrl);
+        //     // get posts count
+        //     sUser.posts_count = await request(ctx, postsUrl);
+        //     ctx.body = sUser;
+        // } catch (err) {
+        //     ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
+        // }
     })
     .delete('/users', authentication, async (ctx) => {
         /* delete user account:
@@ -68,7 +65,8 @@ router
         const sUsers = await request(usersUrl);
         ctx.body = sUsers;
     })
-    // ----------------------------------------
+
+    // -------------------------------------------------------------------------------
     .get('/communities', async (ctx) => {
         // get communities data
         // const communitiesUrl = ctx.communities_api_host + ctx.url;
@@ -99,11 +97,15 @@ router
         // // eslint-disable-next-line
         // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
     })
-    .get('/communities/:name', async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(ctx.communities_api_host + ctx.url);
+    .get('/communities/:name', async () => {
+        // get community data
+        // get community posts count, ?community posts
     })
-    // ----------------------------------------
+    .get('/communities/:cid/followers', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
+    .get('/communities/:cid/bans', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
+    // get users data
+
+    // ------------------------------------------------------------------------------
     .get('/posts', async (ctx) => {
         ctx.status = 301;
         ctx.redirect(ctx.posts_api_host + ctx.url);
@@ -116,6 +118,7 @@ router
         ctx.status = 301;
         ctx.redirect(ctx.posts_api_host + ctx.url);
     })
+
     // ----------------------------------------
     .get('/dashboard', authentication, async (ctx) => {
         /*

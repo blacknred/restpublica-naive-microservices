@@ -1,5 +1,5 @@
 const Koa = require('koa');
-const bodyParser = require('koa-bodyparser');
+const koaBody = require('koa-body');
 const morgan = require('koa-morgan');
 const cors = require('kcors');
 const userAgent = require('koa-useragent');
@@ -48,10 +48,10 @@ cron.schedule('10 * * * *', () => {
 });
 // CORS
 app.use(cors());
-// Body parsing
-app.use(bodyParser({ multipart: true, jsonLimit: '100kb' }));
+// Body
+app.use(koaBody({ jsonLimit: '100kb' }));
 // Services discovery
-app.use(serviceDiscovery());
+app.use(serviceDiscovery);
 // Errors
 app.use(async (ctx, next) => {
     try {

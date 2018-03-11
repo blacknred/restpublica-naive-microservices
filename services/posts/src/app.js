@@ -6,8 +6,11 @@ const fileUpload = require('express-fileupload');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 
-const routes = require('./routes/');
 const authentication = require('./auth/');
+const postsRoutes = require('./routes/posts');
+const commentsRoutes = require('./routes/comments');
+const likesRoutes = require('./routes/likes');
+const tagsRoutes = require('./routes/tags');
 
 const app = express();
 
@@ -21,8 +24,11 @@ app.use(expressValidator());
 app.use(authentication);
 
 /* router */
-app.get('/api/v1/ping', (req, res) => res.status(200).send('pong'));
-app.use('/api/v1', routes);
+app.get('/v1/ping', (req, res) => res.status(200).send('pong'));
+app.use('/v1/posts', postsRoutes);
+app.use('/v1/posts', commentsRoutes);
+app.use('/v1/posts', likesRoutes);
+app.use('/v1/tags', tagsRoutes);
 
 /* 404 and errors handling */
 app.use((req, res, next) => {

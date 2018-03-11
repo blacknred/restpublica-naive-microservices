@@ -1,7 +1,6 @@
 const PartnerApp = require('mongoose').model('PartnerApp');
 
-const seedPartnerApps = () => {
-    // create some plans
+module.exports = function seedPartnerApps() {
     const apps = [
         {
             apiKey: Math.random().toString(36).slice(2),
@@ -31,9 +30,6 @@ const seedPartnerApps = () => {
         newApp.save();
     });
 
-    // seeded!
     console.log('PartnerApp model seeded!');
 };
-
-module.exports.seedPartnerApps = seedPartnerApps;
 

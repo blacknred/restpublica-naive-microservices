@@ -15,13 +15,18 @@ exports.seed = (knex, Promise) => {
     return knex('users_subscriptions')
         .del()
         .then(() => {
+            return knex('users')
+                .count('*')
+                .first();
+        })
+        .then((cnt) => {
             const records = [];
             if (process.env.NODE_ENV === 'test') {
                 records.push(createSubscription(knex, 1, 2));
             } else {
-                for (let i = 1; i < 35; i++) {
-                    const subUsersLength = Math.floor(Math.random() * 40) + 1;
-                    const subUsers = helpers.genUniqueNumbersArr(subUsersLength, 40);
+                for (let i = 1; i < cnt.count; i++) {
+                    const subUsersLength = Math.floor(Math.random() * cnt.count) + 1;
+                    const subUsers = helpers.genUniqueNumbersArr(subUsersLength, cnt.count);
                     subUsers.forEach(userId => records.push(createSubscription(knex, i, userId)));
                 }
             }

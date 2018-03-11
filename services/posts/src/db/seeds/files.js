@@ -43,36 +43,35 @@ const createFile = (knex, i, imgBuffer) => {
         .resize(200, null)
         .toBuffer()
         .then((thumbBuffer) => {
-            const fileOptions = {
-                method: 'POST',
-                uri: process.env.FILES_STORAGE_HOST,
+            const conf = {
+                url: process.env.FILES_STORAGE_HOST,
                 formData: {
                     file: {
                         value: imgBuffer,
                         options: {
-                            filename: `file_${i}.jpg`,
+                            filename: 'file.jpg',
                             contentType: 'image/jpg'
                         }
                     },
                     thumb: {
                         value: thumbBuffer,
                         options: {
-                            filename: `thumb_${i}.jpg`,
+                            filename: 'thumb.jpg',
                             contentType: 'image/jpg'
                         }
                     }
                 }
             };
-            return request(fileOptions)
-                .then((data) => {
-                    const datas = JSON.parse(data);
-                    const [file, thumb] = datas;
+            return request.post(conf)
+                .then((res) => {
+                    const datas = JSON.parse(res);
+                    const [file, thumb] = datas.data;
                     return knex('post_files')
                         .insert({
                             post_id: i,
                             mime: 'image/jpg',
-                            file: file.url,
-                            thumb: thumb.url
+                            file,
+                            thumb
                         });
                 })
                 .catch(err => console.log(err));
@@ -81,14 +80,19 @@ const createFile = (knex, i, imgBuffer) => {
 };
 
 exports.seed = (knex, Promise) => {
-    return knex('files')
+    return knex('post_files')
         .del()
         .then(() => {
-            if (fetchFromDir) {
-                return fsReadDir();
+            if (process.env.NODE_ENV === 'test') {
+                const fetches = [];
+                for (let i = 1; i <= 10; i++) {
+                    fetches.push(fetchImg(imgSrc));
+                }
+                return Promise.all(fetches);
             }
+            if (fetchFromDir) return fsReadDir();
             const fetches = [];
-            for (let i = 1; i <= 500; i++) {
+            for (let i = 1; i <= 2; i++) {
                 fetches.push(fetchImg(imgSrc));
             }
             return Promise.all(fetches);

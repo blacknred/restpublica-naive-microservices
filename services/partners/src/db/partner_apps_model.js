@@ -1,3 +1,4 @@
+/* eslint-disable */
 const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
@@ -34,7 +35,7 @@ const PartnerApp = new Schema({
         lowercase: true,
         trim: true,
         required: true,
-        match: /^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,5})$/
+        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
     },
     createdAt: {
         type: Date,

@@ -1,6 +1,6 @@
 {
     "name": "restpublica-api-gateway",
-    "version": "0.1.1",
+    "version": "0.2.1",
     "scripts": {
         "start": "gulp --gulpfile app/gulpfile.js",
         "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
@@ -13,7 +13,7 @@
         "jwt-simple": "^0.5.0",
         "kcors": "^2.2.1",
         "koa": "*",
-        "koa-bodyparser": "*",
+        "koa-body": "^2.5.0",
         "koa-morgan": "^1.0.1",
         "koa-proxy": "^0.9.0",
         "koa-router": "*",

@@ -3,7 +3,9 @@
     "version": "0.1.1",
     "scripts": {
         "start": "gulp --gulpfile app/gulpfile.js",
-        "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
+        "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'",
+        "migrate": "./node_modules/mocha/bin/knex migrate:latest --env development --knexfile 'app/knexfile.js'",
+        "seed": "./node_modules/mocha/bin/knex seed:run --env development --knexfile 'app/knexfile.js'"
     },
     "dependencies": {
         "body-parser": "^1.17.1",
@@ -12,15 +14,16 @@
         "express-fileupload": "*",
         "express-validator": "^2.21.0",
         "faker": "*",
+        "ffmpeg": "0.0.4",
         "fluent-ffmpeg": "*",
         "jwt-simple": "^0.5.0",
         "knex": "^0.13.0",
-        "moment": "^2.20.1",
+        "moment": "^2.21.0",
         "morgan": "^1.8.1",
         "pg": "^6.1.5",
-        "request": "*",
-        "request-promise": "^4.2.0",
-        "sharp": "^0.19.0"
+        "request": "^2.83.0",
+        "request-promise": "^4.2.2",
+        "sharp": "^0.19.1"
     },
     "devDependencies": {
         "chai": "^3.5.0",
