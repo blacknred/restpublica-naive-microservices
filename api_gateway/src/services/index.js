@@ -67,8 +67,7 @@ const request = async (ctx, host, url, r = false, fallback) => {
         url: host + url,
         method: ctx.state.method || ctx.method,
         headers: {
-            'X-Auth-Token': ctx.state.userAuthToken || genToken(ctx.state.consumer),
-            'Content-Type': ctx.request.headers['content-type']
+            'X-Auth-Token': ctx.state.userAuthToken || genToken(ctx.state.consumer)
         },
         data: ctx.state.body || ctx.request.body,
         timeout: 2000, // !!time to response
@@ -85,7 +84,6 @@ const request = async (ctx, host, url, r = false, fallback) => {
         // }
     };
     try {
-        console.log(ctx.state.body, ctx.request.body);
         // if host is blocked run fallback or throw error
         const isBlocked = await client.getAsync(blockedHost);
         if (isBlocked) {

@@ -13,12 +13,12 @@ router
         const sUsers = await request(ctx, ctx.users_host, ctx.url, true);
         console.log(sUsers);
         // get preview posts if req not from mobile
-        if (!ctx.userAgent.isMobile) {
-            const ids = sUsers.users.map(u => u.user_id);
-            const sPosts = await request(ctx, ctx.posts_host, `/posts?profiles=${ids}`,
-                () => { ctx.body = sUsers; });
-            sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id === x.user_id));
-        }
+        // if (!ctx.userAgent.isMobile) {
+        //     const ids = sUsers.users.map(u => u.user_id);
+        //     const sPosts = await request(ctx, ctx.posts_host, `/posts?profiles=${ids}`,
+        //         () => { ctx.body = sUsers; });
+        //     sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id === x.user_id));
+        // }
         ctx.body = sUsers;
     })
     .get('/users/:name', async (ctx) => {
@@ -53,16 +53,14 @@ router
         //     ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
         // }
     })
-    .delete('/users', authentication, async (ctx) => {
-        /* delete user account:
-        - completely delete account and subscriptions
-        - communities where user is admin, related subscriptions and bans
-        - delete user posts, likes, comments
-        - if posts have relation on removed communities set community_id val null
-        */
-        // delete user and user subscriptions
-        const usersUrl = ctx.users_api_host + ctx.url;
-        const sUsers = await request(usersUrl);
+    .delete('/users', async (ctx) => {
+        // delete user if profile inactive and last activity was 3 month ago
+        const sUsers = await request(ctx, ctx.users_api_host, ctx.url);
+        // delete communities where user is admin, related subscriptions and bans
+
+        // delete user posts, likes, comments
+
+        // if posts have relation on removed communities set community_id val null
         ctx.body = sUsers;
     })
 

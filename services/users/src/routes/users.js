@@ -2,12 +2,12 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
 const express = require('express');
-const gm = require('gm');
+// const gm = require('gm');
+const resizeImg = require('resize-img');
 const { encodeToken } = require('../auth/local');
 const queries = require('../db/queries.js');
 const { users } = require('./validation');
 const helpers = require('./_helpers');
-// const fs = require('fs');
 
 const router = express.Router();
 
@@ -127,42 +127,35 @@ router.get('/user', async (req, res, next) => {
     }
 });
 
-router.put('/', async (req, res, next) => {
+router.put('/', users, async (req, res, next) => {
     let isAvatar = false;
     let data;
-    console.log('gg', req.body);
-    // console.log('ll', fs.createReadStream(req.body.files.avatar.path));
     try {
-        if (req.files && req.files.avatar.name) {
-            const avatar = await gm(req.files.avatar.data)
-                .resize(100, 100)
-                .setFormat('jpeg')
-                .toBuffer((err, buffer) => {
-                    if (err) {
-                        throw new Error(err);
-                    } else { return buffer; }
-                });
-            data = await queries.updateUser({ avatar }, req.user);
+        if (req.body.option === 'avatar') {
             isAvatar = true;
-        } else {
-            const newUserData = { [req.body.option]: req.body.value };
-            data = await queries.updateUser(newUserData, req.user);
+            const bin = await new Buffer(req.body.value, 'base64');
+            /* eslint-disable */
+            await resizeImg(bin, { width: 128, height: 128 })
+                .then(buf => req.body.value = buf);
+            /* eslint-enable */
+            // TODO: resize image with gm
+            // await gm(bin, 'img.png')
+            //     .resize(128, 128)
+            //     .toBuffer('PNG', (err, buffer) => {
+            //         if (err) throw new Error(err.message);
+            //         console.log(buffer.length);
+            //         req.body.value = buffer;
+            //     });
         }
+        if (req.body.option === 'active') {
+            await queries.deleteSubscriptions();
+        }
+        const newUserData = { [req.body.option]: req.body.value };
+        data = await queries.updateUser(newUserData, req.user);
+        if (isAvatar) data = data.toString('base64');
         res.status(200).json({
             status: 'success',
-            data: isAvatar ? data.toString('base64') : data
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-router.delete('/', async (req, res, next) => {
-    try {
-        const data = await queries.deleteUser(req.user);
-        res.status(200).json({
-            status: 'success',
-            data
+            data: { [req.body.option]: data }
         });
     } catch (err) {
         return next(err);
@@ -208,5 +201,16 @@ router.get('/:name', users, async (req, res, next) => {
     }
 });
 
+router.delete('/', async (req, res, next) => {
+    try {
+        const data = await queries.deleteUsers();
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
 
 module.exports = router;

@@ -3,16 +3,13 @@
     "version": "0.1.1",
     "scripts": {
         "start": "gulp --gulpfile app/gulpfile.js",
-        "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'",
-        "migrate": "./node_modules/mocha/bin/knex migrate:latest --env development --knexfile 'app/knexfile.js'",
-        "seed": "./node_modules/mocha/bin/knex seed:run --env development --knexfile 'app/knexfile.js'"
+        "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
     },
     "dependencies": {
         "bcryptjs": "^2.3.0",
         "body-parser": "~1.17.1",
         "debug": "~2.6.6",
         "express": "~4.15.2",
-        "express-fileupload": "^0.4.0",
         "express-validator": "^2.21.0",
         "faker": "*",
         "gm": "^1.23.1",
@@ -20,9 +17,9 @@
         "knex": "0.13.0",
         "moment": "^2.15.2",
         "morgan": "~1.8.1",
-        "multiparty": "^4.1.3",
         "node-fetch": "^2.0.0-alpha.9",
-        "pg": "^6.1.4"
+        "pg": "^6.1.4",
+        "resize-img": "^1.1.2"
     },
     "devDependencies": {
         "chai": "^3.5.0",

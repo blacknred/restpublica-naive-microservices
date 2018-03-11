@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 const express = require('express');
 const expressValidator = require('express-validator');
-const multyparty = require('multiparty');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 const authentication = require('./auth/');
@@ -12,14 +11,7 @@ const app = express();
 
 if (process.env.NODE_ENV !== 'test') app.use(logger('dev'));
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-app.use((req, res) => {
-    console.log(req);
-    (new multyparty.Form()).parse(req, (err, fields, files) => {
-        if (err) console.log(err);
-        console.log(files);
-    });
-});
+app.use(bodyParser.json({ limit: '1mb' }));
 app.use(expressValidator());
 
 /* auth */
@@ -37,7 +29,6 @@ app.use((req, res, next) => {
     next(err);
 });
 app.use((err, req, res, next) => {
-    console.log(err.message);
     res.status(err.status || 500);
     res.json({
         status: 'error',

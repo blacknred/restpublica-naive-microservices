@@ -44,12 +44,12 @@ if (process.env.NODE_ENV !== 'test') {
 // Js cron
 cron.schedule('10 * * * *', () => {
     console.log(process.memoryUsage());
-    // ?log stream to logger microservise
+    // TODO: delete inactive users
 });
 // CORS
 app.use(cors());
 // Body
-app.use(koaBody({ jsonLimit: '100kb' }));
+app.use(koaBody({ formLimit: '1mb' }));
 // Services discovery
 app.use(serviceDiscovery);
 // Errors

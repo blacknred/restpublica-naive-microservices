@@ -64,8 +64,8 @@ $ docker exec -ti <container-id> psql -U postgres
 | /users/login                 | POST        | CREATE      | log in an user              |
 | /users/check                 | GET         | READ        | check an user id            |a
 | /users/profile               | GET         | READ        | get logged user data        |a
-| /users                       | PUT         | UPDATE      | update an user value/file   |a
-| /users                       | DELETE      | DELETE      | delete an user              |ac
+| /users                       | PUT         | UPDATE      | update an user value        |a
+| /users                       | DELETE      | DELETE      | delete an inactive users    | c
 | /users                       | GET         | READ        | get all trending profiles   | c
 | /users?query=query           | GET         | READ        | get all profiles by search  | c
 | /users?list=uids             | GET         | READ        | get all profiles by ids     | c

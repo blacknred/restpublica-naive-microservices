@@ -40,14 +40,12 @@ function users(req, res, next) {
                 .withMessage('Must be an valid email');
         }
     } else if (req.method === 'PUT') {
-        if (!req.files.avatar) {
-            req.checkBody('option')
-                .matches(/^(username|email|fullname|description|active)+$/)
-                .withMessage('Option is not valid');
-            req.checkBody('value')
-                .notEmpty()
-                .withMessage('Update value cannot be empty');
-        }
+        req.checkBody('option')
+            .matches(/^(username|email|fullname|description|active|avatar)+$/)
+            .withMessage('Option is not valid');
+        req.checkBody('value')
+            .notEmpty()
+            .withMessage('Update value cannot be empty');
     }
     const failures = req.validationErrors();
     if (failures) {

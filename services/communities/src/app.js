@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 const express = require('express');
 const expressValidator = require('express-validator');
-const fileUpload = require('express-fileupload');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 
@@ -13,9 +12,8 @@ const bansRoutes = require('./routes/bans');
 const app = express();
 
 if (process.env.NODE_ENV !== 'test') app.use(logger('dev'));
-app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(fileUpload({ limits: { fileSize: 10 * 1024 * 1024 } }));
+app.use(bodyParser.json({ limit: '1mb' }));
 app.use(expressValidator());
 
 /* auth */

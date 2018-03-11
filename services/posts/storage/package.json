@@ -5,11 +5,13 @@
         "start": "gulp --gulpfile app/gulpfile.js"
     },
     "dependencies": {
+        "fluent-ffmpeg": "^2.1.2",
         "koa": "^2.5.0",
         "koa-better-body": "^3.0.4",
         "koa-body": "*",
         "koa-logger": "*",
-        "koa-static": "*"
+        "koa-static": "*",
+        "sharp": "^0.20.0"
     },
     "devDependencies": {
         "eslint": "^3.19.0",

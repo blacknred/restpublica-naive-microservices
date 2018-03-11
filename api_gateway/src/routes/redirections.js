@@ -9,12 +9,8 @@ router
     .post('/users', ctx => request(ctx, ctx.users_host, ctx.url))
     .post('/users/login', ctx => request(ctx, ctx.users_host, ctx.url))
     .get('/users/user', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
-    .put('/users', (ctx) => {
-        console.log(ctx.request);
-        ctx.status = 308;
-        ctx.redirect(`http://localhost:3004/v1${ctx.path}`);
-        // request(ctx, ctx.users_host, ctx.url);
-    })
+    .put('/users', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
+
     .post('/users/:uid/follow', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
     .get('/users/:uid/followers', authentication, ctx => request(ctx, ctx.users_host, ctx.url))
     .get('/users/:uid/following', authentication, ctx => request(ctx, ctx.users_host, ctx.url))

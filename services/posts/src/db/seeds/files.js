@@ -1,9 +1,8 @@
 /* eslint-disable no-unused-vars */
-const sharp = require('sharp');
-const request = require('request-promise');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const request = require('request-promise');
 
 const fetchFromDir = true;
 const dir = path.join(__dirname, 'static');
@@ -39,42 +38,29 @@ const fetchImg = (image) => {
 };
 
 const createFile = (knex, i, imgBuffer) => {
-    return sharp(imgBuffer)
-        .resize(200, null)
-        .toBuffer()
-        .then((thumbBuffer) => {
-            const conf = {
-                url: process.env.FILES_STORAGE_HOST,
-                formData: {
-                    file: {
-                        value: imgBuffer,
-                        options: {
-                            filename: 'file.jpg',
-                            contentType: 'image/jpg'
-                        }
-                    },
-                    thumb: {
-                        value: thumbBuffer,
-                        options: {
-                            filename: 'thumb.jpg',
-                            contentType: 'image/jpg'
-                        }
-                    }
+    const conf = {
+        url: process.env.FILES_STORAGE_HOST,
+        formData: {
+            file: {
+                value: imgBuffer,
+                options: {
+                    filename: 'file.jpg',
+                    contentType: 'image/jpg'
                 }
-            };
-            return request.post(conf)
-                .then((res) => {
-                    const datas = JSON.parse(res);
-                    const [file, thumb] = datas.data;
-                    return knex('post_files')
-                        .insert({
-                            post_id: i,
-                            mime: 'image/jpg',
-                            file,
-                            thumb
-                        });
-                })
-                .catch(err => console.log(err));
+            }
+        }
+    };
+    return request.post(conf)
+        .then((res) => {
+            const datas = JSON.parse(res);
+            const [file, thumb] = datas.data;
+            return knex('post_files')
+                .insert({
+                    post_id: i,
+                    mime: 'image/jpg',
+                    file,
+                    thumb
+                });
         })
         .catch(err => console.log(err));
 };

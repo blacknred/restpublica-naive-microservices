@@ -8,8 +8,8 @@ const localAuth = require('../auth/local');
 
 const limit = 12;
 const today = new Date();
-const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 20);
-
+const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 14);
+const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3);
 
 /* auth */
 
@@ -64,25 +64,6 @@ function getUser(userId) {
         .select(['username', 'fullname', 'description', 'email', 'avatar'])
         .where('id', userId)
         .first();
-}
-
-function deleteUser(userId) {
-    knex.transaction((trx) => {
-        knex('users')
-            .del()
-            .where('id', userId)
-            .transacting(trx)
-            .then((data) => {
-                return knex('users_subscriptions')
-                    .del()
-                    .where('sub_user_id', userId)
-                    .andWhere('user_id', userId)
-                    .transacting(trx);
-            })
-            .then(trx.commit)
-            .catch(trx.rollback);
-    })
-        .then(data => data);
 }
 
 
@@ -181,6 +162,14 @@ function getSearchedProfiles(pattern, authUserId, offset) {
         });
 }
 
+function deleteUsers() {
+    knex('users')
+        .del()
+        .andWhere('active', false)
+        .andWhere('activity_at', '>', threeMonthsAgo)
+        .returning('id');
+}
+
 
 /* subscriptions */
 
@@ -258,6 +247,13 @@ function deleteSubscription(subscriptionId, userId) {
         });
 }
 
+function deleteSubscriptions(userId) {
+    return knex('users_subscriptions')
+        .del()
+        .where('sub_user_id', userId)
+        .andWhere('user_id', userId);
+}
+
 
 module.exports = {
     checkUser,
@@ -271,10 +267,11 @@ module.exports = {
     getSearchedProfiles,
     getProfile,
     updateUser,
-    deleteUser,
+    deleteUsers,
     createSubscription,
     getFollowers,
     getFollowing,
     getFollowingIds,
-    deleteSubscription
+    deleteSubscription,
+    deleteSubscriptions
 };
