@@ -14,6 +14,8 @@ router.post('/:cid/follow', subscriptions, async (req, res, next) => {
         user_id: req.user
     };
     try {
+        const com = await queries.findCommunityById(newSubscription.community_id);
+        if (!com.restricted) newSubscription.approved = true;
         const data = await queries.createSubscription(newSubscription);
         res.status(200).json({
             status: 'success',

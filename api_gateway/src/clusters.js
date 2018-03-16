@@ -1,35 +1,22 @@
-/* Clustering to exploit all the cores of a machine.
-(Node is single-threaded by default) */
-
-/* eslint-disable global-require */
 const cluster = require('cluster');
-const debug = require('debug')('api-gateway');
-const cpus = require('os').cpus().length;
+const debug = require('debug')('gateway');
+const cpus = require('os').cpus();
 
 if (process.env.NODE_ENV === 'production' && cluster.isMaster) {
-    // Master process
-    for (let i = 0; i < cpus; i++) {
-        // 1 process per core
-        cluster.fork();
-    }
-    console.log('Master process online with PID', process.pid);
-    debug('Master process online with PID', process.pid);
+    /* Clustering to exploit all the cores of a machine.
+    Node is single-threaded by default */
+    // Master process: 1 process per core
+    cpus.forEach(() => cluster.fork());
+    debug('Master process online with PID %s', process.pid);
 
-    cluster.on('online', (worker) => {
-        console.log(`Worker ${worker.process.pid} is online`);
-        debug(`Worker ${worker.process.pid} is online`);
-    });
+    cluster.on('online', worker => debug('Worker %s is online', worker.process.pid));
 
     cluster.on('exit', (worker, code, signal) => {
-        const f = `Worker ${worker.process.pid} died with code:
-        ${code}, and signal: ${signal}`;
-        console.log(f);
-        debug(f);
-        console.log('Starting a new worker');
+        debug('Worker %s died with code: %s and signal: %s', worker.process.pid, code, signal);
         debug('Starting a new worker');
         cluster.fork();
     });
 } else {
     // Worker process
-    require('./server.js');
+    require('./server.js'); // eslint-disable-line
 }

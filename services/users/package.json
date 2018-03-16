@@ -2,7 +2,7 @@
     "name": "restpublica-users-api-microservice",
     "version": "0.1.1",
     "scripts": {
-        "start": "gulp --gulpfile app/gulpfile.js",
+        "start": "DEBUG=users-api gulp --gulpfile app/gulpfile.js",
         "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
     },
     "dependencies": {
@@ -15,9 +15,9 @@
         "gm": "^1.23.1",
         "jwt-simple": "^0.5.0",
         "knex": "0.13.0",
-        "moment": "^2.15.2",
+        "moment": "^2.21.0",
         "morgan": "~1.8.1",
-        "node-fetch": "^2.0.0-alpha.9",
+        "node-fetch": "^2.1.1",
         "pg": "^6.1.4",
         "resize-img": "^1.1.2"
     },
@@ -26,7 +26,7 @@
         "chai-http": "^3.0.0",
         "eslint": "^3.18.0",
         "eslint-config-airbnb-base": "^11.1.1",
-        "eslint-plugin-import": "^2.2.0",
+        "eslint-plugin-import": "^2.9.0",
         "gulp": "^3.9.1",
         "gulp-eslint": "^3.0.1",
         "gulp-nodemon": "^2.2.1",

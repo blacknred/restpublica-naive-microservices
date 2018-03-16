@@ -1,8 +1,9 @@
 /* eslint-disable no-return-assign */
 /* eslint-disable no-param-reassign */
 const Router = require('koa-router');
-const { authentication } = require('../auth');
-const { request } = require('../services');
+const { users_api, communities_api, posts_api } = require('../adresses');
+const { auth, clearRateLimit } = require('../auth');
+const { request } = require('./_helpers');
 
 const router = new Router();
 
@@ -10,8 +11,9 @@ const router = new Router();
 router
     .get('/users', async (ctx) => {
         // get profiles data
-        const sUsers = await request(ctx, ctx.users_host, ctx.url, true);
-        console.log(sUsers);
+        const sUsers = await request(ctx, users_api, ctx.url, true);
+        ctx.body = sUsers;
+        // console.log(sUsers);
         // get preview posts if req not from mobile
         // if (!ctx.userAgent.isMobile) {
         //     const ids = sUsers.users.map(u => u.user_id);
@@ -19,28 +21,28 @@ router
         //         () => { ctx.body = sUsers; });
         //     sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id === x.user_id));
         // }
-        ctx.body = sUsers;
     })
     .get('/users/:name', async (ctx) => {
         // get profile data
-        const usersUrl = ctx.users_api_host + ctx.url;
-        const communitiesUrl = `${ctx.communities_api_host}/communities/count?profile=`;
-        const postsUrl = `${ctx.posts_api_host}/posts/count?profile=`;
-        try {
-            const sUser = await request(ctx, usersUrl);
-            // get communities subscriptions count
-            sUser.communities_count = await request(ctx, communitiesUrl + sUser.id);
-            // get posts count
-            sUser.posts_count = await request(ctx, postsUrl + sUser.id);
-            ctx.body = sUser;
-        } catch (err) {
-            ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
-        }
+        const sUser = await request(ctx, users_api, ctx.url, true);
+        ctx.body = sUser;
+        // const usersUrl = ctx.users_api_host + ctx.url;
+        // const communitiesUrl = `${ctx.communities_api_host}/communities/count?profile=`;
+        // const postsUrl = `${posts_api}/posts/count?profile=`;
+        // try {
+        //     // get communities subscriptions count
+        //     sUser.communities_count = await request(ctx, communitiesUrl + sUser.id);
+        //     // get posts count
+        //     sUser.posts_count = await request(ctx, postsUrl + sUser.id);
+        //     ctx.body = sUser;
+        // } catch (err) {
+        //     ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
+        // }
         // get user data
         // const usersUrl = ctx.users_api_host + ctx.url;
         // const communitiesUrl = `${ctx.communities_api_host}
         // /communities/count?profile=${ctx.state.consumer}`;
-        // const postsUrl = `${ctx.posts_api_host}
+        // const postsUrl = `${posts_api}
         // /posts/count?profile=${ctx.state.consumer}`;
         // try {
         //     const sUser = await request(ctx, usersUrl);
@@ -53,24 +55,18 @@ router
         //     ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
         // }
     })
-    .delete('/users', async (ctx) => {
-        // delete user if profile inactive and last activity was 3 month ago
-        const sUsers = await request(ctx, ctx.users_api_host, ctx.url);
-        // delete communities where user is admin, related subscriptions and bans
-
-        // delete user posts, likes, comments
-
-        // if posts have relation on removed communities set community_id val null
-        ctx.body = sUsers;
-    })
+    .put('/users/logout', clearRateLimit)
 
     // -------------------------------------------------------------------------------
-    .get('/communities', async (ctx) => {
+    .get('/communities', async (ctx, next) => {
         // get communities data
+        if (ctx.query.admin) auth(ctx, next);
+        const sComms = await request(ctx, communities_api, ctx.url, true);
+        ctx.body = sComms;
         // const communitiesUrl = ctx.communities_api_host + ctx.url;
         // const usersUrl = `${ctx.communities_api_host}
         // /communities/count?profile=${ctx.state.consumer}`;
-        // const postsUrl = `${ctx.posts_api_host}
+        // const postsUrl = `${posts_api}
         // /posts/count?profile=${ctx.state.consumer}`;
         // try {
         //     const sCommunities = await request(ctx, communitiesUrl);
@@ -79,34 +75,40 @@ router
         //     // get posts if req not from mobile
         //     if (ctx.userAgent.isMobile) {
         //         const ids = sUsers.users.map(u => u.user_id);
-        //         const postsUrl = `${ctx.posts_api_host}/posts?communities=${ids}`;
+        //         const postsUrl = `${posts_api}/posts?communities=${ids}`;
         //         const sPosts = await request(postsUrl);
-        //         sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id === x.user_id));
+        //        sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id === x.user_id));
         //     }
         //     ctx.body = sCommunities;
         // } catch (err) {
         //     ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
         // }
-        ctx.status = 301;
-        ctx.redirect(ctx.communities_api_host + ctx.url);
-
         // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
         // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
         // // eslint-disable-next-line
         // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
     })
-    .get('/communities/:name', async () => {
+    .get('/communities/:name', async (ctx) => {
+        const sComm = await request(ctx, communities_api, ctx.url, true);
+        ctx.body = sComm;
         // get community data
         // get community posts count, ?community posts
     })
-    .get('/communities/:cid/followers', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
-    .get('/communities/:cid/bans', authentication, ctx => request(ctx, ctx.communities_host, ctx.url))
-    // get users data
+    .get('/communities/:cid/followers', auth, async (ctx) => {
+        const sUsers = await request(ctx, communities_api, ctx.url, true);
+        // get users info
+        ctx.body = sUsers;
+    })
+    .get('/communities/:cid/bans', auth, async (ctx) => {
+        const sUsers = await request(ctx, communities_api, ctx.url, true);
+        // get users info
+        ctx.body = sUsers;
+    })
 
     // ------------------------------------------------------------------------------
     .get('/posts', async (ctx) => {
         ctx.status = 301;
-        ctx.redirect(ctx.posts_api_host + ctx.url);
+        ctx.redirect(posts_api);
         // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
         // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
         // // eslint-disable-next-line
@@ -114,11 +116,11 @@ router
     })
     .get('/posts/:slug', async (ctx) => {
         ctx.status = 301;
-        ctx.redirect(ctx.posts_api_host + ctx.url);
+        // ctx.redirect(posts_api + ctx.url);
     })
 
     // ----------------------------------------
-    .get('/dashboard', authentication, async (ctx) => {
+    .get('/dashboard', auth, async (ctx) => {
         /*
         Select id
         From Users

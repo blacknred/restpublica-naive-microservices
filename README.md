@@ -63,6 +63,7 @@ $ docker exec -ti <container-id> psql -U postgres
 | /users                       | POST        | CREATE      | add an user                 |
 | /users/login                 | POST        | CREATE      | log in an user              |
 | /users/check                 | GET         | READ        | check an user id            |a
+| /users/check/admin           | GET         | READ        | check if user id is admin   |a
 | /users/profile               | GET         | READ        | get logged user data        |a
 | /users                       | PUT         | UPDATE      | update an user value        |a
 | /users                       | DELETE      | DELETE      | delete an inactive users    | c
@@ -72,8 +73,7 @@ $ docker exec -ti <container-id> psql -U postgres
 | /users/:name?lim=id          | GET         | READ        | get a profile(id)           | c
 | /users/:uid/follow           | POST        | CREATE      | create a subscription       |a
 | /users/:uid/followers        | GET         | READ        | get a profile followers     |a
-| /users/:uid/following        | GET         | READ        | get a profile following(id) |a
-| /users/:uid/following?lim=id | GET         | READ        | get a user following ids    |a
+| /users/:uid/following?lim=id | GET         | READ        | get a profile following(id) |a
 | /users/:uid/follow/:sid      | DELETE      | DELETE      | delete a subscription       |a
 
 #### (2) Communities API - http://localhost:3005/v1
@@ -85,9 +85,8 @@ $ docker exec -ti <container-id> psql -U postgres
 | /communities                       | GET         | READ        | get all trending com-s     | ?c
 | /communities?query=query           | GET         | READ        | get all com-s by search    | ?c
 | /communities?list=cids&lim=name    | GET         | READ        | get all com-s by ids       | ?c
-| /communities?profile=pid&lim=id    | GET         | READ        | get all com-s(id) by user  | ?c
-| /communities?profile=pid&lim=count | GET         | READ        | get all com-s(cnt) by user | ?c
-| /communities?admin=aid             | GET         | READ        | get all com-s by admin     |a
+| /communities?profile=pid&lim=id    | GET         | READ        | get all com-s sub by user  | ?c
+| /communities?admin=aid             | GET         | READ        | get all user com-s         |a
 | /communities/:name?lim=id          | GET         | READ        | get a com-ty(id)           | c
 | /communities/:cid                  | PUT         | UPDATE      | update a com-ty            |a 
 | /communities/:cid                  | DELETE      | DELETE      | delete a com-ty            |a

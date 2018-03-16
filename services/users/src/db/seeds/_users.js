@@ -1,6 +1,5 @@
 const bcrypt = require('bcryptjs');
 const faker = require('faker');
-
 const helpers = require('../_helpers');
 const routeHelpers = require('../../routes/_helpers');
 

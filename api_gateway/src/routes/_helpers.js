@@ -1,5 +1,6 @@
 /* eslint-disable consistent-return */
 const axios = require('axios');
+const debug = require('debug')('gateway');
 const { genToken } = require('../auth/local');
 const redis = require('redis');
 const bluebird = require('bluebird');
@@ -9,28 +10,11 @@ bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 client.on('ready', async () => {
     const keys = await client.keysAsync('*');
-    console.log(`Redis has ${keys.length} keys:`);
+    debug('[Redis]: keys count %s', keys.length);
     keys.forEach(async (key) => {
-        const val = await client.getAsync(key);
-        console.log(`${key} - ${val}`);
+        debug('[Redis]: %s - %s', key, await client.getAsync(key));
     });
 });
-
-const serviceDiscovery = async (ctx, next) => {
-    /*
-    TODO:
-    - launched microservices register self hosts and ports in redis
-    - gateway gets adresses from redis
-    - ?every 60 sec calls 'ping' all microservices and then updates hosts
-    */
-    // mock
-    const version = '/v1';
-    ctx.app.context.users_host = process.env.USERS_API_HOST + version;
-    ctx.app.context.communities_host = process.env.COMMUNITIES_API_HOST + version;
-    ctx.app.context.posts_host = process.env.POSTS_API_HOST + version;
-    ctx.app.context.partners_host = process.env.PARTNERS_API_HOST + version;
-    await next();
-};
 
 const request = async (ctx, host, url, r = false, fallback) => {
     /*
@@ -54,6 +38,8 @@ const request = async (ctx, host, url, r = false, fallback) => {
             some data to return
     */
 
+    // time-span to count the failed requests in sec
+    const watchingTimespan = 60 * 10;
     // "freeze" period in sec
     const blockingTimespan = 60;
     // limit of failed requests
@@ -66,22 +52,13 @@ const request = async (ctx, host, url, r = false, fallback) => {
     const conf = {
         url: host + url,
         method: ctx.state.method || ctx.method,
-        headers: {
-            'X-Auth-Token': ctx.state.userAuthToken || genToken(ctx.state.consumer)
-        },
+        headers: { 'X-Auth-Token': ctx.state.userAuthToken || genToken(ctx.state.consumer) },
         data: ctx.state.body || ctx.request.body,
         timeout: 2000, // !!time to response
-        // maxContentLength: 55000,
+        maxContentLength: 100000,
         maxRedirects: 5,
+        // ?proxy: {}
         validateStatus: status => status >= 200 && status < 500,
-        // proxy: {
-        //     host: '127.0.0.1',
-        //     port: 9000,
-        //     auth: {
-        //         username: 'mikeymike',
-        //         password: 'rapunz3l'
-        //     }
-        // }
     };
     try {
         // if host is blocked run fallback or throw error
@@ -101,7 +78,10 @@ const request = async (ctx, host, url, r = false, fallback) => {
         if (e.code === 'ECONNABORTED') {
             // iterate service fails counter
             let cnt = await client.getAsync(hostFailesCounter);
-            if (!cnt) client.set(hostFailesCounter, 1);
+            if (!cnt) {
+                client.set(hostFailesCounter, 1);
+                client.expire(hostFailesCounter, watchingTimespan);
+            }
             // increment host fails counter
             await client.incr(hostFailesCounter);
             // check limit
@@ -119,12 +99,10 @@ const request = async (ctx, host, url, r = false, fallback) => {
             // run fallback if there is
             if (fallback) return fallback();
         }
-        console.error(e.message);
-        ctx.throw(500, 'Server Error. Try later.');
+        ctx.throw(500, e.response.data.message);
     }
 };
 
 module.exports = {
-    serviceDiscovery,
     request
 };

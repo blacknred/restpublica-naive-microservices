@@ -1,27 +1,22 @@
-const debug = require('debug')('api-gateway');
 const http = require('http');
+const jsCron = require('./cron');
 const app = require('./app');
 
 function normalizePort(val) {
     const port = parseInt(val, 10);
-    if (isNaN(port)) { return val; }
-    if (port >= 0) { return port; }
+    if (isNaN(port)) return val;
+    if (port >= 0) return port;
     return false;
 }
 
 const port = normalizePort(process.env.PORT || '3003');
 
 function onError(error) {
-    if (error.syscall !== 'listen') { throw error; }
+    if (error.syscall !== 'listen') throw error;
     switch (error.code) {
-        case 'EACCES':
-            process.exit(1);
-            break;
-        case 'EADDRINUSE':
-            process.exit(1);
-            break;
-        default:
-            throw error;
+        case 'EACCES': process.exit(1); break;
+        case 'EADDRINUSE': process.exit(1); break;
+        default: throw error;
     }
 }
 
@@ -30,7 +25,10 @@ const server = http.createServer(app.callback());
 function onListening() {
     const addr = server.address();
     const bind = typeof addr === 'string' ? `Pipe ${port}` : `Port ${port}`;
-    debug(`Listening on ${bind}`);
+    console.log(`
+    Restpublica API Gateway is Listening on ${bind}
+    `);
+    jsCron(); // JSCron
 }
 
 server.listen(port);

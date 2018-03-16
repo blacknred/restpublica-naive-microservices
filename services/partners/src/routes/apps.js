@@ -1,48 +1,32 @@
 /* eslint-disable consistent-return */
 const express = require('express');
 const queries = require('../db/queries');
-const validate = require('./validation');
+const { apps } = require('./validation');
 
 const router = express.Router();
 
 /* partner apps */
 
-router.post('/', validate.app, async (req, res, next) => {
+router.post('/', apps, async (req, res, next) => {
     const newApp = {
         apiKey: Math.random().toString(36).slice(2),
         planId: req.body.planId,
-        adminId: req.body.adminId,
         domain: req.body.domain,
         email: req.body.email,
+        adminId: req.user,
     };
-    const errors = [];
     try {
-        const domain = await queries.findAppByDomain(newApp.domain);
-        if (domain) {
-            errors.push({
-                param: 'domain',
-                msg: `Domain ${newApp.domain} is already in use`
-            });
-            throw new Error();
-        }
         const data = await queries.createApp(newApp);
         res.status(200).json({
             status: 'success',
             data
         });
     } catch (err) {
-        if (errors.length) {
-            res.status(422).json({
-                status: 'Validation failed',
-                failures: errors
-            });
-        } else {
-            return next(err);
-        }
+        return next(err);
     }
 });
 
-router.post('/check', validate.check, async (req, res, next) => {
+router.post('/check', apps, async (req, res, next) => {
     const apiKey = req.body.apiKey;
     const domain = req.body.domain;
     try {
@@ -68,10 +52,11 @@ router.get('/', async (req, res, next) => {
     }
 });
 
-router.get('/:aid', validate.app, async (req, res, next) => {
+router.get('/:aid', apps, async (req, res, next) => {
     const appId = req.params.aid;
     try {
-        const data = await queries.getApp(appId);
+        let data = await queries.getApp(appId, req.user);
+        if (!data) data = 'Access is restricted';
         res.status(200).json({
             status: 'success',
             data
@@ -81,13 +66,12 @@ router.get('/:aid', validate.app, async (req, res, next) => {
     }
 });
 
-router.put('/:aid', validate.app, async (req, res, next) => {
+router.put('/:aid', apps, async (req, res, next) => {
     const appId = req.params.aid;
-    const appObj = {
-        [req.body.option]: req.body.value
-    };
+    const appObj = { [req.body.option]: req.body.value };
     try {
-        const data = await queries.updateApp(appId, appObj);
+        let data = await queries.updateApp(appId, appObj, req.user);
+        if (!data) data = 'Access is restricted';
         res.status(200).json({
             status: 'success',
             data
@@ -97,10 +81,11 @@ router.put('/:aid', validate.app, async (req, res, next) => {
     }
 });
 
-router.delete('/:aid', validate.app, async (req, res, next) => {
+router.delete('/:aid', apps, async (req, res, next) => {
     const appId = req.params.aid;
     try {
-        const data = await queries.deleteApp(appId);
+        let data = await queries.deleteApp(appId, req.user);
+        if (!data) data = 'Access is restricted';
         res.status(200).json({
             status: 'success',
             data
@@ -109,5 +94,6 @@ router.delete('/:aid', validate.app, async (req, res, next) => {
         return next(err);
     }
 });
+
 
 module.exports = router;

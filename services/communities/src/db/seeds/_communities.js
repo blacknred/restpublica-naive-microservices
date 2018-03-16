@@ -9,14 +9,14 @@ function createCommunity(knex, name, adminId) {
             avatar = res;
             return routeHelpers.createTheme();
         })
-        .then((theme) => {
+        .then((banner) => {
             return knex('communities')
                 .insert({
-                    name,
+                    name: name.split(' ')[0],
                     title: name,
                     description: faker.lorem.sentences(),
                     avatar,
-                    theme,
+                    banner,
                     admin_id: adminId
                 });
         })

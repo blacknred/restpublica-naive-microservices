@@ -1,35 +1,28 @@
-const Koa = require('koa');
-const koaBody = require('koa-body');
-const morgan = require('koa-morgan');
-const cors = require('kcors');
-const userAgent = require('koa-useragent');
-const cron = require('node-cron');
-const rfs = require('rotating-file-stream');
 const fs = require('fs');
 const path = require('path');
+const rfs = require('rotating-file-stream');
+const Koa = require('koa');
+const cors = require('kcors');
+const koaBody = require('koa-body');
+const morgan = require('koa-morgan');
+const userAgent = require('koa-useragent');
 const routes = require('./routes/index');
-const { serviceDiscovery } = require('./services');
-const { rateLimitPolicy } = require('./auth');
+const { rateLimitPolicy, authentication } = require('./auth');
 
 const app = new Koa();
 
 /*
-Entry point API for microservices:
-* Cluster support to spawn multiple processes.
 * Logging
-* Js cron
-* Microservices registry mock
 * Consumers (users||apps) rate/limit and auth
-* Circuit breaker and fallbacks
+* Circuit breaker with fallbacks
 */
 
 // Logger
 if (process.env.NODE_ENV !== 'test') {
-    // TODO: log stream to logger microservise
-    // mock
+    // TODO: log stream to Logger microservise
+    // moking with rotating write stream
     const logDir = path.join(__dirname, '..', 'logs');
     if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
-    // create a rotating write stream
     const accessLogStream = rfs('access.log', {
         size: '10M',
         interval: '1d',
@@ -41,17 +34,10 @@ if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('combined', { stream: accessLogStream }));
     app.use(morgan(format));
 }
-// Js cron
-cron.schedule('10 * * * *', () => {
-    console.log(process.memoryUsage());
-    // TODO: delete inactive users
-});
 // CORS
 app.use(cors());
 // Body
 app.use(koaBody({ formLimit: '1mb' }));
-// Services discovery
-app.use(serviceDiscovery);
 // Errors
 app.use(async (ctx, next) => {
     try {
@@ -62,15 +48,17 @@ app.use(async (ctx, next) => {
         ctx.status = err.status || 500;
         ctx.body = {
             status: 'error',
-            message: err.message
+            message: process.env.NODE_ENV !== 'production' ?
+                err.message : 'Server Error. Try later.'
         };
     }
 });
-
 // User Agent
 app.use(userAgent);
 // Consumer rate limit
 app.use(rateLimitPolicy);
+// Authentication
+app.use(authentication);
 // Router
 app.use(routes.routes());
 

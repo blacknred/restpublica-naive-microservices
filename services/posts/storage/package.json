@@ -2,7 +2,7 @@
     "name": "restpublica-mocking-files-storage",
     "version": "0.0.1",
     "scripts": {
-        "start": "gulp --gulpfile app/gulpfile.js"
+        "start": "DEBUG=storage gulp --gulpfile app/gulpfile.js"
     },
     "dependencies": {
         "fluent-ffmpeg": "^2.1.2",

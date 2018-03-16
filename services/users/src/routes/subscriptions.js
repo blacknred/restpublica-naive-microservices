@@ -43,10 +43,10 @@ router.get('/:uid/followers', subscriptions, async (req, res, next) => {
 router.get('/:uid/following', subscriptions, async (req, res, next) => {
     const userId = req.params.uid;
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const lim = req.query.lim;
+    const lim = req.query.lim || null;
     try {
         const data = await queries.getFollowing(userId, req.user, lim, offset);
-        data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
+        if (!lim) data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
         res.status(200).json({
             status: 'success',
             data

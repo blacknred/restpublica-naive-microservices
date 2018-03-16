@@ -1,7 +1,9 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
+/* eslint-disable no-return-assign */
 const express = require('express');
-const gm = require('gm');
+// const gm = require('gm');
+const resizeImg = require('resize-img');
 const queries = require('../db/queries.js');
 const { communities } = require('./validation');
 const helpers = require('./_helpers');
@@ -12,78 +14,132 @@ const router = express.Router();
 
 router.post('/', communities, async (req, res, next) => {
     const newCommunity = {
-        name: req.body.name,
-        title: req.body.title,
+        name: req.body.name.split(' ').join('_').toLowerCase(),
+        title: req.body.title.charAt(0).toUpperCase() +
+            req.body.title.slice(1),
         description: req.body.description,
         restricted: req.body.restricted,
         posts_moderation: req.body.posts_moderation,
         admin_id: req.user
     };
-    const errors = [];
     try {
-        const name = await queries.findCommunityByName(newCommunity.name);
-        if (name) {
-            errors.push({
-                param: 'name',
-                msg: `name ${newCommunity.name} already in use`
-            });
-            throw new Error();
-        }
-        if (!req.files.avatar) {
-            newCommunity.avatar = helpers.createAvatar(newCommunity.title);
+        if (req.body.avatar) {
+            const bin = await new Buffer(req.body.avatar, 'base64');
+            await resizeImg(bin, { width: 128, height: 128 })
+                .then(buf => newCommunity.avatar = buf);
+            // TODO: resize image with gm
+            // await gm(bin, 'img.png')
+            //     .resize(128, 128)
+            //     .toBuffer('PNG', (err, buffer) => {
+            //         if (err) throw new Error(err);
+            //         console.log(buffer.length);
+            //         newCommunity.avatar = buffer;
+            //     });
         } else {
-            newCommunity.avatar = await gm(req.files.avatar.data)
-                .resize(100, 100)
-                .toBuffer('JPG', (err, buffer) => {
-                    if (err) throw new Error(err);
-                    return buffer;
-                });
+            newCommunity.avatar = await helpers.createAvatar(newCommunity.title);
         }
-        if (req.files.theme) {
-            newCommunity.theme = await gm(req.files.theme.data)
-                .resize(800, 100)
-                .toBuffer('JPG', (err, buffer) => {
-                    if (err) throw new Error(err);
-                    return buffer;
-                });
+        if (req.body.banner) {
+            const bin = await new Buffer(req.body.banner, 'base64');
+            await resizeImg(bin, { width: 800, height: 200 })
+                .then(buf => newCommunity.banner = buf);
+            // TODO: resize image with gm
+            // await gm(bin, 'img.png')
+            //     .resize(800, 200)
+            //     .toBuffer('PNG', (err, buffer) => {
+            //         if (err) throw new Error(err);
+            //         console.log(buffer.length);
+            //         newCommunity.banner = buffer;
+            //     });
         }
-        const community = await queries.createCommunity(newCommunity);
-        community.avatar = community.avatar.toString('base64');
-        community.theme = community.theme.toString('base64');
+        const data = await queries.createCommunity(newCommunity);
+        data.avatar = data.avatar.toString('base64');
+        if (data.banner) data.bunner = data.banner.toString('base64');
         res.status(200).json({
             status: 'success',
-            data: community
+            data
         });
     } catch (err) {
-        if (errors.length) {
-            res.status(422).json({
-                status: 'Validation failed',
-                failures: errors
-            });
-        } else {
-            return next(err);
+        return next(err);
+    }
+});
+
+router.put('/:cid', communities, async (req, res, next) => {
+    const id = req.params.cid;
+    let isFile = false;
+    let data;
+    try {
+        /* eslint-disable */
+        switch (req.body.option) {
+            case 'avatar':
+            case 'banner':
+                isFile = true;
+                const bin = await new Buffer(req.body.value, 'base64');
+                await resizeImg(bin,
+                    req.body.option === 'avatar' ? { width: 128, height: 128 } :
+                        { width: 800, height: 200 }
+                )
+                    .then(buf => req.body.value = buf);
+                // TODO: resize image with gm
+                // await gm(bin, 'img.png')
+                //     .resize(128, 128)
+                //     .toBuffer('PNG', (err, buffer) => {
+                //         if (err) throw new Error(err);
+                //         console.log(buffer.length);
+                //         req.body.value = buffer;
+                //     });
+                break;
+            case 'active':
+                await queries.deleteSubscriptions(id, req.user);
+                await queries.deleteBans(id, req.user);
+                break;
+            case 'name': req.body.value.split(' ').join('_').toLowerCase(); break;
+            case 'title': req.body.value.charAt(0).toUpperCase() +
+                req.body.value.slice(1); break;
+            default:
         }
+        /* eslint-enable */
+        const newCommunityData = { [req.body.option]: req.body.value };
+        data = await queries.updateCommunity(newCommunityData, id, req.user);
+        if (isFile) data = data.toString('base64');
+        res.status(200).json({
+            status: 'success',
+            data: { [req.body.option]: data }
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+router.delete('/', async (req, res, next) => {
+    try {
+        const data = await queries.deleteCommunities();
+        res.status(200).json({
+            status: 'success',
+            data
+        });
+    } catch (err) {
+        return next(err);
     }
 });
 
 router.get('/', communities, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const query = req.query.query.toLowerCase() || null;
-    const list = req.query.list.split(',') || null;
-    const profiles = req.query.profiles.split(',') || req.user;
-    const admin = req.query.admin || req.user;
-    const lim = req.params.lim || null;
+    const query = req.query.query ? req.query.query.toLowerCase() : null;
+    const list = req.query.list ? req.query.list.split(',') : null;
+    const profile = req.query.profile || null;
+    const admin = req.query.admin || null;
+    const lim = req.query.lim || null;
     let data;
     try {
-        if (query) data = await queries.getSearchedCommunities(query, req.user, lim, offset);
-        else if (list) data = await queries.getCommunities(list, lim, offset);
-        else if (admin) data = await queries.getCommunitiesByAdmin(req.user, lim, offset);
-        else if (profiles) data = await queries.getUserCommunities(req.user, lim, offset);
-        else data = await queries.getTrendingCommunities(req.user, lim, offset);
+        if (query) data = await queries.getSearchedCommunities(query, req.user, offset);
+        else if (list) data = await queries.getCommunities(list, req.user);
+        else if (admin) data = await queries.getCommunitiesByAdmin(req.user, offset);
+        else if (profile) data = await queries.getUserCommunities(profile, req.user, lim, offset);
+        else data = await queries.getTrendingCommunities(req.user, offset);
         if (!lim) {
             data.communities.forEach((com) => {
                 com.avatar = com.avatar.toString('base64');
-                com.background = com.background.toString('base64');
+                if (com.banner) com.banner = com.banner.toString('base64');
             });
         }
         res.status(200).json({
@@ -97,65 +153,23 @@ router.get('/', communities, async (req, res, next) => {
 
 router.get('/:name', communities, async (req, res, next) => {
     const name = req.params.name;
-    const lim = req.params.lim || null;
+    const lim = req.query.lim || null;
     try {
         const isExist = await queries.findCommunityByName(name);
         if (!isExist) throw new Error(`Community ${name} is not found`);
         const data = await queries.getCommunity(name, lim, req.user);
-        data.avatar = data.avatar.toString('base64');
-        data.background = data.background.toString('base64');
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-router.put('/:cid', communities, async (req, res, next) => {
-    const id = req.params.cid;
-    let data;
-    try {
-        if (!req.files) {
-            const newCommunityData = { [req.body.option]: req.body.value };
-            data = await queries.updateCommunity(newCommunityData, id, req.user);
-        } else if (req.files.avatar) {
-            const avatar = await gm(req.files.avatar.data)
-                .resize(100, 100)
-                .toBuffer('JPG', (err, buffer) => {
-                    if (err) throw new Error(err);
-                    return buffer;
-                });
-            data = await queries.updateCommunity({ avatar }, id, req.user);
-        } else {
-            const theme = await gm(req.files.theme.data)
-                .resize(800, 100)
-                .toBuffer('JPG', (err, buffer) => {
-                    if (err) throw new Error(err);
-                    return buffer;
-                });
-            data = await queries.updateCommunity({ theme }, id, req.user);
+        if (!lim) {
+            data.avatar = data.avatar.toString('base64');
+            if (data.banner) data.banner = data.banner.toString('base64');
         }
         res.status(200).json({
             status: 'success',
-            data: !req.files ? data : data.toString('base64')
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-router.delete('/:cid', communities, async (req, res, next) => {
-    try {
-        const data = await queries.deleteCommunity(req.params.cid, req.user);
-        res.status(200).json({
-            status: 'success',
             data
         });
     } catch (err) {
         return next(err);
     }
 });
+
 
 module.exports = router;

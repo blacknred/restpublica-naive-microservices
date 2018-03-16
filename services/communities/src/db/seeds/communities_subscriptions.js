@@ -27,7 +27,7 @@ exports.seed = (knex, Promise) => {
             } else {
                 for (let i = 1; i <= cnt.count; i++) {
                     const subUsersLength = Math.floor(Math.random() * cnt.count) + 1;
-                    const subUsers = helpers.genUniqueNumbersArr(subUsersLength, cnt.count);
+                    const subUsers = helpers.genUniqueNumbersArr(subUsersLength, 40);
                     subUsers.forEach(userId => records.push(createSubscription(knex, i, userId)));
                 }
             }

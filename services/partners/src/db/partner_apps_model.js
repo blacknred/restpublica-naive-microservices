@@ -31,7 +31,6 @@ const PartnerApp = new Schema({
     },
     email: {
         type: String,
-        unique: true,
         lowercase: true,
         trim: true,
         required: true,

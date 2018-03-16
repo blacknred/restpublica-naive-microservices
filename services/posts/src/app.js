@@ -22,7 +22,7 @@ app.use(expressValidator());
 app.use(authentication);
 
 /* router */
-app.get('/v1/ping', (req, res) => res.status(200).send('pong'));
+app.get('/v1/ping', res => res.status(200).send('pong'));
 app.use('/v1/posts', postsRoutes);
 app.use('/v1/posts', commentsRoutes);
 app.use('/v1/posts', likesRoutes);

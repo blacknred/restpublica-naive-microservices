@@ -18,8 +18,8 @@ const mongoUrl = process.env.NODE_ENV !== 'test' ?
     process.env.DATABASE_URL : process.env.DATABASE_URL_TEST;
 
 if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
-app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 app.use(expressValidator());
 
 /* db setup */
@@ -48,6 +48,7 @@ app.use((req, res, next) => {
     next(err);
 });
 app.use((err, req, res, next) => {
+    console.log(err.message);
     res.status(err.status || 500);
     res.json({
         status: 'error',

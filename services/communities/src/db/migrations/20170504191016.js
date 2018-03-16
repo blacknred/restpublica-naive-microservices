@@ -6,7 +6,7 @@ exports.up = (knex) => {
             table.string('title').notNullable();
             table.text('description');
             table.binary('avatar').notNullable();
-            table.binary('theme');
+            table.binary('banner');
             table.boolean('restricted').notNullable().defaultTo(false);
             table.boolean('posts_moderation').notNullable().defaultTo(false);
             table.integer('admin_id').notNullable();
@@ -19,7 +19,7 @@ exports.up = (knex) => {
             table.integer('community_id').notNullable();
             table.foreign('community_id').references('communities.id');
             table.integer('user_id').notNullable();
-            table.boolean('approved').notNullable().defaultTo(true);
+            table.boolean('approved').notNullable().defaultTo(false);
             table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
         })
         .createTable('communities_bans', (table) => {

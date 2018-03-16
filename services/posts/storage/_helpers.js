@@ -1,6 +1,5 @@
 const sharp = require('sharp');
 const ffmpeg = require('fluent-ffmpeg');
-// const fs = require('fs');
 
 function imageToJpg(input, output) {
     sharp(input)
@@ -15,10 +14,6 @@ function videoToMp4(input, output) {
 }
 
 function imageThumb(imgPath, thumbPath) {
-    // try {
-    //     fs.statSync(imgPath);
-    //     console.log('exists');
-    // } catch (e) { console.log('nexists'); }
     sharp(imgPath)
         .resize(200, null)
         .toFile(thumbPath);
