@@ -2,6 +2,7 @@
 const express = require('express');
 const expressValidator = require('express-validator');
 const bodyParser = require('body-parser');
+const debug = require('debug')('users-api');
 const logger = require('morgan');
 const authentication = require('./auth/');
 const usersRoutes = require('./routes/users');
@@ -29,6 +30,7 @@ app.use((req, res, next) => {
     next(err);
 });
 app.use((err, req, res, next) => {
+    debug(err.message);
     res.status(err.status || 500);
     res.json({
         status: 'error',

@@ -118,12 +118,23 @@ router.get('/:slug', posts, async (req, res, next) => {
 });
 
 router.put('/:pid', posts, async (req, res, next) => {
+    // commentable archived communityId description tags
     const updatedPost = {
         post_id: req.params.pid,
+        community_id: req.body.communityId || null,
+        commentable: req.body.commentable,
+        archived: req.body.archived,
         description: req.body.description
     };
     try {
         const data = await queries.updatePost(updatedPost, req.user);
+        if (req.body.tags) {
+            const tags = req.body.tags.split(/^#[0-9a-zA-Z]+/g);
+            tags.forEach(async (tag) => {
+                const tagId = await queries.saveTag(tag);
+                await queries.addTagToPost(tagId, post.id);
+            });
+        }
         res.status(200).json({
             status: 'success',
             data

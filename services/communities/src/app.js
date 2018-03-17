@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 const express = require('express');
 const expressValidator = require('express-validator');
+const debug = require('debug')('communities-api');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 
@@ -32,7 +33,7 @@ app.use((req, res, next) => {
     next(err);
 });
 app.use((err, req, res, next) => {
-    console.log(err.message);
+    debug(err.message);
     res.status(err.status || 500);
     res.json({
         status: 'error',

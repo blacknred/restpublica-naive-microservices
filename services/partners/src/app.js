@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 const express = require('express');
 const expressValidator = require('express-validator');
+const debug = require('debug')('partners-api');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
@@ -25,9 +26,9 @@ app.use(expressValidator());
 /* db setup */
 mongoose.connect(mongoUrl, (err, res) => {
     if (err) {
-        console.log(`Error connecting to the database. ${err}`);
+        debug(`Error connecting to the database. ${err}`);
     } else {
-        console.log(`Connected to Database: ${mongoUrl}`);
+        debug(`Connected to Database: ${mongoUrl}`);
         partnersPlansSeed();
         partnersAppsSeed();
     }
@@ -48,7 +49,7 @@ app.use((req, res, next) => {
     next(err);
 });
 app.use((err, req, res, next) => {
-    console.log(err.message);
+    debug(err.message);
     res.status(err.status || 500);
     res.json({
         status: 'error',

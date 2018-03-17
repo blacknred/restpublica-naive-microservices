@@ -13,32 +13,34 @@ function posts(req, res, next) {
         }
         req.checkBody('type')
             .isIn(['file', 'link', 'poll']).withMessage('Post type is empty or not in use');
-        switch (req.body.type) {
-            case 'file':
-                req.checkBody('fileType')
-                    .isIn(['img', 'gif', 'video']).withMessage('File type is empty or not valid');
-                req.checkBody('fileUrl').isURL().withMessage('File url is empty or not valid');
-                req.checkBody('fileThumbUrl').isURL().withMessage('Thumb url is empty or not valid');
-                break;
-            case 'link':
-                req.checkBody('linkType')
-                    .isIn(['embed', 'file', 'page']).withMessage('Link type is empty or not valid');
-                req.checkBody('linkUrl').isURL().withMessage('Link url is empty or not valid');
-                req.checkBody('linkSrc').notEmpty().withMessage('Link src is empty');
-                if (req.body.linkThumbUrl) {
-                    req.checkBody('linkThumbUrl')
-                        .isURL().withMessage('Thumb url is empty or not valid');
-                }
-                break;
-            case 'poll':
-                req.checkBody('pollSubject').notEmpty().withMessage('Poll subject is empty');
-                req.checkBody('pollEndsAt')
-                .isAfter().withMessage('Poll end date is empty or not valid');
-                req.checkBody('pollOptions')
-                    .custom(values => JSON.parse(values || '[]').length >= 2)
-                    .withMessage('Poll must have at least 2 options');
-                break;
-            default:
+        if (req.body.type) {
+            switch (req.body.type) {
+                case 'file':
+                    req.checkBody('fileType')
+                        .isIn(['img', 'gif', 'video']).withMessage('File type is empty or not valid');
+                    req.checkBody('fileUrl').isURL().withMessage('File url is empty or not valid');
+                    req.checkBody('fileThumbUrl').isURL().withMessage('Thumb url is empty or not valid');
+                    break;
+                case 'link':
+                    req.checkBody('linkType')
+                        .isIn(['embed', 'file', 'page']).withMessage('Link type is empty or not valid');
+                    req.checkBody('linkUrl').isURL().withMessage('Link url is empty or not valid');
+                    req.checkBody('linkSrc').notEmpty().withMessage('Link src is empty');
+                    if (req.body.linkThumbUrl) {
+                        req.checkBody('linkThumbUrl')
+                            .isURL().withMessage('Thumb url is empty or not valid');
+                    }
+                    break;
+                case 'poll':
+                    req.checkBody('pollSubject').notEmpty().withMessage('Poll subject is empty');
+                    req.checkBody('pollEndsAt')
+                        .isAfter().withMessage('Poll end date is empty or not valid');
+                    req.checkBody('pollOptions')
+                        .custom(values => JSON.parse(values || '[]').length >= 2)
+                        .withMessage('Poll must have at least 2 options');
+                    break;
+                default:
+            }
         }
     } else if (req.method === 'GET') {
         if (req.query.query) {
@@ -67,7 +69,16 @@ function posts(req, res, next) {
         }
     } else if (req.method === 'PUT') {
         req.checkParams('pid').isInt().withMessage('Post id must be integer');
-        req.checkBody('description').notEmpty().withMessage('Comment cannot be empty');
+        req.checkBody('commentable').isBoolean().withMessage('Commentable must be boolean');
+        req.checkBody('archived').isBoolean().withMessage('Archived must be boolean');
+        if (req.body.communityId) {
+            req.checkBody('communityId').isInt().withMessage('Community id must be integer');
+        }
+        req.checkBody('description').notEmpty().withMessage('Post must have description');
+        if (req.body.tags) {
+            req.checkBody('tags')
+                .matches(/^#[0-9a-zA-Z]+/g).withMessage('Tags must be alphanumeric');
+        }
     } else if (req.method === 'DELETE') {
         req.checkParams('pid').isInt().withMessage('Post id must be integer');
     }

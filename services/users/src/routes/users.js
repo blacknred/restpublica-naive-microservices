@@ -110,6 +110,10 @@ router.put('/', users, async (req, res, next) => {
             //         req.body.value = buffer;
             //     });
         }
+        if (req.body.option === 'fullname') {
+            req.body.fullname.toLowerCase().split(' ')
+                .map(word => word[0].toUpperCase() + word.substr(1)).join(' ');
+        }
         if (req.body.option === 'active') await queries.deleteSubscriptions();
         const newUserData = { [req.body.option]: req.body.value };
         data = await queries.updateUser(newUserData, req.user);

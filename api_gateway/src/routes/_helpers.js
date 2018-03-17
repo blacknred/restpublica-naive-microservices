@@ -8,13 +8,6 @@ const bluebird = require('bluebird');
 const client = redis.createClient(6379, 'redis-cache');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
-client.on('ready', async () => {
-    const keys = await client.keysAsync('*');
-    debug('[Redis]: keys count %s', keys.length);
-    keys.forEach(async (key) => {
-        debug('[Redis]: %s - %s', key, await client.getAsync(key));
-    });
-});
 
 const request = async (ctx, host, url, r = false, fallback) => {
     /*
@@ -29,7 +22,7 @@ const request = async (ctx, host, url, r = false, fallback) => {
             that suggests the service is unavailable and that sending
             requests is pointless. After a timeout period, the client
             should try again and, if successful, close the circuit breaker.
-        - define a fallback action when a request fails - Perform fallback
+        - Define a fallback action when a request fails - Perform fallback
             logic when a request fails. For example, return cached data or a
             default value such as empty set of recommendations.
             - redirects and first compositions calls have no fallbacks
@@ -41,7 +34,7 @@ const request = async (ctx, host, url, r = false, fallback) => {
     // time-span to count the failed requests in sec
     const watchingTimespan = 60 * 10;
     // "freeze" period in sec
-    const blockingTimespan = 60;
+    const blockingTimespan = 60 * 5;
     // limit of failed requests
     const failsLimit = 15;
     // compose key for identifying blocked hosts
@@ -55,7 +48,7 @@ const request = async (ctx, host, url, r = false, fallback) => {
         headers: { 'X-Auth-Token': ctx.state.userAuthToken || genToken(ctx.state.consumer) },
         data: ctx.state.body || ctx.request.body,
         timeout: 2000, // !!time to response
-        maxContentLength: 100000,
+        // maxContentLength: 100000,
         maxRedirects: 5,
         // ?proxy: {}
         validateStatus: status => status >= 200 && status < 500,
@@ -69,15 +62,17 @@ const request = async (ctx, host, url, r = false, fallback) => {
         }
         // request
         const res = await axios.request(conf);
-        // return data if return flag is true
+        // return data if return flag is true(composition)
         if (r) return res.data;
+        // response if redirection
         ctx.status = res.status;
         ctx.body = res.data;
     } catch (e) {
         // detect if service is not available
         if (e.code === 'ECONNABORTED') {
-            // iterate service fails counter
+            // get iterate service fails counter
             let cnt = await client.getAsync(hostFailesCounter);
+            // or create
             if (!cnt) {
                 client.set(hostFailesCounter, 1);
                 client.expire(hostFailesCounter, watchingTimespan);
@@ -92,10 +87,9 @@ const request = async (ctx, host, url, r = false, fallback) => {
                 client.expire(blockedHost, blockingTimespan);
                 // remove service fails counter
                 client.del(hostFailesCounter);
-                console.error(`Service on ${host} is blocked
-                for ${blockingTimespan} sec`);
+                debug('Service on %s is blocked for %s sec', host, blockingTimespan);
             }
-            console.error(`Service on ${host} has not answered`);
+            debug('Service on %s has not answered', host);
             // run fallback if there is
             if (fallback) return fallback();
         }

@@ -15,13 +15,13 @@ module.exports = new CronJob({
         - ?every 10 min calls 'ping' all microservices and then updates hosts
         */
         try {
-            log('Service discovery', 'running');
             // mocking
             const version = '/v1';
             adresses.users_api = process.env.USERS_API_HOST + version;
             adresses.communities_api = process.env.COMMUNITIES_API_HOST + version;
             adresses.posts_api = process.env.POSTS_API_HOST + version;
             adresses.partners_api = process.env.PARTNERS_API_HOST + version;
+            log('Service discovery', 'success');
         } catch (err) {
             log('Service discovery', `failed with ${err.message}`);
         }
@@ -30,3 +30,12 @@ module.exports = new CronJob({
     start: true,
     timeZone: 'America/Los_Angeles'
 });
+
+// client.on('ready', async () => {
+//     const keys = await client.keysAsync('*');
+//     debug('[Redis]: keys count %s', keys.length);
+//     keys.forEach(async (key) => {
+//         debug('[Redis]: %s - %s', key, await client.getAsync(key));
+//     });
+// });
+// client.on('error', async (err) => {

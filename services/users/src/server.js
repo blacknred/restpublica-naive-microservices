@@ -4,8 +4,8 @@ const http = require('http');
 
 function normalizePort(val) {
     const port = parseInt(val, 10);
-    if (isNaN(port)) { return val; }
-    if (port >= 0) { return port; }
+    if (isNaN(port)) return val;
+    if (port >= 0) return port;
     return false;
 }
 
@@ -31,7 +31,7 @@ const server = http.createServer(app);
 function onListening() {
     const addr = server.address();
     const bind = typeof addr === 'string' ? `Pipe ${port}` : `Port ${port}`;
-    debug(`Listening on ${bind}`);
+    debug('Listening on %s', bind);
 }
 
 server.listen(port);

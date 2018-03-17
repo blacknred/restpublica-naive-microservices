@@ -120,15 +120,27 @@ function addPollOption(pollOptionObj) {
 }
 
 function saveTag(tag) {
-    return knex('tags')
-        .insert('title', tag)
-        .returning('id');
+    // upsert
+    const insert = knex('tags').insert({ title: tag });
+    const update = knex('tags').update({ title: tag });
+    const query = util.format(
+        '%s ON CONFLICT (title) DO UPDATE SET %s RETURNING id',
+        insert.toString(),
+        update.toString().replace(/^update\s.*\sset\s/i, '')
+    );
+    return knex.raw(query).then(data => data.rows[0].id);
 }
 
 function addTagToPost(tagId, postId) {
-    return knex('posts')
-        .insert({ tag_id: tagId, post_id: postId })
-        .returning('*');
+    // upsert
+    const insert = knex('post_tags').insert({ tag_id: tagId, post_id: postId });
+    const update = knex('post_tags').update({ tag_id: tagId, post_id: postId });
+    const query = util.format(
+        '%s ON CONFLICT (tag_id, post_id) DO UPDATE SET %s RETURNING id',
+        insert.toString(),
+        update.toString().replace(/^update\s.*\sset\s/i, '')
+    );
+    return knex.raw(query).then(data => data.rows[0].id);
 }
 
 function createPost(newPost) {

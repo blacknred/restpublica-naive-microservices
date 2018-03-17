@@ -22,19 +22,41 @@ function communities(req, res, next) {
         req.checkBody('restricted').isBoolean().withMessage('Restricted should be boolean');
         req.checkBody('posts_moderation')
             .isBoolean().withMessage('Posts moderation should be boolean');
-        req.checkBody('username').custom((value) => {
-            return queries.findCommunityByName(value)
-                .then((community) => {
-                    if (community) throw new Error(`Community ${value} is already in use`);
-                });
-        });
+        if (req.body.name) {
+            req.checkBody('name').custom((value) => {
+                return queries.findCommunityByName(value).then(com => com || false);
+            }).withMessage('Community name is already in use');
+        }
     } else if (req.method === 'PUT') {
         req.checkParams('cid').isInt().withMessage('Id must be integer');
-        req.checkBody('option')
-            .isIn(['name', 'title', 'banner', 'description', 'active', 'avatar',
-                'restricted', 'posts_moderation'])
+        req.checkBody('option').isIn(['name', 'title', 'banner', 'description',
+            'active', 'avatar', 'restricted', 'posts_moderation'])
             .withMessage('Option is not valid');
         req.checkBody('value').notEmpty().withMessage('Update value cannot be empty');
+        if (req.body.option && req.body.value) {
+            switch (req.body.option) {
+                case 'name':
+                    req.checkBody('value').custom((value) => {
+                        return queries.findCommunityByName(value).then(com => com || false);
+                    }).withMessage('Community name is already in use');
+                    break;
+                case 'email':
+                    req.checkBody('value').isEmail().withMessage('Email value must be valid');
+                    break;
+                case 'avatar':
+                case 'banner':
+                    req.checkBody('value').custom((value) => {
+                        return Buffer.from(value, 'base64').toString('base64') === value;
+                    }).withMessage(`${req.body.option} value must be base64`);
+                    break;
+                case 'restricted':
+                case 'posts_moderation':
+                    req.checkBody('value')
+                        .isBoolean().withMessage(`${req.body.option} should be boolean`);
+                    break;
+                default:
+            }
+        }
     }
     const failures = req.validationErrors();
     if (failures) return res.status(422).json({ status: `Validation failed`, failures });
