@@ -2,21 +2,22 @@
     "name": "restpublica-users-api-microservice",
     "version": "0.1.1",
     "scripts": {
-        "start": "DEBUG=users-api gulp --gulpfile app/gulpfile.js",
+        "start": "DEBUG=users-api:* gulp --gulpfile app/gulpfile.js",
         "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
     },
     "dependencies": {
         "bcryptjs": "^2.3.0",
-        "body-parser": "~1.17.1",
-        "debug": "~2.6.6",
-        "express": "~4.15.2",
-        "express-validator": "^2.21.0",
+        "body-parser": "^1.18.2",
+        "debug": "^2.6.6",
+        "express": "^4.16.3",
+        "express-useragent": "^1.0.12",
+        "express-validator": "^5.0.3",
         "faker": "*",
         "gm": "^1.23.1",
         "jwt-simple": "^0.5.0",
         "knex": "0.13.0",
         "moment": "^2.21.0",
-        "morgan": "~1.8.1",
+        "morgan": "^1.9.0",
         "node-fetch": "^2.1.1",
         "pg": "^6.1.4",
         "resize-img": "^1.1.2"

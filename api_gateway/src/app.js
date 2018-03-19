@@ -11,11 +11,15 @@ const { rateLimitPolicy, authentication } = require('./auth');
 
 const app = new Koa();
 
-/*
-* Logging
-* Consumers (users||apps) rate/limit and auth
-* Circuit breaker with fallbacks
-*/
+/* API Gateway */
+
+// logging
+// rate-limiting
+// authentication
+// circuit breaker
+// route requests
+// aggregate data
+// filter client type
 
 // Logger
 if (process.env.NODE_ENV !== 'test') {
@@ -43,7 +47,7 @@ app.use(async (ctx, next) => {
     try {
         await next();
         const status = ctx.status || 404;
-        if (status === 404) ctx.throw(404, 'Page Not Found');
+        if (status === 404) ctx.throw(404, ctx.body || 'Not Found');
     } catch (err) {
         ctx.status = err.status || 500;
         ctx.body = {
@@ -55,7 +59,7 @@ app.use(async (ctx, next) => {
 });
 // User Agent
 app.use(userAgent);
-// Consumer rate limit
+// Rate-limiting
 app.use(rateLimitPolicy);
 // Authentication
 app.use(authentication);

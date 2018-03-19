@@ -28,7 +28,8 @@ function onListening() {
     console.log(`
     Restpublica API Gateway is Listening on ${bind}
     `);
-    jsCron(); // JSCron
+    // TODO: remove JSCron to Cron microservice
+    jsCron();
 }
 
 server.listen(port);

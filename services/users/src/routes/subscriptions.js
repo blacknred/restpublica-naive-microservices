@@ -1,72 +1,88 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
+/* eslint-disable no-throw-literal */
+
 const express = require('express');
-const queries = require('../db/queries.js');
+const User = require('../db/models/User');
+const Subscription = require('../db/models/Subscription');
 const { subscriptions } = require('./validation');
+const { ensureAuthenticated } = require('../auth');
 
 const router = express.Router();
 
 /* subscriptions */
 
-router.post('/:uid/follow', subscriptions, async (req, res, next) => {
-    const newSubscription = {
-        user_id: req.body.id,
-        sub_user_id: req.user
-    };
-    try {
-        const data = await queries.createSubscription(newSubscription);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
+router.post('/:uid/follow', ensureAuthenticated, subscriptions,
+    async (req, res, next) => {
+        const newSubscription = {
+            user_id: req.params.uid,
+            sub_user_id: req.user
+        };
+        try {
+            const user = await User.isExist({ id: req.params.uid });
+            if (!user) throw { status: 404, message: 'Profile not found' };
+            const data = await Subscription.create(newSubscription);
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
     }
-});
+);
 
-router.get('/:uid/followers', subscriptions, async (req, res, next) => {
-    const userId = req.params.uid;
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    try {
-        const data = await queries.getFollowers(userId, req.user, offset);
-        data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
+router.get('/:uid/followers', ensureAuthenticated, subscriptions,
+    async (req, res, next) => {
+        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
+            --req.query.offset : 0;
+        const reduced = req.useragent.isMobile;
+        try {
+            const user = await User.isExist({ id: req.params.uid });
+            if (!user) throw { status: 404, message: 'Profile not found' };
+            const data = await Subscription
+                .getAllFollowers(req.params.uid, req.user, offset, reduced);
+            data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
     }
-});
+);
 
-router.get('/:uid/following', subscriptions, async (req, res, next) => {
-    const userId = req.params.uid;
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const lim = req.query.lim || null;
-    try {
-        const data = await queries.getFollowing(userId, req.user, lim, offset);
-        if (!lim) data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
+router.get('/:uid/following', ensureAuthenticated, subscriptions,
+    async (req, res, next) => {
+        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
+            --req.query.offset : 0;
+        const reduced = req.useragent.isMobile;
+        const limiter = req.query.lim || null;
+        try {
+            const user = await User.isExist({ id: req.params.uid });
+            if (!user) throw { status: 404, message: 'Profile not found' };
+            const data = await Subscription
+                .getAllFollowing(req.params.uid, req.user, offset, reduced, limiter);
+            if (!limiter) {
+                data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
+            }
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
     }
-});
+);
 
-router.delete('/:uid/follow/:sid', subscriptions, async (req, res, next) => {
-    const subscriptionId = req.params.sid;
-    try {
-        const data = await queries.deleteSubscription(subscriptionId, req.user);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
+router.delete('/:uid/follow/:sid', ensureAuthenticated, subscriptions,
+    async (req, res, next) => {
+        try {
+            const sub = await Subscription.isExist(req.params.sid);
+            if (!sub) throw { status: 404, message: 'Subscription not found' };
+            if (sub.sub_user_id !== req.user) {
+                throw { status: 403, message: 'Permission denied' };
+            }
+            await Subscription.deleteOne(req.params.sid, req.user);
+            res.status(200).json({ status: 'success', data: { id: req.params.sid } });
+        } catch (err) {
+            return next(err);
+        }
     }
-});
+);
 
 module.exports = router;

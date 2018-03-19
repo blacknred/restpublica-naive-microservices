@@ -1,4 +1,5 @@
 const PartnerApp = require('mongoose').model('PartnerApp');
+const debug = require('debug')('partners-api:mongoose');
 
 module.exports = function seedPartnerApps() {
     const apps = [
@@ -30,6 +31,6 @@ module.exports = function seedPartnerApps() {
         newApp.save();
     });
 
-    console.log('PartnerApp model seeded!');
+    debug('PartnerApp model seeded!');
 };
 

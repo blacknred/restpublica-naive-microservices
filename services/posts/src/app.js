@@ -1,11 +1,9 @@
-/* eslint-disable no-unused-vars */
-const path = require('path');
 const express = require('express');
 const expressValidator = require('express-validator');
+const useragent = require('express-useragent');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
-
-const authentication = require('./auth/');
+const { authentication } = require('./auth');
 const postsRoutes = require('./routes/posts');
 const commentsRoutes = require('./routes/comments');
 const likesRoutes = require('./routes/likes');
@@ -17,6 +15,7 @@ if (process.env.NODE_ENV !== 'test') app.use(logger('dev'));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '1mb' }));
 app.use(expressValidator());
+app.use(useragent.express());
 
 /* auth */
 app.use(authentication);
@@ -34,7 +33,7 @@ app.use((req, res, next) => {
     err.status = 404;
     next(err);
 });
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     res.status(err.status || 500);
     res.json({
         status: 'error',

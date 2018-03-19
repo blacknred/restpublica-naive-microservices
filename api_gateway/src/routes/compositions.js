@@ -1,127 +1,134 @@
 /* eslint-disable no-return-assign */
 /* eslint-disable no-param-reassign */
+
 const Router = require('koa-router');
-const hosts = require('../adresses');
-const { auth, clearRateLimit } = require('../auth');
+const hosts = require('../conf');
+const { auth } = require('../auth');
 const { request } = require('./_helpers');
 
 const router = new Router();
 
-/* *** Compositions *** */
+/* Compose multiple backend services and aggregating the results */
+
 router
     .get('/users', async (ctx) => {
         // get profiles data
-        const sUsers = await request(ctx, hosts.users_api, ctx.url, true);
+        const sUsers = await request(ctx, hosts.USERS_API, ctx.url, true);
+        // adds
+        if (sUsers.status === 'success') {
+            const ids = sUsers.data.data.map(user => user.id);
+            // get preview posts
+            const link = `/posts?profiles=${ids}&lim=${ctx.userAgent.isMobile ? 3 : 6}`;
+            const sPosts =
+                await request(ctx, hosts.POSTS_API, link, true, () => ctx.body = sUsers);
+            sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id === x.user_id));
+        }
         ctx.body = sUsers;
-        // console.log(sUsers);
-        // get preview posts if req not from mobile
-        // if (!ctx.userAgent.isMobile) {
-        //     const ids = sUsers.users.map(u => u.user_id);
-        //     const sPosts = await request(ctx, ctx.posts_host, `/posts?profiles=${ids}`,
-        //         () => { ctx.body = sUsers; });
-        //     sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id === x.user_id));
-        // }
     })
     .get('/users/:name', async (ctx) => {
         // get profile data
-        const sUser = await request(ctx, hosts.users_api, ctx.url, true);
+        const sUser = await request(ctx, hosts.USERS_API, ctx.url, true);
+        // adds
+        if (sUser.status === 'success') {
+            const id = sUser.data.data.id;
+            // get communities subscriptions count
+            sUser.communities_subscriptions_count =
+                await request(ctx, hosts.COMMUNITIES_API, `/communities/count?profile=${id}`);
+            // get posts count
+            sUser.posts_count =
+                await request(ctx, hosts.POSTS_API, `/posts/count?profile=${id}`);
+        }
         ctx.body = sUser;
-        // const usersUrl = ctx.hosts.users_api_host + ctx.url;
-        // const communitiesUrl = `${ctx.hosts.communities_api_host}/communities/count?profile=`;
-        // const postsUrl = `${hosts.posts_api}/posts/count?profile=`;
-        // try {
-        //     // get communities subscriptions count
-        //     sUser.communities_count = await request(ctx, communitiesUrl + sUser.id);
-        //     // get posts count
-        //     sUser.posts_count = await request(ctx, postsUrl + sUser.id);
-        //     ctx.body = sUser;
-        // } catch (err) {
-        //     ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
-        // }
-        // get user data
-        // const usersUrl = ctx.hosts.users_api_host + ctx.url;
-        // const communitiesUrl = `${ctx.hosts.communities_api_host}
-        // /communities/count?profile=${ctx.state.consumer}`;
-        // const postsUrl = `${hosts.posts_api}
-        // /posts/count?profile=${ctx.state.consumer}`;
-        // try {
-        //     const sUser = await request(ctx, usersUrl);
-        //     // get communities subscriptions count
-        //     sUser.communities_count = await request(ctx, communitiesUrl);
-        //     // get posts count
-        //     sUser.posts_count = await request(ctx, postsUrl);
-        //     ctx.body = sUser;
-        // } catch (err) {
-        //     ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
-        // }
-    })
-    .put('/users/logout', clearRateLimit, (ctx) => {
-        ctx.body = { status: 'success' };
     })
 
-    // -------------------------------------------------------------------------------
-    .get('/communities', async (ctx, next) => {
-        // get communities data
-        if (ctx.query.admin) auth(ctx, next);
-        const sComms = await request(ctx, hosts.communities_api, ctx.url, true);
-        ctx.body = sComms;
-        // const communitiesUrl = ctx.hosts.communities_api_host + ctx.url;
-        // const usersUrl = `${ctx.hosts.communities_api_host}
-        // /communities/count?profile=${ctx.state.consumer}`;
-        // const postsUrl = `${hosts.posts_api}
-        // /posts/count?profile=${ctx.state.consumer}`;
-        // try {
-        //     const sCommunities = await request(ctx, communitiesUrl);
-        //     // get admin data
 
-        //     // get posts if req not from mobile
-        //     if (ctx.userAgent.isMobile) {
-        //         const ids = sUsers.users.map(u => u.user_id);
-        //         const postsUrl = `${hosts.posts_api}/posts?communities=${ids}`;
-        //         const sPosts = await request(postsUrl);
-        //        sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id === x.user_id));
-        //     }
-        //     ctx.body = sCommunities;
-        // } catch (err) {
-        //     ctx.throw(500, process.env.NODE_ENV === 'production' ? null : err.message);
-        // }
-        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
-        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
-        // // eslint-disable-next-line
-        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
-    })
     .get('/communities/:name', async (ctx) => {
-        const sComm = await request(ctx, hosts.communities_api, ctx.url, true);
-        ctx.body = sComm;
         // get community data
-        // get community posts count, ?community posts
+        const sComm = await request(ctx, hosts.COMMUNITIES_API, ctx.url, true);
+        // adds
+        if (sComm.status === 'success') {
+            // get community posts count
+
+            // get admin data
+        }
+        ctx.body = sComm;
     })
     .get('/communities/:cid/followers', auth, async (ctx) => {
-        const sUsers = await request(ctx, hosts.communities_api, ctx.url, true);
-        // get users info
-        ctx.body = sUsers;
+        // get followers
+        const sFollowers = await request(ctx, hosts.COMMUNITIES_API, ctx.url, true);
+        // adds
+        if (sFollowers.status === 'success') {
+            // get profiles info
+
+        }
+        ctx.body = sFollowers;
     })
     .get('/communities/:cid/bans', auth, async (ctx) => {
-        const sUsers = await request(ctx, hosts.communities_api, ctx.url, true);
-        // get users info
-        ctx.body = sUsers;
+        // get bunned profiles
+        const sBunned = await request(ctx, hosts.COMMUNITIES_API, ctx.url, true);
+        // adds
+        if (sBunned.status === 'success') {
+            // get profiles info
+
+        }
+        ctx.body = sBunned;
     })
 
-    // ------------------------------------------------------------------------------
+
+    .post('/posts', auth, async (ctx) => {
+        // create post
+        const sPost = await request(ctx, hosts.POSTS_API, ctx.url, true);
+        // adds
+        if (sPost.status === 'success') {
+            // update last_post_at datetime in user and community
+            // concurrently
+
+        }
+        ctx.body = sPost;
+    })
     .get('/posts', async (ctx) => {
-        ctx.status = 301;
-        ctx.redirect(hosts.posts_api);
-        // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
-        // if (sUsers.count > 0 && !sPosts) throw new Error(`Users posts not fetched`);
-        // // eslint-disable-next-line
-        // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
+        // get posts data
+        const sPosts = await request(ctx, hosts.POSTS_API, ctx.url, true);
+        // adds
+        if (sPosts.status === 'success') {
+            // get authors data
+            // const sPosts = await helpers.getUsersPosts(sUsers.users.map(u => u.user_id));
+            // sUsers.users.forEach(x => x.posts = sPosts.find(y => y.user_id == x.user_id));
+        }
+        ctx.body = sPosts;
     })
     .get('/posts/:slug', async (ctx) => {
-        ctx.status = 301;
-        // ctx.redirect(hosts.posts_api + ctx.url);
+        // get post data
+        const sPost = await request(ctx, hosts.POSTS_API, ctx.url, true);
+        // adds
+        if (sPost.status === 'success') {
+            // get author data
+
+        }
+        ctx.body = sPost;
+    })
+    .get('/posts/:pid/comments', async (ctx) => {
+        // get post comments
+        const sComments = await request(ctx, hosts.POSTS_API, ctx.url, true);
+        // adds
+        if (sComments.status === 'success') {
+            // get profiles info
+
+        }
+        ctx.body = sComments;
+    })
+    .get('/posts/:pid/likes', auth, async (ctx) => {
+        // get post likes
+        const sLikes = await request(ctx, hosts.POSTS_API, ctx.url, true);
+        // adds
+        if (sLikes.status === 'success') {
+            // get profiles info
+
+        }
+        ctx.body = sLikes;
     })
 
-    // ----------------------------------------
+
     .get('/dashboard', auth, async (ctx) => {
         /*
         Select id

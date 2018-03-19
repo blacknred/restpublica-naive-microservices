@@ -7,7 +7,7 @@ function createCommunity(knex, name, adminId) {
     return routeHelpers.createAvatar(name)
         .then((res) => {
             avatar = res;
-            return routeHelpers.createTheme();
+            return routeHelpers.createBanner();
         })
         .then((banner) => {
             return knex('communities')

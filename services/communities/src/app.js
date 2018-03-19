@@ -1,11 +1,10 @@
-/* eslint-disable no-unused-vars */
 const express = require('express');
 const expressValidator = require('express-validator');
 const debug = require('debug')('communities-api');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
-
-const authentication = require('./auth/');
+const useragent = require('express-useragent');
+const { authentication } = require('./auth/');
 const communitiesRoutes = require('./routes/communities');
 const subscriptionsRoutes = require('./routes/subscriptions');
 const bansRoutes = require('./routes/bans');
@@ -16,6 +15,7 @@ if (process.env.NODE_ENV !== 'test') app.use(logger('dev'));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '1mb' }));
 app.use(expressValidator());
+app.use(useragent.express());
 
 /* auth */
 app.use(authentication);
@@ -32,7 +32,7 @@ app.use((req, res, next) => {
     err.status = 404;
     next(err);
 });
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     debug(err.message);
     res.status(err.status || 500);
     res.json({

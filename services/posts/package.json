@@ -2,13 +2,14 @@
     "name": "restpublica-posts-api-microservice",
     "version": "0.1.1",
     "scripts": {
-        "start": "DEBUG=posts-api gulp --gulpfile app/gulpfile.js",
+        "start": "DEBUG=posts-api* gulp --gulpfile app/gulpfile.js",
         "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
     },
     "dependencies": {
         "body-parser": "^1.17.1",
         "debug": "^2.6.6",
         "express": "^4.16.3",
+        "express-useragent": "^1.0.12",
         "express-validator": "^5.0.3",
         "faker": "*",
         "jwt-simple": "^0.5.0",
@@ -17,7 +18,8 @@
         "morgan": "^1.8.1",
         "pg": "^6.1.5",
         "request": "^2.85.0",
-        "request-promise": "^4.2.2"
+        "request-promise": "^4.2.2",
+        "validator": "^9.4.1"
     },
     "devDependencies": {
         "chai": "^3.5.0",

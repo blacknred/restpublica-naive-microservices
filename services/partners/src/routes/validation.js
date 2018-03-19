@@ -1,3 +1,5 @@
+/* eslint-disable no-throw-literal */
+
 const queries = require('../db/queries');
 
 function plans(req, res, next) {
@@ -39,12 +41,12 @@ function plans(req, res, next) {
         req.checkParams('name').notEmpty().withMessage('Name cannot be empty');
     }
     const failures = req.validationErrors();
-    if (failures) return res.status(422).json({ status: `Validation failed`, failures });
+    if (failures) throw { status: 422, message: failures };
     return next();
 }
 
 function apps(req, res, next) {
-    const pattern = new RegExp(`[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+`);
+    const pattern = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
     if (req.method === 'GET') {
         req.checkParams('aid').isMongoId().withMessage('App id must be valid');
     } else if (req.method === 'POST') {
@@ -90,7 +92,7 @@ function apps(req, res, next) {
         req.checkParams('aid').isMongoId().withMessage('App id must be valid');
     }
     const failures = req.validationErrors();
-    if (failures) return res.status(422).json({ status: `Validation failed`, failures });
+    if (failures) throw { status: 422, message: failures };
     return next();
 }
 

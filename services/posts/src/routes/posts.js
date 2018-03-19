@@ -1,16 +1,19 @@
 /* eslint-disable consistent-return */
-/* eslint-disable */ // no-case-declarations */
+/* eslint-disable no-case-declarations */
+/* eslint-disable no-throw-literal */
 const express = require('express');
-const queries = require('../db/queries.js');
-const helpers = require('./_helpers');
+const url = require('url');
+const Post = require('../db/models/Post');
+const { deleteStorageFiles } = require('./_helpers');
 const dbHelpers = require('../db/_helpers');
 const { posts } = require('./validation');
+const { ensureAuthenticated } = require('../auth');
 
 const router = express.Router();
 
 /* posts */
 
-router.post('/', posts, async (req, res, next) => {
+router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
     const newPost = {
         slug: dbHelpers.genSlug(),
         author_id: req.user,
@@ -21,62 +24,59 @@ router.post('/', posts, async (req, res, next) => {
         description: req.body.description
     };
     try {
-        const post = await queries.createPost(newPost);
+        const post = await Post.createPost(newPost);
         switch (req.body.type) {
             case 'file':
                 const mimes = {
                     img: 'image/jpg',
                     gif: 'image/gif',
                     video: 'video/mp4'
-                }
+                };
                 const fileObj = {
-                    post_id: post.id,
-                    mime: mimes[req.body.type],
+                    post_id: post[0].id,
+                    mime: mimes[req.body.fileType],
                     file: req.body.fileUrl,
                     thumb: req.body.fileThumbUrl
                 };
-                await queries.addFiles(fileObj);
+                await Post.addFiles(fileObj);
                 break;
             case 'link':
                 const newLink = {
-                    post_id: post.id,
+                    post_id: post[0].id,
                     type: req.body.linkType,
                     link: req.body.linkUrl,
-                    src: req.body.linkSrc,
+                    src: url.parse(req.body.linkUrl).hostname,
                     title: req.body.linkTitle || null,
                     thumb: req.body.linkThumb || null
                 };
-                await queries.addLink(newLink);
+                await Post.addLink(newLink);
                 break;
             case 'poll':
                 const newPoll = {
-                    post_id: post.id,
+                    post_id: post[0].id,
                     subject: req.body.pollSubject,
                     ends_at: req.body.pollEndsAt
                 };
-                const addedPoll = await queries.addPoll(newPoll);
+                const addedPoll = await Post.addPoll(newPoll);
                 const pollOptions = JSON.parse(req.body.pollOptions);
                 pollOptions.forEach(async (opt) => {
                     const newPollOption = {
-                        poll_id: addedPoll.id,
+                        poll_id: addedPoll[0].id,
                         option: opt
                     };
-                    await queries.addPollOption(newPollOption);
+                    await Post.addPollOption(newPollOption);
                 });
                 break;
             default:
         }
         if (req.body.tags) {
-            const tags = req.body.tags.split(/^#[0-9a-zA-Z]+/g);
+            const tags = req.body.tags.split(',');
             tags.forEach(async (tag) => {
-                const tagId = await queries.saveTag(tag);
-                await queries.addTagToPost(tagId, post.id);
+                const tagId = await Post.saveTag(tag);
+                await Post.addTagToPost(tagId, post[0].id);
             });
         }
-        res.status(200).json({
-            status: 'success',
-            data: post
-        });
+        res.status(200).json({ status: 'success', data: post });
     } catch (err) {
         return next(err);
     }
@@ -84,22 +84,24 @@ router.post('/', posts, async (req, res, next) => {
 
 router.get('/', posts, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const tag = req.query.tag.toLowerCase() || null;
-    const query = req.query.query.toLowerCase() || null;
-    const profiles = req.query.profiles.split(',') || null;
-    const comms = req.query.communities.split(',') || null;
-    const lim = req.params.lim || null;
+    const tag = req.query.tag ? req.query.tag.toLowerCase() : null;
+    const query = req.query.query ? req.query.query.toLowerCase() : null;
+    const profiles = req.query.profiles ? req.query.profiles.split(',') : null;
+    const comms = req.query.communities ? req.query.communities.split(',') : null;
+    const lim = req.query.lim || null;
+    const limit = req.useragent.isMobile ? 3 : null;
     let data;
     try {
-        if (query) data = await queries.getSearchedPosts(query, req.user, lim, offset);
-        else if (tag) data = await queries.getPostsByTag(tag, req.user, lim, offset);
-        else if (profiles) data = await queries.getProfilesPosts(profiles, req.user, lim, offset);
-        else if (comms) data = await queries.getCommunitiesPosts(comms, req.user, lim, offset);
-        else data = await queries.getTrendingPosts(req.user, lim, offset);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        if (query) data = await Post.getSearchedPosts(query, req.user, offset);
+        else if (tag) data = await Post.getPostsByTag(tag, req.user, offset);
+        else if (profiles) {
+            if (lim === 'count') data = await Post.getProfilesPostsCount(profiles, req.user);
+            else data = await Post.getProfilesPosts(profiles, req.user, offset, limit);
+        } else if (comms) {
+            if (lim === 'count') data = await Post.getCommunitiesPostsCount(comms);
+            else data = await Post.getCommunitiesPosts(comms, req.user, offset, limit);
+        } else data = await Post.getTrendingPosts(req.user, offset);
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
@@ -107,52 +109,49 @@ router.get('/', posts, async (req, res, next) => {
 
 router.get('/:slug', posts, async (req, res, next) => {
     try {
-        const data = await queries.getPost(req.params.slug, req.user);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        const data = await Post.getPost(req.params.slug, req.user);
+        if (!data) throw { status: 404, message: 'Post not found' };
+        res.json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
-router.put('/:pid', posts, async (req, res, next) => {
-    // commentable archived communityId description tags
+router.put('/:pid', ensureAuthenticated, posts, async (req, res, next) => {
+    // commentable archived description ?communityId ?tags
     const updatedPost = {
-        post_id: req.params.pid,
         community_id: req.body.communityId || null,
         commentable: req.body.commentable,
         archived: req.body.archived,
         description: req.body.description
     };
     try {
-        const data = await queries.updatePost(updatedPost, req.user);
+        const post = await Post.findPostById(req.params.pid);
+        if (!post) throw { status: 404, message: 'Post not found' };
+        if (post.author_id !== req.user) throw { status: 403, message: 'Permission denied' };
+        const data = await Post.updatePost(updatedPost, req.params.pid, req.user);
         if (req.body.tags) {
-            const tags = req.body.tags.split(/^#[0-9a-zA-Z]+/g);
+            const tags = req.body.tags.split(',');
+            await Post.removeTagsFromPost(data[0].id);
             tags.forEach(async (tag) => {
-                const tagId = await queries.saveTag(tag);
-                await queries.addTagToPost(tagId, post.id);
+                const tagId = await Post.saveTag(tag);
+                await Post.addTagToPost(tagId, data[0].id);
             });
         }
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
-router.delete('/:pid', posts, async (req, res, next) => {
-    const pid = req.params.pid;
+router.delete('/:pid', ensureAuthenticated, posts, async (req, res, next) => {
     try {
-        const data = await queries.deletePost(pid, req.user);
-        await helpers.deleteStorageFiles(data);
-        res.status(200).json({
-            status: 'success',
-            data: req.params.pid
-        });
+        const post = await Post.findPostById(req.params.pid);
+        if (!post) throw { status: 404, message: 'Post not found' };
+        if (post.author_id !== req.user) throw { status: 403, message: 'Permission denied' };
+        const filesToDelete = await Post.deletePost(req.params.pid, req.user);
+        if (filesToDelete) await deleteStorageFiles(filesToDelete);
+        res.status(200).json({ status: 'success', data: { id: req.params.pid } });
     } catch (err) {
         return next(err);
     }

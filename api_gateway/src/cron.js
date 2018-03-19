@@ -1,5 +1,5 @@
 const path = require('path');
-const debug = require('debug')('gateway');
+const debug = require('debug')('gateway:CRON');
 const fs = require('fs');
 
 /* Js cron */
@@ -7,14 +7,14 @@ const fs = require('fs');
 module.exports = () => {
     if (process.env.NODE_ENV !== 'production') {
         const tasks = fs.readdirSync(path.join(__dirname, 'tasks'));
-        debug('[JSCron] started! Running jobs:');
+        debug('started! Running jobs:');
         tasks.forEach((task) => {
             const y = require(`./tasks/${task}`); // eslint-disable-line
             try {
                 y.start();
                 console.log('%s status is %s', task, y.running);
             } catch (err) {
-                debug('[JSCron] error! %s', err.message);
+                debug('error! %s', err.message);
             }
         });
     }

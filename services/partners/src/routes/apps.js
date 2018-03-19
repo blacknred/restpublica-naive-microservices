@@ -1,6 +1,7 @@
 /* eslint-disable consistent-return */
+
 const express = require('express');
-const queries = require('../db/queries');
+const PartnerApp = require('../db/controllers/partner_app');
 const { apps } = require('./validation');
 
 const router = express.Router();
@@ -16,7 +17,7 @@ router.post('/', apps, async (req, res, next) => {
         adminId: req.user,
     };
     try {
-        const data = await queries.createApp(newApp);
+        const data = await PartnerApp.createApp(newApp);
         res.status(200).json({
             status: 'success',
             data
@@ -30,7 +31,7 @@ router.post('/check', apps, async (req, res, next) => {
     const apiKey = req.body.apiKey;
     const domain = req.body.domain;
     try {
-        const limit = await queries.checkApp(apiKey, domain);
+        const limit = await PartnerApp.checkApp(apiKey, domain);
         res.status(200).json({
             status: 'success',
             limit
@@ -42,7 +43,7 @@ router.post('/check', apps, async (req, res, next) => {
 
 router.get('/', async (req, res, next) => {
     try {
-        const data = await queries.getAllApps();
+        const data = await PartnerApp.getAllApps();
         res.status(200).json({
             status: 'success',
             data
@@ -55,7 +56,7 @@ router.get('/', async (req, res, next) => {
 router.get('/:aid', apps, async (req, res, next) => {
     const appId = req.params.aid;
     try {
-        let data = await queries.getApp(appId, req.user);
+        let data = await PartnerApp.getApp(appId, req.user);
         if (!data) data = 'Access is restricted';
         res.status(200).json({
             status: 'success',
@@ -70,7 +71,7 @@ router.put('/:aid', apps, async (req, res, next) => {
     const appId = req.params.aid;
     const appObj = { [req.body.option]: req.body.value };
     try {
-        let data = await queries.updateApp(appId, appObj, req.user);
+        let data = await PartnerApp.updateApp(appId, appObj, req.user);
         if (!data) data = 'Access is restricted';
         res.status(200).json({
             status: 'success',
@@ -84,7 +85,7 @@ router.put('/:aid', apps, async (req, res, next) => {
 router.delete('/:aid', apps, async (req, res, next) => {
     const appId = req.params.aid;
     try {
-        let data = await queries.deleteApp(appId, req.user);
+        let data = await PartnerApp.deleteApp(appId, req.user);
         if (!data) data = 'Access is restricted';
         res.status(200).json({
             status: 'success',

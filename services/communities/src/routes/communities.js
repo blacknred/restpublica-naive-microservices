@@ -1,10 +1,11 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
-const express = require('express');
+
 // const gm = require('gm');
+const express = require('express');
 const resizeImg = require('resize-img');
-const queries = require('../db/queries.js');
+const Community = require('../db/models/Community');
 const { communities } = require('./validation');
 const helpers = require('./_helpers');
 
@@ -51,7 +52,7 @@ router.post('/', communities, async (req, res, next) => {
             //         newCommunity.banner = buffer;
             //     });
         }
-        const data = await queries.createCommunity(newCommunity);
+        const data = await Community.createCommunity(newCommunity);
         data.avatar = data.avatar.toString('base64');
         if (data.banner) data.bunner = data.banner.toString('base64');
         res.status(200).json({
@@ -89,8 +90,8 @@ router.put('/:cid', communities, async (req, res, next) => {
                 //     });
                 break;
             case 'active':
-                await queries.deleteSubscriptions(id, req.user);
-                await queries.deleteBans(id, req.user);
+                await Community.deleteSubscriptions(id, req.user);
+                await Community.deleteBans(id, req.user);
                 break;
             case 'name': req.body.value.split(' ').join('_').toLowerCase(); break;
             case 'title': req.body.value.charAt(0).toUpperCase() +
@@ -99,7 +100,7 @@ router.put('/:cid', communities, async (req, res, next) => {
         }
         /* eslint-enable */
         const newCommunityData = { [req.body.option]: req.body.value };
-        data = await queries.updateCommunity(newCommunityData, id, req.user);
+        data = await Community.updateCommunity(newCommunityData, id, req.user);
         if (isFile) data = data.toString('base64');
         res.status(200).json({
             status: 'success',
@@ -112,7 +113,7 @@ router.put('/:cid', communities, async (req, res, next) => {
 
 router.delete('/', async (req, res, next) => {
     try {
-        const data = await queries.deleteCommunities();
+        const data = await Community.deleteCommunities();
         res.status(200).json({
             status: 'success',
             data
@@ -131,11 +132,11 @@ router.get('/', communities, async (req, res, next) => {
     const lim = req.query.lim || null;
     let data;
     try {
-        if (query) data = await queries.getSearchedCommunities(query, req.user, offset);
-        else if (list) data = await queries.getCommunities(list, req.user);
-        else if (admin) data = await queries.getCommunitiesByAdmin(req.user, offset);
-        else if (profile) data = await queries.getUserCommunities(profile, req.user, lim, offset);
-        else data = await queries.getTrendingCommunities(req.user, offset);
+        if (query) data = await Community.getSearchedCommunities(query, req.user, offset);
+        else if (list) data = await Community.getCommunities(list, req.user);
+        else if (admin) data = await Community.getCommunitiesByAdmin(req.user, offset);
+        else if (profile) data = await Community.getUserCommunities(profile, req.user, lim, offset);
+        else data = await Community.getTrendingCommunities(req.user, offset);
         if (!lim) {
             data.communities.forEach((com) => {
                 com.avatar = com.avatar.toString('base64');
@@ -155,9 +156,9 @@ router.get('/:name', communities, async (req, res, next) => {
     const name = req.params.name;
     const lim = req.query.lim || null;
     try {
-        const isExist = await queries.findCommunityByName(name);
+        const isExist = await Community.findCommunityByName(name);
         if (!isExist) throw new Error(`Community ${name} is not found`);
-        const data = await queries.getCommunity(name, lim, req.user);
+        const data = await Community.getCommunity(name, lim, req.user);
         if (!lim) {
             data.avatar = data.avatar.toString('base64');
             if (data.banner) data.banner = data.banner.toString('base64');

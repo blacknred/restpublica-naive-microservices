@@ -1,3 +1,5 @@
+/* eslint-disable no-throw-literal */
+
 const queries = require('../db/queries.js');
 
 function communities(req, res, next) {
@@ -59,7 +61,7 @@ function communities(req, res, next) {
         }
     }
     const failures = req.validationErrors();
-    if (failures) return res.status(422).json({ status: `Validation failed`, failures });
+    if (failures) throw { status: 422, message: failures };
     return next();
 }
 
@@ -72,7 +74,7 @@ function subscriptions(req, res, next) {
         req.checkParams('sid').isInt().withMessage('Subscription id must be integer');
     }
     const failures = req.validationErrors();
-    if (failures) return res.status(422).json({ status: `Validation failed`, failures });
+    if (failures) throw { status: 422, message: failures };
     return next();
 }
 
@@ -83,7 +85,7 @@ function bans(req, res, next) {
         req.checkBody('id').isInt().withMessage('Community id must be integer');
     }
     const failures = req.validationErrors();
-    if (failures) return res.status(422).json({ status: `Validation failed`, failures });
+    if (failures) throw { status: 422, message: failures };
     return next();
 }
 

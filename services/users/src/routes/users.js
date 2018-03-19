@@ -1,13 +1,18 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
-const express = require('express');
+/* eslint-disable no-throw-literal */
+/* eslint-disable no-case-declarations */
+
 // const gm = require('gm');
+const express = require('express');
 const resizeImg = require('resize-img');
 const { encodeToken } = require('../auth/local');
-const queries = require('../db/queries.js');
+const User = require('../db/models/User');
+const Subscription = require('../db/models/Subscription');
 const { users } = require('./validation');
 const helpers = require('./_helpers');
+const { ensureAuthenticated } = require('../auth');
 
 const router = express.Router();
 
@@ -23,33 +28,33 @@ router.post('/', users, async (req, res, next) => {
         password: req.body.password
     };
     try {
+        const name = await User.isExist({ username: req.body.username });
+        if (name) throw { status: 409, message: 'Username is already in use' };
+        const email = await User.isExist({ email: req.body.email });
+        if (email) throw { status: 409, message: 'Email is already in use' };
         newUser.avatar = await helpers.createAvatar(newUser.fullname);
-        const data = await queries.createUser(newUser);
+        const data = await User.create(newUser);
         data.avatar = data.avatar.toString('base64');
         const token = await encodeToken(data.id);
         data.token = token;
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
 router.post('/login', users, async (req, res, next) => {
-    const username = req.body.username;
     try {
-        const user = await queries.findProfileByName(username);
+        const user = await User.isExist({ username: req.body.username });
+        if (!user) throw { status: 401, message: 'Username is not in use' };
+        const isPass = await User.comparePass(req.body.password, user.password);
+        if (!isPass) throw { status: 401, message: 'Incorrect password' };
         delete user.password;
         user.avatar = user.avatar.toString('base64');
         const token = await encodeToken(user.id);
         user.token = token;
-        await queries.updateUser({ active: true }, user.id);
-        res.status(200).json({
-            status: 'success',
-            data: user
-        });
+        await User.update({ active: true }, user.id);
+        res.status(200).json({ status: 'success', data: user });
     } catch (err) {
         return next(err);
     }
@@ -57,11 +62,8 @@ router.post('/login', users, async (req, res, next) => {
 
 router.get('/check', async (req, res, next) => {
     try {
-        const user = await queries.checkUser(req.user);
-        res.status(200).json({
-            status: 'success',
-            user
-        });
+        const user = await User.isExist({ id: req.user, active: true });
+        res.status(200).json({ status: 'success', user: user.id || null });
     } catch (err) {
         return next(err);
     }
@@ -69,59 +71,62 @@ router.get('/check', async (req, res, next) => {
 
 router.get('/check/admin', async (req, res, next) => {
     try {
-        const admin = await queries.checkAdmin(req.user);
-        res.status(200).json({
-            status: 'success',
-            admin
-        });
+        const admin = await User.isAdmin(req.user);
+        res.status(200).json({ status: 'success', admin });
     } catch (err) {
         return next(err);
     }
 });
 
-router.get('/user', async (req, res, next) => {
+router.get('/user', ensureAuthenticated, async (req, res, next) => {
     try {
-        const data = await queries.getUser(req.user);
+        const data = await User.getPrivate(req.user);
         data.avatar = data.avatar.toString('base64');
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
-router.put('/', users, async (req, res, next) => {
+router.put('/', ensureAuthenticated, users, async (req, res, next) => {
     let isAvatar = false;
     let data;
     try {
-        if (req.body.option === 'avatar') {
-            isAvatar = true;
-            const bin = await new Buffer(req.body.value, 'base64');
-            await resizeImg(bin, { width: 128, height: 128 })
-                .then(buf => req.body.value = buf);
-            // TODO: resize image with gm
-            // await gm(bin, 'img.png')
-            //     .resize(128, 128)
-            //     .toBuffer('PNG', (err, buffer) => {
-            //         if (err) throw new Error(err);
-            //         console.log(buffer.length);
-            //         req.body.value = buffer;
-            //     });
+        switch (req.body.option) {
+            case 'username':
+                const name = await User.isExist({ username: req.body.username });
+                if (name) throw { status: 409, message: 'Username is already in use' };
+                break;
+            case 'email':
+                const email = await User.isExist({ email: req.body.email });
+                if (email) throw { status: 409, message: 'Email is already in use' };
+                break;
+            case 'avatar':
+                isAvatar = true;
+                const sanitisedValue = req.body.value.replace(/\n/g, '');
+                const bin = await new Buffer(sanitisedValue, 'base64');
+                await resizeImg(bin, { width: 128, height: 128 })
+                    .then(b => req.body.value = b);
+                // TODO: resize image with gm
+                // await gm(bin, 'img.png')
+                //     .resize(128, 128)
+                //     .toBuffer('PNG', (err, buffer) => {
+                //         if (err) throw new Error(err);
+                //         console.log(buffer.length);
+                //         req.body.value = buffer;
+                //     });
+                break;
+            case 'fullname':
+                req.body.fullname.toLowerCase().split(' ')
+                    .map(word => word[0].toUpperCase() + word.substr(1)).join(' ');
+                break;
+            case 'active': await Subscription.deleteAll(req.user); break;
+            default:
         }
-        if (req.body.option === 'fullname') {
-            req.body.fullname.toLowerCase().split(' ')
-                .map(word => word[0].toUpperCase() + word.substr(1)).join(' ');
-        }
-        if (req.body.option === 'active') await queries.deleteSubscriptions();
         const newUserData = { [req.body.option]: req.body.value };
-        data = await queries.updateUser(newUserData, req.user);
+        data = await User.update(newUserData, req.user);
         if (isAvatar) data = data.toString('base64');
-        res.status(200).json({
-            status: 'success',
-            data: { [req.body.option]: data }
-        });
+        res.status(200).json({ status: 'success', data: { [req.body.option]: data } });
     } catch (err) {
         return next(err);
     }
@@ -131,19 +136,18 @@ router.put('/', users, async (req, res, next) => {
 /* profies */
 
 router.get('/', users, async (req, res, next) => {
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
+        --req.query.offset : 0;
     const query = req.query.query ? req.query.query.toLowerCase() : null;
     const list = req.query.list ? req.query.list.split(',') : null;
+    const reduced = req.useragent.isMobile;
     let data;
     try {
-        if (query) data = await queries.getSearchedProfiles(query, req.user, offset);
-        else if (list) data = await queries.getProfiles(list, req.user);
-        else data = await queries.getTrendingProfiles(req.user, offset);
+        if (query) data = await User.getAllSearched(query, req.user, offset, reduced);
+        else if (list) data = await User.getAllInList(list, req.user);
+        else data = await User.getAllTrending(req.user, offset, reduced);
         data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
@@ -151,16 +155,12 @@ router.get('/', users, async (req, res, next) => {
 
 router.get('/:name', users, async (req, res, next) => {
     const name = req.params.name;
-    const lim = req.query.lim || null;
+    const limiter = req.query.limiter || null;
     try {
-        const isExist = await queries.findProfileByName(name);
-        if (!isExist) throw new Error(`User ${name} is not found`);
-        const data = await queries.getProfile(name, lim, req.user);
+        const data = await User.getOne(name, req.user, limiter);
+        if (!data) throw { status: 404, message: 'Profile not found' };
         if (data.avatar) data.avatar = data.avatar.toString('base64');
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
@@ -168,11 +168,8 @@ router.get('/:name', users, async (req, res, next) => {
 
 router.delete('/', async (req, res, next) => {
     try {
-        const data = await queries.deleteUsers();
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        const data = await User.deleteAllInactive();
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }

@@ -1,4 +1,5 @@
 const ApiPlan = require('mongoose').model('ApiPlan');
+const debug = require('debug')('partners-api:mongoose');
 
 module.exports = function seedApiPlans() {
     const plans = [
@@ -12,6 +13,6 @@ module.exports = function seedApiPlans() {
         newPlan.save();
     });
 
-    console.log('ApiPlan model seeded!');
+    debug('ApiPlan model seeded!');
 };
 

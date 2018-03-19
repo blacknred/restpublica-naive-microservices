@@ -1,6 +1,7 @@
-/* eslint-disable */
 const faker = require('faker');
 const fetch = require('node-fetch');
+
+const MOCK_BANNER_URL = 'https://picsum.photos/800/200/?random';
 
 function createAvatar(fullname) {
     const name = fullname.replace(' ', '+');
@@ -9,12 +10,11 @@ function createAvatar(fullname) {
     return fetch(url).then(data => data.buffer());
 }
 
-function createTheme() {
-    const url = 'https://picsum.photos/800/200/?random';
-    return fetch(url).then(data => data.buffer());
+function createBanner() {
+    return fetch(MOCK_BANNER_URL).then(data => data.buffer());
 }
 
 module.exports = {
     createAvatar,
-    createTheme
-}
+    createBanner
+};

@@ -2,7 +2,7 @@
     "name": "restpublica-api-gateway",
     "version": "0.2.1",
     "scripts": {
-        "start": "DEBUG=gateway gulp --gulpfile app/gulpfile.js",
+        "start": "DEBUG=gateway:* gulp --gulpfile app/gulpfile.js",
         "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
     },
     "dependencies": {

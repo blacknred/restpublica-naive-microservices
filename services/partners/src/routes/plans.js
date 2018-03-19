@@ -1,6 +1,7 @@
 /* eslint-disable consistent-return */
+
 const express = require('express');
-const queries = require('../db/queries');
+const ApiPlan = require('../db/controllers/api_plan');
 const { plans } = require('./validation');
 
 const router = express.Router();
@@ -14,7 +15,7 @@ router.post('/', plans, async (req, res, next) => {
         price: req.body.price
     };
     try {
-        const data = await queries.createPlan(newPlan);
+        const data = await ApiPlan.createPlan(newPlan);
         res.status(200).json({
             status: 'success',
             data
@@ -26,7 +27,7 @@ router.post('/', plans, async (req, res, next) => {
 
 router.get('/', async (req, res, next) => {
     try {
-        const data = await queries.getAllPlans();
+        const data = await ApiPlan.getAllPlans();
         res.status(200).json({
             status: 'success',
             data
@@ -39,7 +40,7 @@ router.get('/', async (req, res, next) => {
 router.get('/:name', plans, async (req, res, next) => {
     const name = req.params.name.toLowerCase();
     try {
-        const data = await queries.getPlan(name);
+        const data = await ApiPlan.getPlan(name);
         res.status(200).json({
             status: 'success',
             data
@@ -53,7 +54,7 @@ router.put('/:name', plans, async (req, res, next) => {
     const name = req.params.name;
     const planObj = { [req.body.option]: req.body.value };
     try {
-        const data = await queries.updatePlan(name, planObj);
+        const data = await ApiPlan.updatePlan(name, planObj);
         res.status(200).json({
             status: 'success',
             data
@@ -66,7 +67,7 @@ router.put('/:name', plans, async (req, res, next) => {
 router.delete('/:name', plans, async (req, res, next) => {
     const name = req.params.name;
     try {
-        const data = await queries.deletePlan(name);
+        const data = await ApiPlan.deletePlan(name);
         res.status(200).json({
             status: 'success',
             data
