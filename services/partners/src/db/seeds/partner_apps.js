@@ -26,10 +26,7 @@ module.exports = function seedPartnerApps() {
         }
     ];
 
-    apps.forEach((app) => {
-        const newApp = new PartnerApp(app);
-        newApp.save();
-    });
+    apps.forEach(app => new PartnerApp(app).save());
 
     debug('PartnerApp model seeded!');
 };

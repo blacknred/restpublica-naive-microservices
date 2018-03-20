@@ -2,21 +2,21 @@ const ApiPlan = require('mongoose').model('ApiPlan');
 
 /* api plans */
 
-const createPlan = planObj => new ApiPlan(planObj).save();
+const create = planObj => new ApiPlan(planObj).save();
 
-const getAllPlans = () => ApiPlan.find();
+const getOne = obj => ApiPlan.findOne(obj);
 
-const getPlan = name => ApiPlan.findOne({ name });
+const getAll = () => ApiPlan.find();
 
-const updatePlan = (name, planObj) =>
+const update = (name, planObj) =>
     ApiPlan.findOneAndUpdate({ name }, planObj, { new: true });
 
-const deletePlan = name => ApiPlan.remove({ name });
+const deleteOne = name => ApiPlan.remove({ name });
 
 module.exports = {
-    getAllPlans,
-    getPlan,
-    createPlan,
-    updatePlan,
-    deletePlan
+    getAll,
+    getOne,
+    create,
+    update,
+    deleteOne
 };

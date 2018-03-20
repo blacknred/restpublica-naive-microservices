@@ -1,13 +1,14 @@
-const express = require('express');
-const expressValidator = require('express-validator');
-const useragent = require('express-useragent');
-const bodyParser = require('body-parser');
 const logger = require('morgan');
+const express = require('express');
+const bodyParser = require('body-parser');
+const debug = require('debug')('posts-api');
+const useragent = require('express-useragent');
+const expressValidator = require('express-validator');
+const tagsRoutes = require('./routes/tags');
 const { authentication } = require('./auth');
 const postsRoutes = require('./routes/posts');
-const commentsRoutes = require('./routes/comments');
 const likesRoutes = require('./routes/likes');
-const tagsRoutes = require('./routes/tags');
+const commentsRoutes = require('./routes/comments');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use((req, res, next) => {
     next(err);
 });
 app.use((err, req, res) => {
+    debug(err.message);
     res.status(err.status || 500);
     res.json({
         status: 'error',

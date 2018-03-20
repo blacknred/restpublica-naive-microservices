@@ -1,9 +1,9 @@
+const logger = require('morgan');
 const express = require('express');
-const expressValidator = require('express-validator');
-const useragent = require('express-useragent');
 const bodyParser = require('body-parser');
 const debug = require('debug')('users-api');
-const logger = require('morgan');
+const useragent = require('express-useragent');
+const expressValidator = require('express-validator');
 const { authentication } = require('./auth');
 const usersRoutes = require('./routes/users');
 const subscriptionsRoutes = require('./routes/subscriptions');

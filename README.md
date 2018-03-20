@@ -132,9 +132,9 @@ $ docker exec -ti <container-id> psql -U postgres
 | /apps          | POST        | CREATE      | add an app    |a
 | /apps/check    | POST        | CREATE      | check an app  |a
 | /apps          | GET         | READ        | get all apps  |a
-| /apps/:pid     | GET         | READ        | get an app    |
-| /apps/:pid     | PUT         | UPDATE      | update an app |a
-| /apps/:pid     | DELETE      | DELETE      | delete an app |a
+| /apps/:aid     | GET         | READ        | get an app    |
+| /apps/:aid     | PUT         | UPDATE      | update an app |a
+| /apps/:aid     | DELETE      | DELETE      | delete an app |a
 
 <!-- #### (5) Notifications - http://localhost:3010 -->
 

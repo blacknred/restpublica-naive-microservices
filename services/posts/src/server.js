@@ -2,6 +2,8 @@ const app = require('./app');
 const debug = require('debug')('posts-api');
 const http = require('http');
 
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 function normalizePort(val) {
     const port = parseInt(val, 10);
     if (isNaN(port)) { return val; }

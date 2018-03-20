@@ -2,27 +2,21 @@ const PartnerApp = require('mongoose').model('PartnerApp');
 
 /* partner apps */
 
-const findAppByDomain = domain => PartnerApp.findOne({ domain });
+const create = appObj => new PartnerApp(appObj).save();
 
-const checkApp = (apiKey, domain) => PartnerApp.findOne({ apiKey, domain });
+const getOne = obj => PartnerApp.findOne(obj);
 
-const createApp = appObj => new PartnerApp(appObj).save();
+const getAll = () => PartnerApp.find();
 
-const getAllApps = () => PartnerApp.find();
-
-const getApp = (appId, adminId) => PartnerApp.findOne({ _id: appId, adminId });
-
-const updateApp = (appId, appObj, adminId) =>
+const update = (appId, appObj, adminId) =>
     PartnerApp.findOneAndUpdate({ _id: appId, adminId }, appObj, { new: true });
 
-const deleteApp = (appId, adminId) => PartnerApp.remove({ _id: appId, adminId });
+const deleteOne = (appId, adminId) => PartnerApp.remove({ _id: appId, adminId });
 
 module.exports = {
-    findAppByDomain,
-    checkApp,
-    getAllApps,
-    getApp,
-    createApp,
-    updateApp,
-    deleteApp
+    getAll,
+    getOne,
+    create,
+    update,
+    deleteOne
 };

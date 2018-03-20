@@ -1,12 +1,13 @@
 const fs = require('fs');
-const path = require('path');
-const rfs = require('rotating-file-stream');
 const Koa = require('koa');
+const path = require('path');
 const cors = require('kcors');
 const koaBody = require('koa-body');
 const morgan = require('koa-morgan');
-const userAgent = require('koa-useragent');
+const helmet = require('koa-helmet');
 const routes = require('./routes/index');
+const userAgent = require('koa-useragent');
+const rfs = require('rotating-file-stream');
 const { rateLimitPolicy, authentication } = require('./auth');
 
 const app = new Koa();
@@ -40,6 +41,8 @@ if (process.env.NODE_ENV !== 'test') {
 }
 // CORS
 app.use(cors());
+// Prevent bruteforce
+app.use(helmet());
 // Body
 app.use(koaBody({ formLimit: '1mb' }));
 // Errors

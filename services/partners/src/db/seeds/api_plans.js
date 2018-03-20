@@ -8,10 +8,7 @@ module.exports = function seedApiPlans() {
         { name: 'ultimate', limit: 10000, price: 50 }
     ];
 
-    plans.forEach((plan) => {
-        const newPlan = new ApiPlan(plan);
-        newPlan.save();
-    });
+    plans.forEach(plan => new ApiPlan(plan).save());
 
     debug('ApiPlan model seeded!');
 };

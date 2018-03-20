@@ -1,13 +1,13 @@
-const express = require('express');
-const expressValidator = require('express-validator');
-const debug = require('debug')('partners-api');
-const bodyParser = require('body-parser');
 const morgan = require('morgan');
+const express = require('express');
+const bodyParser = require('body-parser');
+const debug = require('debug')('partners-api');
 const useragent = require('express-useragent');
-const dbInit = require('./db/init');
-const plansRoutes = require('./routes/plans');
+const expressValidator = require('express-validator');
+const dbInit = require('./db/db_init');
 const appsRoutes = require('./routes/apps');
 const { authentication } = require('./auth');
+const plansRoutes = require('./routes/plans');
 
 const app = express();
 
@@ -42,7 +42,6 @@ app.use((err, req, res) => {
         message: err.message
     });
 });
-
 
 module.exports = app;
 

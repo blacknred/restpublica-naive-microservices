@@ -24,7 +24,7 @@ function users(req, res, next) {
                 .matches(/^.*(?=.{5,})(?=.*\d)(?=.*[a-zA-Z]).*$/)
                 .withMessage('Password must has at least 5 chars and one number');
             req.checkBody('fullname').notEmpty().withMessage('Fullname cannot be empty');
-            req.checkBody('email').isEmail().withMessage('Must be an valid email');
+            req.checkBody('email').isEmail().withMessage('Email must be valid ');
         }
     } else if (req.method === 'PUT') {
         req.checkBody('option')
