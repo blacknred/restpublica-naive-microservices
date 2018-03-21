@@ -1,47 +1,43 @@
 /* eslint-disable consistent-return */
-/* eslint-disable no-param-reassign */
+/* eslint-disable no-throw-literal */
 
 const express = require('express');
-const moment = require('moment');
 const Ban = require('../db/models/Ban');
+const Community = require('../db/models/Community');
 const { bans } = require('./validation');
+const { ensureAuthenticated } = require('../auth');
 
 const router = express.Router();
 
 /* bans */
 
-router.post('/:cid/ban', bans, async (req, res, next) => {
+router.post('/:cid/ban', ensureAuthenticated, bans, async (req, res, next) => {
     const newBan = {
-        community_id: req.body.id,
-        user_id: req.user
+        community_id: req.params.cid,
+        user_id: req.user,
+        end_date: req.body.end_date
     };
-    if (req.body.endDate && moment(req.body.endDate).isValid()) {
-        newBan.end_date = req.body.endDate;
-    }
     try {
-        const com = await Ban.findCommunityById(newBan.community_id);
-        if (com.admin_id !== req.user) throw new Error(`Access is restricted`);
+        const com = await Community.isExist({ id: newBan.community_id });
+        if (!com) throw { status: 404, message: 'Communuty not found' };
+        if (com.admin_id !== req.user) throw { status: 404, message: 'Permission denied' };
         const data = await Ban.createBan(newBan);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
-router.get('/:cid/bans', bans, async (req, res, next) => {
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    const communityId = req.params.cid;
+router.get('/:cid/bans', ensureAuthenticated, bans, async (req, res, next) => {
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
+        --req.query.offset : 0;
+    const reduced = req.useragent.isMobile;
     try {
-        const com = await Ban.findCommunityById(communityId);
-        if (com.admin_id !== req.user) throw new Error(`Access is restricted`);
-        const data = await Ban.getBans(communityId, offset);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        const com = await Community.isExist({ id: req.params.cid });
+        if (!com) throw { status: 404, message: 'Communuty not found' };
+        if (com.admin_id !== req.user) throw { status: 404, message: 'Permission denied' };
+        const data = await Ban.getBans(req.params.cid, offset, reduced);
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }

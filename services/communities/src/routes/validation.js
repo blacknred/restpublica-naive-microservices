@@ -1,60 +1,90 @@
 /* eslint-disable no-throw-literal */
 
-const queries = require('../db/queries.js');
+const BASE64PATTERN = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
 
 function communities(req, res, next) {
     if (req.method === 'GET') {
         if (req.query.query) {
             req.checkQuery('query')
-                .isLength({ min: 3 }).withMessage('Search query must have at least 3 chars');
+                .isLength({ min: 3 })
+                .withMessage('Search query must have at least 3 chars');
         }
         if (req.query.list) {
-            req.checkQuery('list').matches(/^[0-9,]+$/g).withMessage('List ids must be integer');
+            req.checkQuery('list')
+                .matches(/^[0-9,]+$/g)
+                .withMessage('List ids must be integer');
         }
         if (req.query.profile) {
-            req.checkQuery('profile').isInt().withMessage('Profile id must be integer');
+            req.checkQuery('profile')
+                .isInt()
+                .withMessage('Profile id must be integer');
         }
         if (req.query.lim) {
-            req.checkQuery('lim').isIn(['id', 'name']).withMessage('Limiter must be valid');
+            req.checkQuery('lim')
+                .isIn(['id', 'name', 'title', 'avatar'])
+                .withMessage('Limiter must be valid');
+        }
+        if (req.query.mode) {
+            req.checkQuery('mode')
+                .isIn(['admin', 'dashboard'])
+                .withMessage('Mode must be valid');
         }
     } else if (req.method === 'POST') {
-        req.checkBody('name').notEmpty().withMessage('Name cannot be empty');
-        req.checkBody('title').notEmpty().withMessage('Title cannot be empty');
-        req.checkBody('description').notEmpty().withMessage('Description cannot be empty');
-        req.checkBody('restricted').isBoolean().withMessage('Restricted should be boolean');
+        req.checkBody('name')
+            .notEmpty()
+            .withMessage('Name cannot be empty');
+        req.checkBody('title')
+            .notEmpty()
+            .withMessage('Title cannot be empty');
+        req.checkBody('description')
+            .notEmpty()
+            .withMessage('Description cannot be empty');
+        req.checkBody('restricted')
+            .isBoolean()
+            .withMessage('Restricted should be boolean');
         req.checkBody('posts_moderation')
-            .isBoolean().withMessage('Posts moderation should be boolean');
-        if (req.body.name) {
-            req.checkBody('name').custom((value) => {
-                return queries.findCommunityByName(value).then(com => com || false);
-            }).withMessage('Community name is already in use');
+            .isBoolean()
+            .withMessage('Posts moderation should be boolean');
+        if (req.body.avatar) {
+            req.checkBody('avatar')
+                .custom(value => value.replace(/\n/g, '').match(BASE64PATTERN))
+                .withMessage('Avatar value must be base64');
+        }
+        if (req.body.banner) {
+            req.checkBody('banner')
+                .custom(value => value.replace(/\n/g, '').match(BASE64PATTERN))
+                .withMessage('Banner value must be base64');
         }
     } else if (req.method === 'PUT') {
-        req.checkParams('cid').isInt().withMessage('Id must be integer');
-        req.checkBody('option').isIn(['name', 'title', 'banner', 'description',
-            'active', 'avatar', 'restricted', 'posts_moderation'])
+        req.checkParams('cid')
+            .isInt()
+            .withMessage('Id must be integer');
+        req.checkBody('option')
+            .isIn(['name', 'title', 'banner', 'description',
+                'active', 'avatar', 'restricted', 'posts_moderation', 'last_post_at'])
             .withMessage('Option is not valid');
-        req.checkBody('value').notEmpty().withMessage('Update value cannot be empty');
+        req.checkBody('value')
+            .notEmpty()
+            .withMessage('Update value cannot be empty');
         if (req.body.option && req.body.value) {
             switch (req.body.option) {
-                case 'name':
-                    req.checkBody('value').custom((value) => {
-                        return queries.findCommunityByName(value).then(com => com || false);
-                    }).withMessage('Community name is already in use');
-                    break;
-                case 'email':
-                    req.checkBody('value').isEmail().withMessage('Email value must be valid');
-                    break;
                 case 'avatar':
                 case 'banner':
-                    req.checkBody('value').custom((value) => {
-                        return Buffer.from(value, 'base64').toString('base64') === value;
-                    }).withMessage(`${req.body.option} value must be base64`);
+                    req.checkBody('value')
+                        .custom(value => value.replace(/\n/g, '').match(BASE64PATTERN))
+                        .withMessage(`${req.body.option} value must be base64`);
                     break;
                 case 'restricted':
+                case 'active':
                 case 'posts_moderation':
                     req.checkBody('value')
-                        .isBoolean().withMessage(`${req.body.option} should be boolean`);
+                        .isBoolean()
+                        .withMessage(`${req.body.option} value should be boolean`);
+                    break;
+                case 'last_post_at':
+                    req.checkBody('value')
+                        .custom(date => date instanceof Date && !NaN(Date.parse(date)))
+                        .withMessage('Last post date value must be valid');
                     break;
                 default:
             }
@@ -66,12 +96,13 @@ function communities(req, res, next) {
 }
 
 function subscriptions(req, res, next) {
-    if (req.method === 'GET') {
-        req.checkParams('cid').isInt().withMessage('Community id must be integer');
-    } else if (req.method === 'POST') {
-        req.checkBody('id').isInt().withMessage('Community id must be integer');
-    } else if (req.method === 'DELETE') {
-        req.checkParams('sid').isInt().withMessage('Subscription id must be integer');
+    req.checkParams('cid')
+        .isInt()
+        .withMessage('Community id must be integer');
+    if (req.method === 'DELETE') {
+        req.checkParams('sid')
+            .isInt()
+            .withMessage('Subscription id must be integer');
     }
     const failures = req.validationErrors();
     if (failures) throw { status: 422, message: failures };
@@ -79,10 +110,13 @@ function subscriptions(req, res, next) {
 }
 
 function bans(req, res, next) {
-    if (req.method === 'GET') {
-        req.checkParams('cid').notEmpty().withMessage('Community id cannot be empty');
-    } else if (req.method === 'POST') {
-        req.checkBody('id').isInt().withMessage('Community id must be integer');
+    req.checkParams('cid')
+        .isInt()
+        .withMessage('Community id must be integer');
+    if (req.method === 'POST') {
+        req.checkBody('end_date')
+            .custom(date => date instanceof Date && !NaN(Date.parse(date)))
+            .withMessage('End date must be valid');
     }
     const failures = req.validationErrors();
     if (failures) throw { status: 422, message: failures };

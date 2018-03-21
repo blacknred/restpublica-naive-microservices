@@ -1,203 +1,81 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
+/* eslint-disable no-confusing-arrow */
 
 const knex = require('../db/../connection');
 
 const LIMIT = 12;
+const MOBILE_LIMIT = 6;
 
 /* communities */
 
-function findCommunityByName(name) {
+function isExist(obj) {
     return knex('communities')
-        .select(['id', 'title'])
-        .where({ name })
+        .select('id')
+        .where(obj)
         .first();
 }
 
-function findCommunityById(id) {
-    return knex('communities')
-        .select(['id', 'admin_id', 'restricted'])
-        .where({ id })
-        .first();
-}
-
-function getMySubscription(community, userId) {
+function mySubscription(community, userId) {
     return knex('communities_subscriptions')
         .select('id')
-        .where({ community_id: community.id, user_id: userId, approved: true })
+        .where({ community_id: community.id, user_id: userId })
+        .andWhere({ approved: true })
         .first()
-        .then((row) => {
-            community.my_subscription_id = row ? row.id : null;
-            return community;
+        .then(({ id }) => {
+            return Object.assign(community, { my_subscription_id: id || null });
         });
 }
 
-function isIBanned(community, userId) {
-    return knex('communities_bans')
-        .select('end_date')
-        .where('community_id', community.id)
-        .andWhere('user_id', userId)
-        .first()
-        .then((row) => {
-            community.is_i_banned = row ? row.end_date : null;
-            return community;
-        });
-}
-
-function getFollowersCount(community) {
+function followersCount(community) {
     return knex('communities_subscriptions')
         .count('*')
         .where({ community_id: community.id, approved: true })
         .first()
-        .then((row) => {
-            community.followers_count = row.count;
-            return community;
+        .then(({ count }) => {
+            return Object.assign(community, { followers_cnt: count });
         });
 }
 
-function createCommunity(newCommunity) {
+function create(newCommunity) {
     return knex('communities')
         .insert(newCommunity)
         .returning('*')
-        .then(data => data[0]);
+        .first();
 }
 
-function updateCommunity(communityOpt, communityId, adminId) {
+function update(communityObj, communityId, adminId) {
     return knex('communities')
-        .update(communityOpt)
+        .update(communityObj)
         .where('id', communityId)
         .andWhere('admin_id', adminId)
-        .returning(`${Object.keys(communityOpt)[0]}`)
-        .then(data => data[0]);
+        .returning(`${Object.keys(communityObj)[0]}`)
+        .first();
 }
 
-function getCommunity(name, lim, userId) {
+function getOne(name, userId) {
     return knex('communities')
-        .select(lim || '*')
-        .where({ name, active: true })
+        .select('*')
+        .where('communities.name', name)
+        .andWhere('communities.active', true)
         .first()
-        .then((_row) => {
-            if (lim) return _row;
-            return getFollowersCount(_row);
-        })
-        .then((_row) => {
-            if (lim) return _row;
-            return isIBanned(_row, userId);
-        })
-        .then((_row) => {
-            if (lim) return _row;
-            return getMySubscription(_row, userId);
-        });
+        .then(_row => _row ? followersCount(_row) : _row)
+        .then(_row => _row ? mySubscription(_row, userId) : _row);
 }
 
-function getCommunities(arr, userId) {
+
+function getAllByUser(userId, authUserId, offset, reduced) {
     return knex('communities')
-        .select(['id', 'title', 'avatar'])
-        .whereIn('id', arr)
-        .andWhere({ active: true })
-        .map((_row) => { return _row ? getFollowersCount(_row) : _row; })
-        .map((_row) => { return _row ? getMySubscription(_row, userId) : _row; })
-        .then((communities) => { return { communities }; });
-}
-
-function getTrendingCommunities(userId, offset) {
-    const today = new Date();
-    const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 20);
-    return knex('communities_subscriptions')
-        .select('community_id')
-        .where('created_at', '>', lastWeek)
-        .andWhere('approved', true)
-        .groupBy('community_id')
-        .orderByRaw('COUNT(community_id) DESC')
-        .limit(LIMIT)
-        .offset(offset * LIMIT)
-        .map((_row) => {
-            return knex('communities')
-                .select(['id', 'title', 'avatar'])
-                .where('id', _row.community_id)
-                .andWhere('active', true)
-                .first();
-        })
-        .map((_row) => { return _row ? getFollowersCount(_row) : _row; })
-        .map((_row) => { return _row ? getMySubscription(_row, userId) : _row; })
-        .map((_row) => { return _row ? isIBanned(_row, userId) : _row; })
-        .then((rows) => {
-            return knex('communities_subscriptions')
-                .countDistinct('community_id')
-                .where('created_at', '>', lastWeek)
-                .andWhere('approved', true)
-                .first()
-                .then((count) => { return { count: count.count, communities: rows }; });
-        });
-}
-
-function getSearchedCommunities(pattern, userId, offset) {
-    return knex('communities')
-        .select(['id', 'title', 'avatar'])
-        .whereRaw('LOWER(title) like ?', `%${pattern}%`)
-        .andWhere('active', true)
-        .orderBy('created_at', 'DESC')
-        .limit(LIMIT)
-        .offset(offset * LIMIT)
-        .map((_row) => { return _row ? getFollowersCount(_row) : _row; })
-        .map((_row) => { return _row ? getMySubscription(_row, userId) : _row; })
-        .map((_row) => { return _row ? isIBanned(_row, userId) : _row; })
-        .then((rows) => {
-            return knex('communities')
-                .count('*')
-                .whereRaw('LOWER(title) like ?', `%${pattern}%`)
-                .andWhere('active', true)
-                .first()
-                .then((count) => { return { count: count.count, communities: rows }; });
-        });
-}
-
-function getCommunitiesByAdmin(adminId, offset) {
-    return knex('communities')
-        .select(['id', 'title', 'avatar'])
-        .where('admin_id', adminId)
-        .andWhere('active', true)
-        .orderBy('created_at', 'ASC')
-        .limit(LIMIT)
-        .offset(offset * LIMIT)
-        .map((_row) => { return _row ? getFollowersCount(_row) : _row; })
-        .then((rows) => {
-            return knex('communities')
-                .count('*')
-                .where('admin_id', adminId)
-                .andWhere('active', true)
-                .first()
-                .then((count) => { return { count: count.count, communities: rows }; });
-        });
-}
-
-function getUserCommunities(userId, authUserId, lim, offset) {
-    if (lim) lim = `communities.${lim}`;
-    return knex('communities')
-        .select(lim || ['communities.id', 'title', 'avatar'])
+        .select(['communities.id', 'title', 'avatar'])
         .rightJoin('communities_subscriptions',
             'communities_subscriptions.community_id', 'communities.id')
         .where('communities_subscriptions.user_id', userId)
         .andWhere('communities_subscriptions.approved', true)
         .andWhere('communities.active', true)
-        .orderBy('communities.last_post_at', 'DESC')
-        .limit(LIMIT)
-        .offset(offset * LIMIT)
-        .map((_row) => {
-            if (lim) return _row;
-            return _row ? getFollowersCount(_row) : _row;
-        })
-        .map((_row) => {
-            if (lim) return _row;
-            return _row ? getMySubscription(_row, authUserId) : _row;
-        })
-        .map((_row) => {
-            if (lim) return _row;
-            return _row ? isIBanned(_row, userId) : _row;
-        })
-        .then((rows) => {
-            if (lim) return { communities: rows };
+        .limit(reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .map(_row => _row ? followersCount(_row) : _row)
+        .map(_row => _row ? mySubscription(_row, userId) : _row)
+        .then((communities) => {
             return knex('communities')
                 .count('*')
                 .rightJoin('communities_subscriptions',
@@ -206,11 +84,105 @@ function getUserCommunities(userId, authUserId, lim, offset) {
                 .andWhere('communities_subscriptions.approved', true)
                 .andWhere('communities.active', true)
                 .first()
-                .then((count) => { return { count: count.count, communities: rows }; });
+                .then(({ count }) => { return { count, communities }; });
         });
 }
 
-function deleteCommunities() {
+function getAllByAdmin(adminId, offset, reduced) {
+    return knex('communities')
+        .select(['id', 'title', 'avatar', 'last_post_at'])
+        .where('admin_id', adminId)
+        .andWhere('active', true)
+        .orderBy('created_at', 'ASC')
+        .limit(reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .map(_row => _row ? followersCount(_row) : _row)
+        .then((communities) => {
+            return knex('communities')
+                .count('*')
+                .where('admin_id', adminId)
+                .andWhere('active', true)
+                .first()
+                .then(({ count }) => { return { count, communities }; });
+        });
+}
+
+function getAllFollowing(userId) {
+    const today = new Date();
+    const lastWeek = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 14);
+    return knex('communities_subscriptions')
+        .select('communiries_subscriptions.id')
+        .rightJoin('communiries', 'communiries.id',
+            'communiries_subscriptions.communiries_id')
+        .where('communiries_subscriptions.user_id', userId)
+        .andWhere('communiries.last_post_at', '>', lastWeek)
+        .orderBy('communiries.last_post_at', 'DESC')
+        .limit(100);
+}
+
+
+function getAllInList(arr, userId, lim) {
+    return knex('communities')
+        .select(lim || ['id', 'title', 'name', 'avatar'])
+        .whereIn('id', arr)
+        .andWhere({ active: true })
+        .map(_row => _row && !lim ? followersCount(_row) : _row)
+        .map(_row => _row && !lim ? mySubscription(_row, userId) : _row);
+}
+
+function getAllTrending(userId, offset, reduced) {
+    const today = new Date();
+    const lastWeek = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 14);
+    return knex('communities_subscriptions')
+        .select('community_id')
+        .where('created_at', '>', lastWeek)
+        .andWhere('approved', true)
+        .groupBy('community_id')
+        .orderByRaw('COUNT(community_id) DESC')
+        .limit(reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .map((_row) => {
+            return knex('communities')
+                .select(['id', 'title', 'avatar'])
+                .where('id', _row.community_id)
+                .andWhere('active', true)
+                .first();
+        })
+        .map(_row => _row ? followersCount(_row) : _row)
+        .map(_row => _row ? mySubscription(_row, userId) : _row)
+        .then((communities) => {
+            return knex('communities_subscriptions')
+                .countDistinct('community_id')
+                .where('created_at', '>', lastWeek)
+                .andWhere('approved', true)
+                .first()
+                .then(({ count }) => { return { count, communities }; });
+        });
+}
+
+function getAllSearched(pattern, userId, offset, reduced) {
+    return knex('communities')
+        .select(['id', 'title', 'avatar'])
+        .whereRaw('LOWER(title) like ?', `%${pattern}%`)
+        .andWhere('active', true)
+        .orderBy('created_at', 'DESC')
+        .limit(reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .map(_row => _row ? followersCount(_row) : _row)
+        .map(_row => _row ? mySubscription(_row, userId) : _row)
+        .then((communities) => {
+            return knex('communities')
+                .count('*')
+                .whereRaw('LOWER(title) like ?', `%${pattern}%`)
+                .andWhere('active', true)
+                .first()
+                .then(({ count }) => { return { count, communities }; });
+        });
+}
+
+function deleteAllInactive() {
     const today = new Date();
     const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1);
     knex('communities')
@@ -221,15 +193,15 @@ function deleteCommunities() {
 }
 
 module.exports = {
-    findCommunityByName,
-    findCommunityById,
-    createCommunity,
-    getCommunity,
-    updateCommunity,
-    getCommunities,
-    getTrendingCommunities,
-    getSearchedCommunities,
-    getUserCommunities,
-    getCommunitiesByAdmin,
-    deleteCommunities,
+    isExist,
+    create,
+    getOne,
+    update,
+    getAllInList,
+    getAllTrending,
+    getAllSearched,
+    getAllByUser,
+    getAllByAdmin,
+    getAllFollowing,
+    deleteAllInactive,
 };

@@ -1,11 +1,11 @@
 const logger = require('morgan');
 const express = require('express');
 const bodyParser = require('body-parser');
+const bansRoutes = require('./routes/bans');
+const { authentication } = require('./auth/');
 const useragent = require('express-useragent');
 const debug = require('debug')('communities-api');
 const expressValidator = require('express-validator');
-const bansRoutes = require('./routes/bans');
-const { authentication } = require('./auth/');
 const communitiesRoutes = require('./routes/communities');
 const subscriptionsRoutes = require('./routes/subscriptions');
 

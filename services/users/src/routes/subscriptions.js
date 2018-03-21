@@ -53,15 +53,25 @@ router.get('/:uid/following', ensureAuthenticated, subscriptions,
         const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
             --req.query.offset : 0;
         const reduced = req.useragent.isMobile;
-        const limiter = req.query.lim || null;
         try {
             const user = await User.isExist({ id: req.params.uid });
             if (!user) throw { status: 404, message: 'Profile not found' };
             const data = await Subscription
-                .getAllFollowing(req.params.uid, req.user, offset, reduced, limiter);
-            if (!limiter) {
-                data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
-            }
+                .getAllFollowing(req.params.uid, req.user, offset, reduced);
+            data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.get('/:uid/dashboard', ensureAuthenticated, subscriptions,
+    async (req, res, next) => {
+        try {
+            const user = await User.isExist({ id: req.params.uid });
+            if (!user) throw { status: 404, message: 'Profile not found' };
+            const data = await Subscription.getDashboardFollowing(req.user);
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);

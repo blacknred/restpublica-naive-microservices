@@ -1,58 +1,65 @@
 /* eslint-disable consistent-return */
-/* eslint-disable no-param-reassign */
+/* eslint-disable no-throw-literal */
 
 const express = require('express');
 const Subscription = require('../db/models/Subscription');
+const Community = require('../db/models/Community');
 const { subscriptions } = require('./validation');
+const { ensureAuthenticated } = require('../auth');
 
 const router = express.Router();
 
 /* subscriptions */
 
-router.post('/:cid/follow', subscriptions, async (req, res, next) => {
-    const newSubscription = {
-        community_id: req.body.id,
-        user_id: req.user
-    };
-    try {
-        const com = await Subscription.findCommunityById(newSubscription.community_id);
-        if (!com.restricted) newSubscription.approved = true;
-        const data = await Subscription.createSubscription(newSubscription);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
+router.post('/:cid/follow', ensureAuthenticated, subscriptions,
+    async (req, res, next) => {
+        const newSubscription = {
+            community_id: req.params.uid,
+            user_id: req.user
+        };
+        try {
+            const community = await Community.isExist({ id: req.params.cid });
+            if (!community) throw { status: 404, message: 'Community not found' };
+            if (!community.restricted) newSubscription.approved = true;
+            const data = await Subscription.create(newSubscription);
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
     }
-});
+);
 
-router.get('/:cid/followers', subscriptions, async (req, res, next) => {
-    const id = req.params.cid;
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
-    try {
-        const data = await Subscription.getCommunityFollowers(id, req.user, offset);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
-    } catch (err) {
-        return next(err);
+router.get('/:cid/followers', ensureAuthenticated, subscriptions,
+    async (req, res, next) => {
+        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
+            --req.query.offset : 0;
+        const reduced = req.useragent.isMobile;
+        try {
+            const community = await Community.isExist({ id: req.params.cid });
+            if (!community) throw { status: 404, message: 'Community not found' };
+            const data = await Subscription
+                .getAllFollowers(req.params.cid, req.user, offset, reduced);
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
     }
-});
+);
 
-router.delete('/:cid/follow/:sid', subscriptions, async (req, res, next) => {
-    const communityId = req.params.cid;
-    const id = req.params.sid;
+router.delete('/:cid/follow/:sid', ensureAuthenticated, subscriptions,
+async (req, res, next) => {
     try {
-        const data = await Subscription.deleteSubscription(id, communityId, req.user);
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        const sub = await Subscription.isExist(req.params.sid);
+        if (!sub) throw { status: 404, message: 'Subscription not found' };
+        if (sub.user_id !== req.user) {
+            throw { status: 403, message: 'Permission denied' };
+        }
+        await Subscription.deleteOne()(req.params.sid, req.params.cid, req.user);
+        res.status(200).json({ status: 'success', data: { id: req.params.sid } });
     } catch (err) {
         return next(err);
     }
-});
+}
+);
 
 module.exports = router;

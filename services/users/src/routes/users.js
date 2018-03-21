@@ -21,16 +21,16 @@ const router = express.Router();
 
 router.post('/', users, async (req, res, next) => {
     const newUser = {
-        username: req.body.username,
+        username: req.body.username.split(' ').join('_').toLowerCase(),
         fullname: req.body.fullname.toLowerCase().split(' ')
             .map(word => word[0].toUpperCase() + word.substr(1)).join(' '),
         email: req.body.email,
         password: req.body.password
     };
     try {
-        const name = await User.isExist({ username: req.body.username });
+        const name = await User.isExist({ username: newUser.username });
         if (name) throw { status: 409, message: 'Username is already in use' };
-        const email = await User.isExist({ email: req.body.email });
+        const email = await User.isExist({ email: newUser.email });
         if (email) throw { status: 409, message: 'Email is already in use' };
         newUser.avatar = await helpers.createAvatar(newUser.fullname);
         const data = await User.create(newUser);
@@ -60,27 +60,24 @@ router.post('/login', users, async (req, res, next) => {
     }
 });
 
-router.get('/check', async (req, res, next) => {
+router.get('/check', users, async (req, res, next) => {
+    const mode = req.query.mode || 'user';
+    let patternObj = null;
     try {
-        const user = await User.isExist({ id: req.user, active: true });
+        switch (mode) {
+            case 'admin': patternObj = { id: req.user, admin: true }; break;
+            default: patternObj = { id: req.user, active: true };
+        }
+        const user = await User.isExist(patternObj);
         res.status(200).json({ status: 'success', user: user.id || null });
     } catch (err) {
         return next(err);
     }
 });
 
-router.get('/check/admin', async (req, res, next) => {
+router.get('/profile', ensureAuthenticated, async (req, res, next) => {
     try {
-        const admin = await User.isAdmin(req.user);
-        res.status(200).json({ status: 'success', admin });
-    } catch (err) {
-        return next(err);
-    }
-});
-
-router.get('/user', ensureAuthenticated, async (req, res, next) => {
-    try {
-        const data = await User.getPrivate(req.user);
+        const data = await User.getUser(req.user);
         data.avatar = data.avatar.toString('base64');
         res.status(200).json({ status: 'success', data });
     } catch (err) {
@@ -89,8 +86,6 @@ router.get('/user', ensureAuthenticated, async (req, res, next) => {
 });
 
 router.put('/', ensureAuthenticated, users, async (req, res, next) => {
-    let isAvatar = false;
-    let data;
     try {
         switch (req.body.option) {
             case 'username':
@@ -102,11 +97,10 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
                 if (email) throw { status: 409, message: 'Email is already in use' };
                 break;
             case 'avatar':
-                isAvatar = true;
                 const sanitisedValue = req.body.value.replace(/\n/g, '');
                 const bin = await new Buffer(sanitisedValue, 'base64');
                 await resizeImg(bin, { width: 128, height: 128 })
-                    .then(b => req.body.value = b);
+                    .then(buf => req.body.value = buf);
                 // TODO: resize image with gm
                 // await gm(bin, 'img.png')
                 //     .resize(128, 128)
@@ -123,9 +117,9 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
             case 'active': await Subscription.deleteAll(req.user); break;
             default:
         }
-        const newUserData = { [req.body.option]: req.body.value };
-        data = await User.update(newUserData, req.user);
-        if (isAvatar) data = data.toString('base64');
+        const newUser = { [req.body.option]: req.body.value };
+        let data = await User.update(newUser, req.user);
+        if (req.body.option === 'avatar') data = data.toString('base64');
         res.status(200).json({ status: 'success', data: { [req.body.option]: data } });
     } catch (err) {
         return next(err);
@@ -133,31 +127,32 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
 });
 
 
-/* profies */
+/* profiles */
 
 router.get('/', users, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
         --req.query.offset : 0;
     const query = req.query.query ? req.query.query.toLowerCase() : null;
     const list = req.query.list ? req.query.list.split(',') : null;
+    const limiter = req.query.lim || null;
     const reduced = req.useragent.isMobile;
     let data;
     try {
         if (query) data = await User.getAllSearched(query, req.user, offset, reduced);
-        else if (list) data = await User.getAllInList(list, req.user);
+        else if (list) data = await User.getAllInList(list, req.user, limiter);
         else data = await User.getAllTrending(req.user, offset, reduced);
-        data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
+        if (!limiter || limiter === 'avatar') {
+            data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
+        }
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
-router.get('/:name', users, async (req, res, next) => {
-    const name = req.params.name;
-    const limiter = req.query.limiter || null;
+router.get('/:name', async (req, res, next) => {
     try {
-        const data = await User.getOne(name, req.user, limiter);
+        const data = await User.getOne(req.params.name, req.user);
         if (!data) throw { status: 404, message: 'Profile not found' };
         if (data.avatar) data.avatar = data.avatar.toString('base64');
         res.status(200).json({ status: 'success', data });

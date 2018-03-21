@@ -1,29 +1,35 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
+/* eslint-disable no-throw-literal */
+/* eslint-disable no-case-declarations */
 
 // const gm = require('gm');
 const express = require('express');
 const resizeImg = require('resize-img');
 const Community = require('../db/models/Community');
+const Subscription = require('../db/models/Subscription');
+const Ban = require('../db/models/Ban');
 const { communities } = require('./validation');
 const helpers = require('./_helpers');
+const { ensureAuthenticated } = require('../auth');
 
 const router = express.Router();
 
 /* communities */
 
-router.post('/', communities, async (req, res, next) => {
+router.post('/', ensureAuthenticated, communities, async (req, res, next) => {
     const newCommunity = {
         name: req.body.name.split(' ').join('_').toLowerCase(),
-        title: req.body.title.charAt(0).toUpperCase() +
-            req.body.title.slice(1),
+        title: req.body.title.charAt(0).toUpperCase() + req.body.title.slice(1),
         description: req.body.description,
         restricted: req.body.restricted,
         posts_moderation: req.body.posts_moderation,
         admin_id: req.user
     };
     try {
+        const name = await Community.isExist({ name: newCommunity.name });
+        if (name) throw { status: 409, message: 'Name is already in use' };
         if (req.body.avatar) {
             const bin = await new Buffer(req.body.avatar, 'base64');
             await resizeImg(bin, { width: 128, height: 128 })
@@ -55,30 +61,30 @@ router.post('/', communities, async (req, res, next) => {
         const data = await Community.createCommunity(newCommunity);
         data.avatar = data.avatar.toString('base64');
         if (data.banner) data.bunner = data.banner.toString('base64');
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
-router.put('/:cid', communities, async (req, res, next) => {
-    const id = req.params.cid;
-    let isFile = false;
-    let data;
+router.put('/:cid', ensureAuthenticated, communities, async (req, res, next) => {
     try {
-        /* eslint-disable */
+        const com = await Community.isExist({ id: req.params.cid });
+        if (!com) throw { status: 404, message: 'Community not found' };
         switch (req.body.option) {
+            case 'name':
+                req.body.value = req.body.value.split(' ').join('_').toLowerCase();
+                const name = await Community.isExist({ name: req.body.value });
+                if (name) throw { status: 409, message: 'Name is already in use' };
+                break;
+            case 'title': req.body.value = req.body.value.charAt(0).toUpperCase() +
+                req.body.value.slice(1);
+                break;
             case 'avatar':
             case 'banner':
-                isFile = true;
                 const bin = await new Buffer(req.body.value, 'base64');
-                await resizeImg(bin,
-                    req.body.option === 'avatar' ? { width: 128, height: 128 } :
-                        { width: 800, height: 200 }
-                )
+                await resizeImg(bin, req.body.option === 'avatar' ?
+                    { width: 128, height: 128 } : { width: 800, height: 200 })
                     .then(buf => req.body.value = buf);
                 // TODO: resize image with gm
                 // await gm(bin, 'img.png')
@@ -90,18 +96,14 @@ router.put('/:cid', communities, async (req, res, next) => {
                 //     });
                 break;
             case 'active':
-                await Community.deleteSubscriptions(id, req.user);
-                await Community.deleteBans(id, req.user);
+                await Subscription.deleteAll(req.params.cid, req.user);
+                await Ban.deleteAll(req.params.cid, req.user);
                 break;
-            case 'name': req.body.value.split(' ').join('_').toLowerCase(); break;
-            case 'title': req.body.value.charAt(0).toUpperCase() +
-                req.body.value.slice(1); break;
             default:
         }
-        /* eslint-enable */
-        const newCommunityData = { [req.body.option]: req.body.value };
-        data = await Community.updateCommunity(newCommunityData, id, req.user);
-        if (isFile) data = data.toString('base64');
+        const newCommunity = { [req.body.option]: req.body.value };
+        let data = await Community.update(newCommunity, req.params.cid, req.user);
+        if (req.body.option === 'avatar' || 'banner') data = data.toString('base64');
         res.status(200).json({
             status: 'success',
             data: { [req.body.option]: data }
@@ -113,60 +115,60 @@ router.put('/:cid', communities, async (req, res, next) => {
 
 router.delete('/', async (req, res, next) => {
     try {
-        const data = await Community.deleteCommunities();
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        const data = await Community.deleteAllInactive();
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
 router.get('/', communities, async (req, res, next) => {
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
+        --req.query.offset : 0;
     const query = req.query.query ? req.query.query.toLowerCase() : null;
     const list = req.query.list ? req.query.list.split(',') : null;
     const profile = req.query.profile || null;
-    const admin = req.query.admin || null;
-    const lim = req.query.lim || null;
+    const mode = req.query.mode || null;
+    const limiter = req.query.lim || null;
+    const reduced = req.useragent.isMobile;
     let data;
     try {
-        if (query) data = await Community.getSearchedCommunities(query, req.user, offset);
-        else if (list) data = await Community.getCommunities(list, req.user);
-        else if (admin) data = await Community.getCommunitiesByAdmin(req.user, offset);
-        else if (profile) data = await Community.getUserCommunities(profile, req.user, lim, offset);
-        else data = await Community.getTrendingCommunities(req.user, offset);
-        if (!lim) {
+        if (query) data = await Community.getAllSearched(query, req.user, offset, reduced);
+        else if (list) data = await Community.getAllInList(list, req.user, limiter);
+        else if (profile) data = await Community.getAllByUser(profile, req.user, offset, reduced);
+        else if (mode) {
+            ensureAuthenticated(req, res, next);
+            switch (mode) {
+                case 'admin':
+                    data = await Community.getAllByAdmin(req.user, offset, reduced);
+                    break;
+                case 'dashboard':
+                    data = await Community.getAllFollowing(req.user);
+                    break;
+                default:
+            }
+        } else data = await Community.getAllTrending(req.user, offset, reduced);
+        if (!limiter || limiter === 'avatar' || limiter === 'banner') {
             data.communities.forEach((com) => {
                 com.avatar = com.avatar.toString('base64');
                 if (com.banner) com.banner = com.banner.toString('base64');
             });
         }
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
 });
 
-router.get('/:name', communities, async (req, res, next) => {
-    const name = req.params.name;
-    const lim = req.query.lim || null;
+router.get('/:name', async (req, res, next) => {
     try {
-        const isExist = await Community.findCommunityByName(name);
-        if (!isExist) throw new Error(`Community ${name} is not found`);
-        const data = await Community.getCommunity(name, lim, req.user);
-        if (!lim) {
-            data.avatar = data.avatar.toString('base64');
-            if (data.banner) data.banner = data.banner.toString('base64');
-        }
-        res.status(200).json({
-            status: 'success',
-            data
-        });
+        const data = await Community.getOne(req.params.name, req.user);
+        if (!data) throw { status: 404, message: 'Community not found' };
+        const ban = Ban.isExist(data.id, req.user);
+        if (ban) throw { status: 403, message: `Ban will end ${ban.end_date}` };
+        data.avatar = data.avatar.toString('base64');
+        if (data.banner) data.banner = data.banner.toString('base64');
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }

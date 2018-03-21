@@ -16,27 +16,26 @@ function comparePass(userPassword, databasePassword) {
 
 function isExist(obj) {
     return knex('users')
-        .select(['id', 'password', 'avatar'])
+        .select('id')
         .where(obj)
         .first();
 }
 
-function isAdmin(userId) {
-    return knex('users')
-        .where({ id: userId })
-        .andWhere({ admin: true })
-        .first()
-        .then(admin => admin ? true : false); // eslint-disable-line
-}
-
 function create(newUser) {
     const salt = bcrypt.genSaltSync();
-    const hash = bcrypt.hashSync(newUser.password, salt);
-    newUser.password = hash;
+    newUser.password = bcrypt.hashSync(newUser.password, salt);
     return knex('users')
-        .returning(['id', 'username', 'avatar'])
         .insert(newUser)
-        .then(data => data[0]);
+        .returning(['id', 'username', 'avatar'])
+        .first();
+}
+
+function getUser(userId) {
+    return knex('users')
+        .select('*')
+        .where('id', userId)
+        .andWhere({ active: true })
+        .first();
 }
 
 function update(userObj, userId) {
@@ -44,17 +43,8 @@ function update(userObj, userId) {
         .update(userObj)
         .where('id', userId)
         .returning(`${Object.keys(userObj)[0]}`)
-        .then(data => data[0]);
-}
-
-function getPrivate(userId) {
-    return knex('users')
-        .select(['username', 'fullname', 'description', 'email', 'avatar'])
-        .where('id', userId)
-        .andWhere({ active: true })
         .first();
 }
-
 
 /* profiles */
 
@@ -63,9 +53,8 @@ function mySubscription(user, authUserId) {
         .select('id')
         .where({ user_id: user.id, sub_user_id: authUserId })
         .first()
-        .then((row) => {
-            user.my_subscription_id = row ? row.id : null;
-            return user;
+        .then(({ id }) => {
+            return Object.assign(user, { my_subscription_id: id || null });
         });
 }
 
@@ -74,9 +63,8 @@ function followersCount(user) {
         .count('*')
         .where('user_id', user.id)
         .first()
-        .then((row) => {
-            user.followers_count = row.count;
-            return user;
+        .then(({ count }) => {
+            return Object.assign(user, { followers_cnt: count });
         });
 }
 
@@ -85,28 +73,27 @@ function followingCount(user) {
         .count('*')
         .where('sub_user_id', user.id)
         .first()
-        .then((row) => {
-            user.following_count = row.count;
-            return user;
+        .then(({ count }) => {
+            return Object.assign(user, { following_cnt: count });
         });
 }
 
-function getOne(username, authUserId, lim) {
+function getOne(username, authUserId) {
     return knex('users')
-        .select(lim || '*')
-        .where({ username })
-        .andWhere({ active: true })
+        .select(['id', 'username', 'fullname', 'description', 'avatar'])
+        .where({ username, active: true })
         .first()
-        .then(_row => _row && !lim ? followersCount(_row) : _row)
-        .then(_row => _row && !lim ? followingCount(_row) : _row)
-        .then(_row => _row && !lim ? mySubscription(_row, authUserId) : _row);
+        .then(_row => _row ? followersCount(_row) : _row)
+        .then(_row => _row ? followingCount(_row) : _row)
+        .then(_row => _row ? mySubscription(_row, authUserId) : _row);
 }
 
-function getAllInList(arr, authUserId) {
+function getAllInList(arr, authUserId, lim) {
     return knex('users')
-        .select(['id', 'username', 'fullname', 'avatar'])
+        .select(lim || ['id', 'username', 'fullname', 'avatar'])
         .whereIn('id', arr)
-        .andWhere({ active: true });
+        .andWhere({ active: true })
+        .map(_row => _row && !lim ? mySubscription(_row, authUserId) : _row);
 }
 
 function getAllTrending(authUserId, offset, reduced) {
@@ -129,14 +116,12 @@ function getAllTrending(authUserId, offset, reduced) {
         })
         .map(_row => _row ? followersCount(_row) : _row)
         .map(_row => _row ? mySubscription(_row, authUserId) : _row)
-        .then((rows) => {
+        .then((profiles) => {
             return knex('users_subscriptions')
                 .countDistinct('user_id')
                 .where('created_at', '>', lastWeek)
                 .first()
-                .then((count) => {
-                    return { count: count.count, users: rows };
-                });
+                .then(({ count }) => { return { count, profiles }; });
         });
 }
 
@@ -150,16 +135,14 @@ function getAllSearched(pattern, authUserId, offset, reduced) {
         .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
         .map(_row => _row ? followersCount(_row) : _row)
         .map(_row => _row ? mySubscription(_row, authUserId) : _row)
-        .then((rows) => {
+        .then((profiles) => {
             return knex('users')
                 .count('*')
                 .whereRaw('LOWER(username) like ?', `%${pattern}%`)
                 .orWhereRaw('LOWER(fullname) like ?', `%${pattern}%`)
                 .andWhere({ active: true })
                 .first()
-                .then((count) => {
-                    return { count: count.count, users: rows };
-                });
+                .then(({ count }) => { return { count, profiles }; });
         });
 }
 
@@ -177,9 +160,8 @@ function deleteAllInactive() {
 module.exports = {
     comparePass,
     isExist,
-    isAdmin,
     create,
-    getPrivate,
+    getUser,
     update,
     getOne,
     getAllInList,

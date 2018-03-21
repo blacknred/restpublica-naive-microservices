@@ -34,18 +34,18 @@ function planValidation(req, res, next) {
 }
 
 function appValidation(req, res, next) {
-    const pattern = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
+    const domainPattern = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
     if (req.method === 'GET') {
         req.checkParams('aid')
             .matches(/^[a-f\d]{24}$/i).withMessage('App id must be valid');
     } else if (req.method === 'POST') {
         if (req.path === '/check') {
             req.checkBody('apiKey').notEmpty().withMessage('API key cannot be empty');
-            req.checkBody('domain').matches(pattern)
+            req.checkBody('domain').matches(domainPattern)
                 .withMessage('Domain is empty or not valid');
         } else {
             req.checkBody('planId').notEmpty().withMessage('App must have API plan id');
-            req.checkBody('domain').matches(pattern)
+            req.checkBody('domain').matches(domainPattern)
                 .withMessage('Domain is empty or not valid');
             req.checkBody('email').isEmail().withMessage('Email must be valid');
         }

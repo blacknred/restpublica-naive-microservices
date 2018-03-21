@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-param-reassign */
 /* eslint-disable no-confusing-arrow */
 
 const util = require('util');
@@ -15,9 +13,8 @@ function mySubscription(user, authUserId) {
         .select('id')
         .where({ user_id: user.id, sub_user_id: authUserId })
         .first()
-        .then((row) => {
-            user.my_subscription_id = row ? row.id : null;
-            return user;
+        .then(({ id }) => {
+            return Object.assign(user, { my_subscription_id: id || null });
         });
 }
 
@@ -36,7 +33,7 @@ function create(newSubscription) {
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query).then(data => data.rows[0]);
+    return knex.raw(query).first();
 }
 
 function getAllFollowers(userId, authUserId, offset, reduced) {
@@ -47,44 +44,57 @@ function getAllFollowers(userId, authUserId, offset, reduced) {
         .where('users_subscriptions.user_id', userId)
         .andWhere('users.active', true)
         .andWhere('users_subscriptions.sub_user_id', '!=', authUserId)
+        .orderBy('users_subscriptions.created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
         .map(_row => _row ? mySubscription(_row, authUserId) : _row)
-        .then((rows) => {
+        .then((subscriptions) => {
             return knex('users_subscriptions')
                 .count('*')
                 .rightJoin('users', 'users.id', 'users_subscriptions.sub_user_id')
                 .where('users_subscriptions.user_id', userId)
                 .andWhere('users.active', true)
                 .first()
-                .then((count) => { return { count: count.count, subscriptions: rows }; });
+                .then(({ count }) => { return { count, subscriptions }; });
         });
 }
 
-function getAllFollowing(userId, authUserId, offset, reduced, limiter) {
-    if (limiter) limiter = `users_subscriptions.${limiter}`;
+function getAllFollowing(userId, authUserId, offset, reduced) {
     return knex('users_subscriptions')
-        .select(limiter || ['users_subscriptions.id', 'users.username',
+        .select(['users_subscriptions.id', 'users.username',
             'users.fullname', 'users.avatar'])
         .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
         .where('users_subscriptions.sub_user_id', userId)
         .andWhere('users.active', true)
         .andWhere('user_id', '!=', authUserId)
-        .orderBy('users.last_post_at', 'ASC')
+        .orderBy('users_subscriptions.created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
-        .map(_row => _row && !limiter ? mySubscription(_row, authUserId) : _row)
-        .then((rows) => {
-            if (limiter) return { subscriptions: rows };
+        .map(_row => _row ? mySubscription(_row, authUserId) : _row)
+        .then((subscriptions) => {
             return knex('users_subscriptions')
                 .count('*')
                 .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
                 .where('users_subscriptions.sub_user_id', userId)
                 .andWhere('users.active', true)
                 .first()
-                .then((count) => { return { count: count.count, subscriptions: rows }; });
+                .then(({ count }) => { return { count, subscriptions }; });
         });
 }
+
+function getDashboardFollowing(authUserId) {
+    const today = new Date();
+    const lastWeek = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 14);
+    return knex('users_subscriptions')
+        .select('users_subscriptions.id')
+        .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
+        .where('users_subscriptions.sub_user_id', authUserId)
+        .andWhere('users.last_post_at', '>', lastWeek)
+        .orderBy('users.last_post_at', 'DESC')
+        .limit(100);
+}
+
 
 function deleteOne(subscriptionId, userId) {
     return knex('users_subscriptions')
@@ -106,6 +116,7 @@ module.exports = {
     create,
     getAllFollowers,
     getAllFollowing,
+    getDashboardFollowing,
     deleteOne,
     deleteAll
 };

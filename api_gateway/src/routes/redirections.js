@@ -12,7 +12,7 @@ const router = new Router();
 router
     .post('/users', ctx => request(ctx, hosts.USERS_API, ctx.url))
     .post('/users/login', ctx => request(ctx, hosts.USERS_API, ctx.url))
-    .get('/users/user', auth, ctx => request(ctx, hosts.USERS_API, ctx.url))
+    .get('/users/profile', auth, ctx => request(ctx, hosts.USERS_API, ctx.url))
     .put('/users', auth, ctx => request(ctx, hosts.USERS_API, ctx.url))
     .post('/users/:uid/follow', auth, ctx => request(ctx, hosts.USERS_API, ctx.url))
     .get('/users/:uid/followers', auth, ctx => request(ctx, hosts.USERS_API, ctx.url))

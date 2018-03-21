@@ -57,7 +57,7 @@ const auth = async (ctx, next) => {
 /* Check admin for administration endpoints */
 const admin = async (ctx, next) => {
     ctx.state.method = 'GET';
-    const res = await request(ctx, hosts.USERS_API, '/users/check/admin', true);
+    const res = await request(ctx, hosts.USERS_API, '/users/check?mode=admin', true);
     if (!res.admin) ctx.throw(401, 'Access is restricted');
     delete ctx.state.method;
     await next();

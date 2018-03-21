@@ -1,14 +1,22 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable consistent-return */
-/* eslint-disable no-param-reassign */
+/* eslint-disable no-confusing-arrow */
+
 const util = require('util');
 const knex = require('../db/../connection');
 
 const LIMIT = 12;
+const MOBILE_LIMIT = 6;
 
 /* subscriptions */
 
-function createSubscription(newSubscription) {
+function isExist(subscriptionId) {
+    return knex('communities_subscriptions')
+        .select('user_id')
+        .where('id', subscriptionId)
+        .andWhere('approved', true)
+        .first();
+}
+
+function create(newSubscription) {
     // upsert
     const insert = knex('communities_subscriptions').insert(newSubscription);
     const update = knex('communities_subscriptions').update(newSubscription);
@@ -17,44 +25,42 @@ function createSubscription(newSubscription) {
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query)
-        .then((data) => { return { subscription_id: data.rows[0].id }; });
+    return knex.raw(query).first();
 }
 
-function getCommunityFollowers(id, userId, offset) {
+function getAllFollowers(communityId, userId, offset, pending, reduced) {
     return knex('communities_subscriptions')
         .select(['communities_subscriptions.id', 'user_id'])
         .rightJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
-        .where('communities.id', id)
+        .where('communities.id', communityId)
         .andWhere('user_id', '!=', userId)
-        .andWhere('approved', true)
-        .limit(LIMIT)
-        .offset(offset * LIMIT)
-        .then((rows) => {
+        .andWhere('approved', pending)
+        .orderBy('communities_subscriptions.created_at', 'DESC')
+        .limit(reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .then((subscriptions) => {
             return knex('communities_subscriptions')
                 .count('*')
                 .rightJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
-                .where('communities.id', id)
+                .where('communities.id', communityId)
                 .andWhere('user_id', '!=', userId)
                 .andWhere('approved', true)
                 .first()
-                .then((count) => { return { count: count.count, subscriptions: rows }; });
+                .then(({ count }) => { return { count, subscriptions }; });
         });
 }
 
-function deleteSubscription(subscriptionId, communityId, userId) {
+function deleteOne(subscriptionId, communityId, adminId) {
     return knex('communities_subscriptions')
         .del()
-        .where('id', subscriptionId)
-        .andWhere('community_id', communityId)
-        .andWhere('user_id', userId)
-        .then((data) => {
-            if (data) return { subscription_id: subscriptionId };
-            throw new Error('No found subscription or access is restricted');
-        });
+        .leftJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
+        .where('community_id', communityId)
+        .where('communities_subscriptions.id', subscriptionId)
+        .andWhere('communities_subscriptions.community_id', communityId)
+        .andWhere('communities.admin_id', adminId);
 }
 
-function deleteSubscriptions(communityId, adminId) {
+function deleteAll(communityId, adminId) {
     return knex('communities_subscriptions')
         .del()
         .leftJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
@@ -63,8 +69,9 @@ function deleteSubscriptions(communityId, adminId) {
 }
 
 module.exports = {
-    createSubscription,
-    getCommunityFollowers,
-    deleteSubscription,
-    deleteSubscriptions
+    isExist,
+    create,
+    getAllFollowers,
+    deleteOne,
+    deleteAll
 };
