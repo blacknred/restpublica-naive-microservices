@@ -8,7 +8,8 @@ const helmet = require('koa-helmet');
 const routes = require('./routes/index');
 const userAgent = require('koa-useragent');
 const rfs = require('rotating-file-stream');
-const { rateLimitPolicy, authentication } = require('./auth');
+const debug = require('debug')('api-gateway');
+const { rateLimiting, authentication } = require('./auth');
 
 const app = new Koa();
 
@@ -17,10 +18,9 @@ const app = new Koa();
 // logging
 // rate-limiting
 // authentication
-// circuit breaker
 // route requests
 // aggregate data
-// filter client type
+// circuit breaker
 
 // Logger
 if (process.env.NODE_ENV !== 'test') {
@@ -28,15 +28,16 @@ if (process.env.NODE_ENV !== 'test') {
     // moking with rotating write stream
     const logDir = path.join(__dirname, '..', 'logs');
     if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
-    const accessLogStream = rfs('access.log', {
-        size: '10M',
-        interval: '1d',
-        compress: 'gzip',
-        path: logDir
-    });
     const format = `:method :url :status :response-time ms\
     - :res[content-length] - :user-agent - :remote-addr - :remote-user`;
-    app.use(morgan('combined', { stream: accessLogStream }));
+    app.use(morgan('combined', {
+        stream: rfs('access.log', {
+            size: '10M',
+            interval: '1d',
+            compress: 'gzip',
+            path: logDir
+        })
+    }));
     app.use(morgan(format));
 }
 // CORS
@@ -52,6 +53,7 @@ app.use(async (ctx, next) => {
         const status = ctx.status || 404;
         if (status === 404) ctx.throw(404, ctx.body || 'Not Found');
     } catch (err) {
+        debug(err.message);
         ctx.status = err.status || 500;
         ctx.body = {
             status: 'error',
@@ -63,7 +65,7 @@ app.use(async (ctx, next) => {
 // User Agent
 app.use(userAgent);
 // Rate-limiting
-app.use(rateLimitPolicy);
+app.use(rateLimiting);
 // Authentication
 app.use(authentication);
 // Router

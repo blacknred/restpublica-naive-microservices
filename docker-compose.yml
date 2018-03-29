@@ -170,7 +170,6 @@ services:
       - DATABASE_TEST_URL=postgres://postgres:postgres@posts-db:5432/posts_test
       - NODE_ENV=${NODE_ENV}
       - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
-      - FILES_STORAGE_HOST=http://files-storage:3007
     depends_on:
       posts-db:
         condition: service_healthy

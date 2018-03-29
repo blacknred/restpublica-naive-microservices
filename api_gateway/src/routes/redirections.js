@@ -3,7 +3,7 @@
 const Router = require('koa-router');
 const hosts = require('../conf');
 const { request } = require('./_helpers');
-const { auth, admin, clearRateLimit } = require('../auth');
+const { auth, admin } = require('../auth');
 
 const router = new Router();
 
@@ -18,7 +18,6 @@ router
     .get('/users/:uid/followers', auth, ctx => request(ctx, hosts.USERS_API, ctx.url))
     .get('/users/:uid/following', auth, ctx => request(ctx, hosts.USERS_API, ctx.url))
     .delete('/users/:uid/follow/:sid', auth, ctx => request(ctx, hosts.USERS_API, ctx.url))
-    .put('/users/logout', clearRateLimit, ctx => ctx.body = { status: 'success' })
 
     .post('/communities', auth, ctx => request(ctx, hosts.COMMUNITIES_API, ctx.url))
     .get('/communities', ctx => request(ctx, hosts.COMMUNITIES_API, ctx.url))

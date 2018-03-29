@@ -2,25 +2,26 @@ const util = require('util');
 const knex = require('./../connection');
 
 const LIMIT = 12;
+const MOBILE_LIMIT = 6;
 
 /* likes */
 
-function getPostLikes(postId, offset) {
+function getAll(postId, offset, reduced) {
     return knex('likes')
         .select('user_id')
         .where('post_id', postId)
-        .limit(LIMIT)
-        .offset(LIMIT * offset)
-        .then((rows) => {
+        .limit(reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
+        .then((likes) => {
             return knex('likes')
                 .count('*')
                 .where('post_id', postId)
                 .first()
-                .then((count) => { return { count: count.count, likes: rows }; });
+                .then(({ count }) => { return { count, likes }; });
         });
 }
 
-function addPostLike(newLike) {
+function create(newLike) {
     // upsert
     const insert = knex('likes').insert(newLike);
     const update = knex('likes').update(newLike);
@@ -29,18 +30,17 @@ function addPostLike(newLike) {
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query).then(data => data.rows[0]);
+    return knex.raw(query).then(({ rows }) => rows[0].id);
 }
 
-function deletePostLike(postId, userId) {
+function deleteOne(postId, userId) {
     return knex('likes')
         .del()
-        .where('post_id', postId)
-        .andWhere('user_id', userId);
+        .where({ post_id: postId, user_id: userId });
 }
 
 module.exports = {
-    addPostLike,
-    getPostLikes,
-    deletePostLike
+    create,
+    getAll,
+    deleteOne
 };

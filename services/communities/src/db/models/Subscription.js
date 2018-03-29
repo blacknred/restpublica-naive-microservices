@@ -25,26 +25,30 @@ function create(newSubscription) {
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query).first();
+    return knex.raw(query).then(({ rows }) => rows[0].id);
 }
 
-function getAllFollowers(communityId, userId, offset, pending, reduced) {
+function getAllFollowers(communityId, userId, adminId, pending, offset, reduced) {
+    const isAdmin = userId === adminId;
     return knex('communities_subscriptions')
         .select(['communities_subscriptions.id', 'user_id'])
         .rightJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
         .where('communities.id', communityId)
         .andWhere('user_id', '!=', userId)
-        .andWhere('approved', pending)
+        // eslint-disable-next-line
+        .andWhere({ approved: !isAdmin ? true : pending ? false : true || false })
         .orderBy('communities_subscriptions.created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
-        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .then((subscriptions) => {
             return knex('communities_subscriptions')
                 .count('*')
-                .rightJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
+                .rightJoin('communities', 'communities.id',
+                    'communities_subscriptions.community_id')
                 .where('communities.id', communityId)
                 .andWhere('user_id', '!=', userId)
-                .andWhere('approved', true)
+                // eslint-disable-next-line
+                .andWhere({ approved: !isAdmin ? true : pending ? false : true || false })
                 .first()
                 .then(({ count }) => { return { count, subscriptions }; });
         });

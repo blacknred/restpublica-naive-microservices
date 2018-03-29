@@ -1,4 +1,5 @@
 /* eslint-disable consistent-return */
+
 const { decodeToken } = require('./local');
 
 function authentication(req, res, next) {
@@ -6,7 +7,8 @@ function authentication(req, res, next) {
         req.user = 1;
         return next();
     }
-    const token = req.headers['x-access-token'] || req.query.access_token || null;
+    const token = req.headers['x-access-token'] ||
+        req.query.access_token || null;
     if (!token) {
         return res.status(401).json({ status: 'No access token' });
     }

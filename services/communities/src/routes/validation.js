@@ -1,13 +1,17 @@
 /* eslint-disable no-throw-literal */
 
+const moment = require('moment');
+
 const BASE64PATTERN = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
 
 function communities(req, res, next) {
     if (req.method === 'GET') {
-        if (req.query.query) {
-            req.checkQuery('query')
-                .isLength({ min: 3 })
-                .withMessage('Search query must have at least 3 chars');
+        if (req.query.q) {
+            req.checkQuery('q')
+                .isLength({ min: 2 })
+                .withMessage('Search query must have at least 2 chars')
+                .matches(/^[a-zA-Z0-9]+$/)
+                .withMessage('Search query must have be alphanumeric');
         }
         if (req.query.list) {
             req.checkQuery('list')
@@ -26,7 +30,7 @@ function communities(req, res, next) {
         }
         if (req.query.mode) {
             req.checkQuery('mode')
-                .isIn(['admin', 'dashboard'])
+                .isIn(['count'])
                 .withMessage('Mode must be valid');
         }
     } else if (req.method === 'POST') {
@@ -60,8 +64,8 @@ function communities(req, res, next) {
             .isInt()
             .withMessage('Id must be integer');
         req.checkBody('option')
-            .isIn(['name', 'title', 'banner', 'description',
-                'active', 'avatar', 'restricted', 'posts_moderation', 'last_post_at'])
+            .isIn(['name', 'title', 'banner', 'description', 'active', 'avatar',
+                'restricted', 'posts_moderation', 'last_post_at'])
             .withMessage('Option is not valid');
         req.checkBody('value')
             .notEmpty()
@@ -83,7 +87,7 @@ function communities(req, res, next) {
                     break;
                 case 'last_post_at':
                     req.checkBody('value')
-                        .custom(date => date instanceof Date && !NaN(Date.parse(date)))
+                        .custom(date => moment(date, moment.ISO_8601, true).isValid())
                         .withMessage('Last post date value must be valid');
                     break;
                 default:
@@ -115,7 +119,7 @@ function bans(req, res, next) {
         .withMessage('Community id must be integer');
     if (req.method === 'POST') {
         req.checkBody('end_date')
-            .custom(date => date instanceof Date && !NaN(Date.parse(date)))
+            .custom(date => moment(date, moment.ISO_8601, true).isValid())
             .withMessage('End date must be valid');
     }
     const failures = req.validationErrors();

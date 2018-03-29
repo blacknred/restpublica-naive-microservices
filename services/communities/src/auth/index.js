@@ -1,5 +1,6 @@
 /* eslint-disable consistent-return */
-const { decodeToken } = require('./local');
+
+const decodeToken = require('./local');
 
 function authentication(req, res, next) {
     if (process.env.NODE_ENV === 'test') {

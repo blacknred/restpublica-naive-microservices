@@ -8,15 +8,21 @@ const knex = require('../../db/connection');
 const LIMIT = 12;
 const MOBILE_LIMIT = 6;
 
-function comparePass(userPassword, databasePassword) {
-    return bcrypt.compareSync(userPassword, databasePassword);
+function comparePass(userPassword, userId) {
+    return knex('users')
+        .select('password')
+        .where({ id: userId })
+        .first()
+        .then(({ password }) => {
+            return bcrypt.compareSync(userPassword, password);
+        });
 }
 
 /* user */
 
 function isExist(obj) {
     return knex('users')
-        .select('id')
+        .select(['id', 'username', 'avatar'])
         .where(obj)
         .first();
 }
@@ -43,7 +49,7 @@ function update(userObj, userId) {
         .update(userObj)
         .where('id', userId)
         .returning(`${Object.keys(userObj)[0]}`)
-        .first();
+        .then(data => data[0]);
 }
 
 /* profiles */
@@ -53,9 +59,7 @@ function mySubscription(user, authUserId) {
         .select('id')
         .where({ user_id: user.id, sub_user_id: authUserId })
         .first()
-        .then(({ id }) => {
-            return Object.assign(user, { my_subscription_id: id || null });
-        });
+        .then(id => Object.assign(user, { my_subscription: id ? id.id : null }));
 }
 
 function followersCount(user) {
@@ -90,23 +94,25 @@ function getOne(username, authUserId) {
 
 function getAllInList(arr, authUserId, lim) {
     return knex('users')
-        .select(lim || ['id', 'username', 'fullname', 'avatar'])
+        .select('id')
+        .select(lim || ['username', 'fullname', 'avatar'])
         .whereIn('id', arr)
         .andWhere({ active: true })
-        .map(_row => _row && !lim ? mySubscription(_row, authUserId) : _row);
+        .map(_row => _row && !lim ? mySubscription(_row, authUserId) : _row)
+        .then((profiles) => { return { profiles }; });
 }
 
 function getAllTrending(authUserId, offset, reduced) {
     const today = new Date();
-    const lastWeek = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 14);
+    const lastMonth = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 31);
     return knex('users_subscriptions')
         .select('user_id')
-        .where('created_at', '>', lastWeek)
+        .where('created_at', '>', lastMonth)
         .groupBy('user_id')
         .orderByRaw('COUNT(user_id) DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
-        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map((_row) => {
             return knex('users')
                 .select(['id', 'username', 'fullname', 'avatar'])
@@ -119,7 +125,7 @@ function getAllTrending(authUserId, offset, reduced) {
         .then((profiles) => {
             return knex('users_subscriptions')
                 .countDistinct('user_id')
-                .where('created_at', '>', lastWeek)
+                .where('created_at', '>', lastMonth)
                 .first()
                 .then(({ count }) => { return { count, profiles }; });
         });
@@ -132,7 +138,7 @@ function getAllSearched(pattern, authUserId, offset, reduced) {
         .orWhereRaw('LOWER(fullname) like ?', `%${pattern}%`)
         .andWhere({ active: true })
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
-        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? followersCount(_row) : _row)
         .map(_row => _row ? mySubscription(_row, authUserId) : _row)
         .then((profiles) => {

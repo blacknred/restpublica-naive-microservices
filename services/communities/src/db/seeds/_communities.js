@@ -17,7 +17,8 @@ function createCommunity(knex, name, adminId) {
                     description: faker.lorem.sentences(),
                     avatar,
                     banner,
-                    admin_id: adminId
+                    admin_id: adminId,
+                    last_post_at: new Date()
                 });
         })
         .catch(err => console.log(err));

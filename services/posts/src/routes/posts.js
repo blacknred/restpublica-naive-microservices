@@ -4,6 +4,7 @@
 const express = require('express');
 const url = require('url');
 const Post = require('../db/models/Post');
+const Tag = require('../db/models/Tag');
 const { deleteStorageFiles } = require('./_helpers');
 const dbHelpers = require('../db/_helpers');
 const { posts } = require('./validation');
@@ -24,7 +25,7 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
         description: req.body.description
     };
     try {
-        const post = await Post.createPost(newPost);
+        const post = await Post.create(newPost);
         switch (req.body.type) {
             case 'file':
                 const mimes = {
@@ -72,35 +73,45 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
         if (req.body.tags) {
             const tags = req.body.tags.split(',');
             tags.forEach(async (tag) => {
-                const tagId = await Post.saveTag(tag);
-                await Post.addTagToPost(tagId, post[0].id);
+                const tagId = await Tag.create(tag);
+                await Tag.addOneToPost(tagId, post[0].id);
             });
         }
-        res.status(200).json({ status: 'success', data: post });
+        res.status(200).json({ status: 'success', data: post[0] });
     } catch (err) {
         return next(err);
     }
 });
 
 router.get('/', posts, async (req, res, next) => {
-    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ? --req.query.offset : 0;
+    const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
+        --req.query.offset : 0;
     const tag = req.query.tag ? req.query.tag.toLowerCase() : null;
-    const query = req.query.query ? req.query.query.toLowerCase() : null;
+    const query = req.query.q ? req.query.q.toLowerCase() : null;
+    const profile = req.query.profile || null;
+    const community = req.query.community || null;
     const profiles = req.query.profiles ? req.query.profiles.split(',') : null;
-    const comms = req.query.communities ? req.query.communities.split(',') : null;
-    const lim = req.query.lim || null;
-    const limit = req.useragent.isMobile ? 3 : null;
+    const communities = req.query.communities ? req.query.communities.split(',') : null;
+    const mode = req.query.mode || null;
+    const dashboard = req.query.dashboard || null;
+    const reduced = req.useragent.isMobile || req.query.reduced;
     let data;
     try {
-        if (query) data = await Post.getSearchedPosts(query, req.user, offset);
-        else if (tag) data = await Post.getPostsByTag(tag, req.user, offset);
-        else if (profiles) {
-            if (lim === 'count') data = await Post.getProfilesPostsCount(profiles, req.user);
-            else data = await Post.getProfilesPosts(profiles, req.user, offset, limit);
-        } else if (comms) {
-            if (lim === 'count') data = await Post.getCommunitiesPostsCount(comms);
-            else data = await Post.getCommunitiesPosts(comms, req.user, offset, limit);
-        } else data = await Post.getTrendingPosts(req.user, offset);
+        if (query) data = await Post.getAllSearched(query, req.user, offset, reduced);
+        else if (tag) data = await Post.getAllByTag(tag, req.user, offset, reduced);
+        else if (profile) {
+            switch (mode) {
+                case 'count': data = await Post.getAllCountByProfile(profile, req.user); break;
+                default: data = await Post.getAllByProfile(profile, req.user, offset, reduced);
+            }
+        } else if (community) {
+            switch (mode) {
+                case 'count': data = await Post.getAllCountByCommunity(community); break;
+                default: data = await Post.getAllByCommunity(community, req.user, offset, reduced);
+            }
+        } else if (dashboard) {
+            data = await Post.getAllDashboard(profiles, communities, req.user, offset, reduced);
+        } else data = await Post.getAllTrending(req.user, offset, reduced);
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
@@ -109,7 +120,7 @@ router.get('/', posts, async (req, res, next) => {
 
 router.get('/:slug', posts, async (req, res, next) => {
     try {
-        const data = await Post.getPost(req.params.slug, req.user);
+        const data = await Post.getOne(req.params.slug, req.user);
         if (!data) throw { status: 404, message: 'Post not found' };
         res.json({ status: 'success', data });
     } catch (err) {
@@ -126,16 +137,16 @@ router.put('/:pid', ensureAuthenticated, posts, async (req, res, next) => {
         description: req.body.description
     };
     try {
-        const post = await Post.findPostById(req.params.pid);
+        const post = await Post.isExists(req.params.pid);
         if (!post) throw { status: 404, message: 'Post not found' };
         if (post.author_id !== req.user) throw { status: 403, message: 'Permission denied' };
-        const data = await Post.updatePost(updatedPost, req.params.pid, req.user);
+        const data = await Post.update(updatedPost, req.params.pid, req.user);
         if (req.body.tags) {
             const tags = req.body.tags.split(',');
-            await Post.removeTagsFromPost(data[0].id);
+            await Tag.deleteAllFromPost(data[0].id);
             tags.forEach(async (tag) => {
-                const tagId = await Post.saveTag(tag);
-                await Post.addTagToPost(tagId, data[0].id);
+                const tagId = await Tag.create(tag);
+                await Tag.addOneToPost(tagId, data[0].id);
             });
         }
         res.status(200).json({ status: 'success', data });
@@ -146,10 +157,10 @@ router.put('/:pid', ensureAuthenticated, posts, async (req, res, next) => {
 
 router.delete('/:pid', ensureAuthenticated, posts, async (req, res, next) => {
     try {
-        const post = await Post.findPostById(req.params.pid);
+        const post = await Post.isExists(req.params.pid);
         if (!post) throw { status: 404, message: 'Post not found' };
         if (post.author_id !== req.user) throw { status: 403, message: 'Permission denied' };
-        const filesToDelete = await Post.deletePost(req.params.pid, req.user);
+        const filesToDelete = await Post.deleteOne(req.params.pid, req.user);
         if (filesToDelete) await deleteStorageFiles(filesToDelete);
         res.status(200).json({ status: 'success', data: { id: req.params.pid } });
     } catch (err) {

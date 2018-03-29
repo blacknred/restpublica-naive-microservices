@@ -32,7 +32,8 @@ app.use((req, res, next) => {
     err.status = 404;
     next(err);
 });
-app.use((err, req, res) => {
+// eslint-disable-next-line
+app.use((err, req, res, next) => {
     debug(err.message);
     res.status(err.status || 500);
     res.json({

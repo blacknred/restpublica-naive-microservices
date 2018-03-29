@@ -71,6 +71,9 @@ router.put('/:cid', ensureAuthenticated, communities, async (req, res, next) => 
     try {
         const com = await Community.isExist({ id: req.params.cid });
         if (!com) throw { status: 404, message: 'Community not found' };
+        if (com.admin_id !== req.user && req.body.option !== 'last_post_at') {
+            throw { status: 403, message: 'Permission denied' };
+        }
         switch (req.body.option) {
             case 'name':
                 req.body.value = req.body.value.split(' ').join('_').toLowerCase();
@@ -102,8 +105,8 @@ router.put('/:cid', ensureAuthenticated, communities, async (req, res, next) => 
             default:
         }
         const newCommunity = { [req.body.option]: req.body.value };
-        let data = await Community.update(newCommunity, req.params.cid, req.user);
-        if (req.body.option === 'avatar' || 'banner') data = data.toString('base64');
+        let data = await Community.update(newCommunity, req.params.cid);
+        if (req.body.option === ('avatar' || 'banner')) data = data.toString('base64');
         res.status(200).json({
             status: 'success',
             data: { [req.body.option]: data }
@@ -125,30 +128,34 @@ router.delete('/', async (req, res, next) => {
 router.get('/', communities, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
         --req.query.offset : 0;
-    const query = req.query.query ? req.query.query.toLowerCase() : null;
+    const query = req.query.q ? req.query.q.toLowerCase() : null;
     const list = req.query.list ? req.query.list.split(',') : null;
+    const admin = req.query.admin || null;
     const profile = req.query.profile || null;
     const mode = req.query.mode || null;
+    const dashboard = req.query.dashboard || null;
     const limiter = req.query.lim || null;
-    const reduced = req.useragent.isMobile;
+    const reduced = req.useragent.isMobile || req.query.reduced || false;
     let data;
     try {
-        if (query) data = await Community.getAllSearched(query, req.user, offset, reduced);
-        else if (list) data = await Community.getAllInList(list, req.user, limiter);
-        else if (profile) data = await Community.getAllByUser(profile, req.user, offset, reduced);
-        else if (mode) {
-            ensureAuthenticated(req, res, next);
+        if (admin) {
+            await ensureAuthenticated;
             switch (mode) {
-                case 'admin':
-                    data = await Community.getAllByAdmin(req.user, offset, reduced);
-                    break;
-                case 'dashboard':
-                    data = await Community.getAllFollowing(req.user);
-                    break;
-                default:
+                case 'count': data = await Community.getAllByUserCount(req.user); break;
+                default: data = await Community.getAllByAdmin(req.user, offset, reduced);
             }
-        } else data = await Community.getAllTrending(req.user, offset, reduced);
-        if (!limiter || limiter === 'avatar' || limiter === 'banner') {
+        } else if (profile) {
+            switch (mode) {
+                case 'count': data = await Community.getAllByUserCount(profile); break;
+                default: data = await Community.getAllByUser(req.user, offset, reduced);
+            }
+        } else if (dashboard) {
+            await ensureAuthenticated;
+            data = await Community.getAllDashboard(req.user);
+        } else if (query) data = await Community.getAllSearched(query, req.user, offset, reduced);
+        else if (list) data = await Community.getAllInList(list, req.user, limiter);
+        else data = await Community.getAllTrending(req.user, offset, reduced);
+        if (data.communities && data.communities[0].avatar) {
             data.communities.forEach((com) => {
                 com.avatar = com.avatar.toString('base64');
                 if (com.banner) com.banner = com.banner.toString('base64');
@@ -164,7 +171,8 @@ router.get('/:name', async (req, res, next) => {
     try {
         const data = await Community.getOne(req.params.name, req.user);
         if (!data) throw { status: 404, message: 'Community not found' };
-        const ban = Ban.isExist(data.id, req.user);
+        const ban = await Ban.isExist(data.id, req.user);
+        console.log(ban);
         if (ban) throw { status: 403, message: `Ban will end ${ban.end_date}` };
         data.avatar = data.avatar.toString('base64');
         if (data.banner) data.banner = data.banner.toString('base64');

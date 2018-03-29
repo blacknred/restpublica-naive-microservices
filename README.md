@@ -30,7 +30,7 @@ Entry point API for microservices:
 * Js cron
 * Microservices registry mock
 * Consumers (users||apps) registry
-* Circuit breaker and fallbacks
+* Circuit breaker
 
 #### Mock Storage - http://localhost:3007
 
@@ -65,11 +65,11 @@ $ docker exec -ti <container-id> psql -U postgres
 | /users/check?mode=admin  | GET         | READ        | check an user id/admin/..    |a
 | /users/profile           | GET         | READ        | get logged user data         |a
 | /users                   | PUT         | UPDATE      | update an user value         |a
-| /users                   | DELETE      | DELETE      | delete an inactive users     | c
-| /users                   | GET         | READ        | get all trending profiles    | c
-| /users?query=query       | GET         | READ        | get all profiles by search   | c
-| /users?list=uids&lim=    | GET         | READ        | get limited data of profiles | c
-| /users/:name             | GET         | READ        | get the profile              | c
+| /users                   | DELETE      | DELETE      | delete an inactive users     | s
+| /users                   | GET         | READ        | get all trending profiles    | 
+| /users?query=query       | GET         | READ        | get all profiles by query    | 
+| /users?list=uids&lim=    | GET         | READ        | get limited data of profiles | 
+| /users/:name             | GET         | READ        | get the profile              | 
 | /users/:uid/follow       | POST        | CREATE      | create a subscription        |a
 | /users/:uid/followers    | GET         | READ        | get a profile followers      |a
 | /users/:uid/following    | GET         | READ        | get a profile following      |a
@@ -78,46 +78,48 @@ $ docker exec -ti <container-id> psql -U postgres
 
 #### (2) Communities API - http://localhost:3005/v1
 
-| Endpoint                     | HTTP Method | CRUD Method | Result                      |
-|------------------------------|-------------|-------------|-----------------------------|
-| /ping                        | GET         | READ        | `pong`                      |
-| /communities                 | POST        | CREATE      | add a com-ty                |a
-| /communities                 | GET         | READ        | get all trending com-s      | ?c
-| /communities?query=query     | GET         | READ        | get all com-s by search     | ?c
-| /communities?list=cids&lim=  | GET         | READ        | get limited data of com-s   | ?c
-| /communities?profile=pid     | GET         | READ        | get all user com-s          | ?c
-| /communities?mode=           | GET         | READ        | get all com-s by spec mode  | ?c
-| /communities/:name           | GET         | READ        | get the com-ty              | c
-| /communities/:cid            | PUT         | UPDATE      | update the com-ty           |a 
-| /communities/:cid            | DELETE      | DELETE      | delete the com-ty           |a
-| /communities/:cid/follow     | POST        | CREATE      | create a subscription       |a
-| /communities/:cid/followers  | GET         | READ        | get the com-ty followers    |ac
-| /communities/:cid/follow/sid | DELETE      | DELETE      | delete the subscription     |a
-| /communities/:cid/ban        | POST        | CREATE      | create a ban                |a
-| /communities/:cid/bans       | GET         | READ        | get all bans                |ac
+| Endpoint                      | HTTP Method | CRUD Method | Result                    |
+|-------------------------------|-------------|-------------|---------------------------|
+| /ping                         | GET         | READ        | `pong`                    |
+| /communities                  | POST        | CREATE      | add a com-ty              |a
+| /communities                  | GET         | READ        | get all trending com-s    | 
+| /communities?admin=true&mode= | GET         | READ        | get user admined com-s    |a
+| /communities?dashboard=true   | GET         | READ        | get user com-s ids        |a
+| /communities?query=query      | GET         | READ        | get all com-s by query    | 
+| /communities?list=cids&lim=   | GET         | READ        | get limited data of com-s | 
+| /communities?profile=pid      | GET         | READ        | get all profile com-s     | 
+| /communities/:name            | GET         | READ        | get the com-ty            | 
+| /communities/:cid             | PUT         | UPDATE      | update the com-ty         |a 
+| /communities/:cid             | DELETE      | DELETE      | delete the com-ty         |a
+| /communities/:cid/follow      | POST        | CREATE      | create a subscription     |a
+| /communities/:cid/followers   | GET         | READ        | get the com-ty followers  |a
+| /communities/:cid/follow/sid  | DELETE      | DELETE      | delete the subscription   |a
+| /communities/:cid/ban         | POST        | CREATE      | create a ban              |a
+| /communities/:cid/bans        | GET         | READ        | get all bans              |a
 
 #### (3) Posts API - http://localhost:3006/v1/
 
-| Endpoint                           | HTTP Method | CRUD Method | Result                      |
-|------------------------------- ----|-------------|-------------|-----------------------------|
-| /posts                             | POST        | CREATE      | add a post                  |ac
-| /posts                             | GET         | READ        | get all trending posts      | c
-| /posts?tag=tag                     | GET         | READ        | get all posts by tag        | c
-| /posts?query=query                 | GET         | READ        | get all posts by search     | c
-| /posts?profiles=pids&lim=count     | GET         | READ        | get all posts(id) by user   | c
-| /posts?communities=cids&?lim=count | GET         | READ        | get all community posts(id) | c
-| /posts/:slug                       | GET         | READ        | get a post                  | c
-| /posts/:pid                        | PUT         | UPDATE      | update a post               |a
-| /posts/:pid                        | DELETE      | DELETE      | delete a post               |a
-| /posts/:pid/comments               | POST        | CREATE      | create a comment            |a
-| /posts/:pid/comments               | GET         | READ        | get all comments            | c
-| /posts/:pid/comments/:cid          | PUT         | UPDATE      | update a comment            |a
-| /posts/:pid/comments/:cid          | DELETE      | DELETE      | delete a comment            |a
-| /posts/:pid/likes                  | POST        | CREATE      | create a like               |a
-| /posts/:pid/likes                  | GET         | READ        | get all likes               |ac
-| /posts/:pid/likes/:lid             | DELETE      | DELETE      | delete a like               |a
-| /tags                              | GET         | READ        | get all trending tags       |
-| /tags?query=query                  | GET         | READ        | get all tags by search      |
+| Endpoint                     | HTTP Method | CRUD Method | Result                |
+|------------------------------|-------------|-------------|-----------------------|
+| /posts                       | POST        | CREATE      | add a post            |a
+| /posts                       | GET         | READ        | get trending posts    | 
+| /posts?tag=tag               | GET         | READ        | get posts by tag      | 
+| /posts?query=query           | GET         | READ        | get posts by search   | 
+| /posts?profile=pids&mode=    | GET         | READ        | get posts by user     | 
+| /posts?community=cids&?mode= | GET         | READ        | get community posts   |
+| /posts?dashboard=true        | GET         | READ        | get community posts   |a
+| /posts/:slug                 | GET         | READ        | get the post          | 
+| /posts/:pid                  | PUT         | UPDATE      | update the post       |a
+| /posts/:pid                  | DELETE      | DELETE      | delete the post       |a
+| /posts/:pid/comments         | POST        | CREATE      | create a comment      |a
+| /posts/:pid/comments         | GET         | READ        | get post comments     | 
+| /posts/:pid/comments/:cid    | PUT         | UPDATE      | update the comment    |a
+| /posts/:pid/comments/:cid    | DELETE      | DELETE      | delete the comment    |a
+| /posts/:pid/likes            | POST        | CREATE      | create a post like    |a
+| /posts/:pid/likes            | GET         | READ        | get post likes        |a
+| /posts/:pid/likes            | DELETE      | DELETE      | delete the like       |a
+| /tags                        | GET         | READ        | get all trending tags |
+| /tags?query=query            | GET         | READ        | get all tags by query |
 
 #### (4) Partners API - http://localhost:3008/v1/
 

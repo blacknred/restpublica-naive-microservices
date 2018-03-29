@@ -47,9 +47,8 @@ router.post('/login', users, async (req, res, next) => {
     try {
         const user = await User.isExist({ username: req.body.username });
         if (!user) throw { status: 401, message: 'Username is not in use' };
-        const isPass = await User.comparePass(req.body.password, user.password);
+        const isPass = await User.comparePass(req.body.password, user.id);
         if (!isPass) throw { status: 401, message: 'Incorrect password' };
-        delete user.password;
         user.avatar = user.avatar.toString('base64');
         const token = await encodeToken(user.id);
         user.token = token;
@@ -62,14 +61,14 @@ router.post('/login', users, async (req, res, next) => {
 
 router.get('/check', users, async (req, res, next) => {
     const mode = req.query.mode || 'user';
-    let patternObj = null;
+    let checkObj = null;
     try {
         switch (mode) {
-            case 'admin': patternObj = { id: req.user, admin: true }; break;
-            default: patternObj = { id: req.user, active: true };
+            case 'admin': checkObj = { id: req.user, admin: true }; break;
+            default: checkObj = { id: req.user };
         }
-        const user = await User.isExist(patternObj);
-        res.status(200).json({ status: 'success', user: user.id || null });
+        const user = await User.isExist(checkObj);
+        res.status(200).json({ status: 'success', data: user.id || null });
     } catch (err) {
         return next(err);
     }
@@ -132,17 +131,17 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
 router.get('/', users, async (req, res, next) => {
     const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
         --req.query.offset : 0;
-    const query = req.query.query ? req.query.query.toLowerCase() : null;
+    const query = req.query.q ? req.query.q.toLowerCase() : null;
     const list = req.query.list ? req.query.list.split(',') : null;
     const limiter = req.query.lim || null;
-    const reduced = req.useragent.isMobile;
+    const reduced = req.useragent.isMobile || req.query.reduced || false;
     let data;
     try {
         if (query) data = await User.getAllSearched(query, req.user, offset, reduced);
         else if (list) data = await User.getAllInList(list, req.user, limiter);
         else data = await User.getAllTrending(req.user, offset, reduced);
-        if (!limiter || limiter === 'avatar') {
-            data.users.forEach(user => user.avatar = user.avatar.toString('base64'));
+        if (data.profiles[0].avatar) {
+            data.profiles.forEach(user => user.avatar = user.avatar.toString('base64'));
         }
         res.status(200).json({ status: 'success', data });
     } catch (err) {

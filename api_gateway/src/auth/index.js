@@ -1,21 +1,82 @@
-/* eslint-disable no-return-assign */
+/* eslint-disable */
 
-const redis = require('redis');
-const bluebird = require('bluebird');
+const debug = require('debug')('api-gateway');
+const Promise = require('bluebird');
+const Limiter = require('ratelimiter');
+const Redis = require('ioredis');
+const ms = require('ms');
 const hosts = require('../conf');
 const { genApiSecret } = require('./local');
 const { request } = require('../routes/_helpers');
 
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
-const client = redis.createClient(6379, 'redis-cache');
+/* Get max requests count */
+const getMaxRequestsCount = async (ctx) => {
+    const apiKey = ctx.headers.api_key || null;
+    const apiSecret = ctx.headers.api_secret || null;
+    if (apiKey && apiSecret) {
+        // check api secret
+        try {
+            if (apiSecret !== genApiSecret(apiKey)) throw new Error();
+        } catch (e) {
+            ctx.throw(401, 'Invalid API secret token');
+        }
+        // check api_key and domain in partners service
+        try {
+            ctx.state.method = 'POST';
+            ctx.state.body = {
+                api_key: apiKey,
+                domain: ctx.request.origin
+            };
+            const res = await request(ctx, hosts.PARTNERS_API, '/apps/check', true);
+            if (typeof res.data.limit !== 'number') throw new Error();
+            return parseInt(res.data.limit, 10);
+        } catch (err) {
+            ctx.throw(401, 'Invalid API key');
+        }
+    }
+    return 50; // default max request count
+};
 
-// "freeze" period in sec
-const BLOCING_TIMESPAN = 600;
-// time-span to count the requests in sec
-const WATCHING_TIMESPAN = 60 * 10;
-// default requests limit
-const DEFAULT_LIMIT = 50;
+/* Implement rate-limiting */
+const rateLimiting = async (ctx, next) => {
+    const opts = {
+        db: new Redis(6379, 'redis-cache'),
+        duration: 60000,
+        id: ctx.ip,
+        max: await getMaxRequestsCount(ctx)
+    };
+
+    // initialize limiter
+    const limiter = new Limiter(opts);
+    limiter.get = Promise.promisify(limiter.get);
+
+    try {
+        // check limit
+        const limit = await limiter.get();
+
+        // headers
+        ctx.set('X-RateLimit-Limit', limit.total);
+        ctx.set('X-RateLimit-Remaining', limit.remaining - 1);
+        ctx.set('X-RateLimit-Reset', limit.reset);
+
+        debug('remaining %s/%s %s', limit.remaining - 1, limit.total, opts.id);
+
+        // max is reached
+        if (!limit.remaining) {
+            const delta = (limit.reset * 1000) - Date.now() || 0;
+            const after = limit.reset - (Date.now() / 1000) || 0;
+            ctx.set('Retry-After', after);
+
+            const message = `Rate limit exceeded, retry in ${ms(delta,
+                { long: true })} or change API plan.`;
+            throw { status: 429, message };
+        }
+    } catch (e) {
+        ctx.throw(e.status || 500, e.message);
+    }
+
+    await next();
+};
 
 /* Authenticate consumer and set ctx.state.consumer */
 const authentication = async (ctx, next) => {
@@ -23,26 +84,18 @@ const authentication = async (ctx, next) => {
         ctx.state.consumer = 1;
         await next();
     }
-    const apiKey = ctx.headers.api_key || null;
-    const apiSecret = ctx.headers.api_secret || null;
-    if (apiKey && apiSecret) {
-        // app auth: check api_secret
-        // api_key was checked on rate-limiting
-        try {
-            if (apiSecret !== genApiSecret(apiKey)) throw new Error();
-        } catch (e) {
-            ctx.throw(401, 'Invalid API secret token');
-        }
-    } else if (ctx.headers.authorization) {
-        // user auth: check user id from users service
-        // and set ctx.state.consumer
+    // set success non authorised request flag
+    ctx.state.consumer = 0;
+    if (ctx.headers.authorization) {
+        // user auth: check user id from users-api
+        // and set ctx.state.consumer if ok
         const userToken = ctx.headers.authorization.split(' ')[1];
-        if (typeof userToken === 'undefined') return;
+        if (typeof userToken === 'undefined') await next();
         ctx.state.method = 'GET';
         ctx.state.userAuthToken = userToken;
         const res = await request(ctx, hosts.USERS_API, '/users/check', true);
-        if (typeof res.user !== 'number') return;
-        ctx.state.consumer = parseInt(res.user, 10);
+        if (typeof res.data !== 'number') return;
+        ctx.state.consumer = parseInt(res.data, 10);
         delete ctx.state.method;
     }
     await next();
@@ -50,7 +103,7 @@ const authentication = async (ctx, next) => {
 
 /* Restrict non authorised requests on secure API endpoints */
 const auth = async (ctx, next) => {
-    if (!ctx.state.consumer > 0) ctx.throw(401, 'Please log in');
+    if (ctx.state.consumer === 0) ctx.throw(401, 'Please log in');
     await next();
 };
 
@@ -58,143 +111,14 @@ const auth = async (ctx, next) => {
 const admin = async (ctx, next) => {
     ctx.state.method = 'GET';
     const res = await request(ctx, hosts.USERS_API, '/users/check?mode=admin', true);
-    if (!res.admin) ctx.throw(401, 'Access is restricted');
+    if (typeof res.data !== 'number') ctx.throw(401, 'Access is restricted');
     delete ctx.state.method;
     await next();
 };
 
-/* Clear Rate Limit on user logout */
-const clearRateLimit = async (ctx, next) => {
-    // delete related ip counter and ip limit
-    const ipCounter = `ip_requests_counter_${ctx.ip}`;
-    const ipLimit = `ip_requests_limit_${ctx.ip}`;
-    client.del(ipCounter, ipLimit);
-    await next();
-};
-
-/* RateLimitPolicy */
-/* Every consumer has limitation on count of requests by time
-to prevent Denial of Service (DoS) attacks and memory exhaustation.
-Additionally partner apps (which need much more traffic) might have
-higher limits based on  API plan.
-
-The concept: There are ip counters and blockers in Redis with EXPIRE
-functionality that allows avoid having to handle all the timing stuff.
-We will count the requests of individual consumer over a defined
-time-span and will set the counter to zero after the time-span is over.
-If consumer logout or changed API plan - remove ip counter & ip limit.
-
-Order:
-- At first check if there is a "blocked" consumer ip
-- At second, handle ip(check/get ipCounter, ipLimit)
-    - If ip has partner app credentials, check if such partner ip is
-    set already, otherwise check ip from partners-api and set partnerIp,
-    ipCounter, iplimit
-    - If ip is not partner, check if ipCounter was set already, otherwise
-    set up ipCounter, ipLimit. If previous request from this ip was with
-    app credentials,  delete partnerIp, ipCounter, iplimit at first.
-- At third,  handle rate/limit
-    - Increment ipCounter and if it will top limit of requests within
-    the time-span, block any subsequent requests from this ip.  Accept
-    requests again after a freeze period.
-- Finally set success flag: ctx.state.consumer = 0
-*/
-const rateLimitPolicy = async (ctx, next) => {
-    if (process.env.NODE_ENV === 'test') {
-        ctx.state.consumer = 0;
-        await next();
-    }
-    // compose key for identifying blocked ips
-    const blockedIp = `blocked_ip_${ctx.ip}`;
-    // compose key for identifying partner ips
-    const partnerIp = `partner_ip_${ctx.ip}`;
-    // compose key for counting requests
-    const ipCounter = `ip_requests_counter_${ctx.ip}`;
-    // compose key for identifying limit of requests(consumer-app)
-    const ipLimit = `ip_requests_limit_${ctx.ip}`;
-    const message = `API requests limit is reached. Try later or change API plan.`;
-
-    // check if ip is blocked
-    try {
-        const isIpBlocked = await client.getAsync(blockedIp);
-        if (isIpBlocked) throw new Error(message);
-    } catch (err) {
-        ctx.throw(429, err.message);
-    }
-
-    // set success non authorised request flag
-    ctx.state.consumer = 0;
-
-    // process ip
-    const apiKey = ctx.headers.api_key || null;
-    const apiSecret = ctx.headers.api_secret || null;
-    if (apiKey && apiSecret) {
-        // check ip as partner app
-        const isPartnerIp = await client.getAsync(partnerIp);
-        if (!isPartnerIp) {
-            // check api_key and domain in partners service
-            try {
-                ctx.state.method = 'POST';
-                ctx.state.body = {
-                    api_key: apiKey,
-                    domain: ctx.request.origin
-                };
-                const res = await request(ctx, hosts.PARTNERS_API, '/apps/check', true);
-                if (typeof res.data.limit !== 'number') throw new Error();
-                // set partnerIp, ipCounter, iplimit
-                client.set(partnerIp, 1);
-                client.set(ipLimit, parseInt(res.data.limit, 10));
-                client.set(ipCounter, 1);
-                client.expire(ipCounter, WATCHING_TIMESPAN);
-            } catch (err) {
-                ctx.throw(401, 'Invalid API key');
-            }
-            await next();
-        }
-    } else {
-        // check ip as partner app (if previous request was from partner app)
-        const isPartnerIp = await client.getAsync(partnerIp);
-        if (isPartnerIp) {
-            // clear partnerIp, ipCounter, ipLimit
-            client.del(partnerIp);
-            clearRateLimit(ctx, next);
-        }
-        // check ip as user
-        const cnt = await client.getAsync(ipCounter);
-        if (!cnt) {
-            // set ipCounter, ipLimit
-            client.set(ipCounter, 1);
-            client.expire(ipCounter, WATCHING_TIMESPAN);
-            await next();
-        }
-    }
-
-    // process rate/limit
-    try {
-        let cnt = await client.getAsync(ipCounter);
-        // increment ip counter
-        await client.incr(ipCounter);
-        // get requests limit for ip
-        const requestsLimit = await client.getAsync(ipLimit) || DEFAULT_LIMIT;
-        // check limit
-        if (++cnt > requestsLimit) {
-            // mark the consumer ip as "blocked"
-            // expiring itself after the defined freeze period
-            client.set(blockedIp, 1);
-            client.expire(blockedIp, BLOCING_TIMESPAN);
-            throw new Error(message);
-        }
-        await next();
-    } catch (err) {
-        ctx.throw(429, err.message);
-    }
-};
-
 module.exports = {
-    rateLimitPolicy,
-    authentication,
     auth,
     admin,
-    clearRateLimit
+    authentication,
+    rateLimiting
 };
-

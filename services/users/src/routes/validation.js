@@ -1,14 +1,18 @@
 /* eslint-disable no-throw-literal */
 
+const moment = require('moment');
+
 const BASE64PATTERN = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
 const PASSWORDPATTERN = /^.*(?=.{5,})(?=.*\d)(?=.*[a-zA-Z]).*$/;
 
 function users(req, res, next) {
     if (req.method === 'GET') {
-        if (req.query.query) {
-            req.checkQuery('query')
-                .isLength({ min: 3 })
-                .withMessage('Search query must have at least 3 chars');
+        if (req.query.q) {
+            req.checkQuery('q')
+                .isLength({ min: 2 })
+                .withMessage('Search query must have at least 2 chars')
+                .matches(/^[a-zA-Z0-9]+$/)
+                .withMessage('Search query must have be alphanumeric');
         }
         if (req.query.list) {
             req.checkQuery('list')
@@ -73,7 +77,7 @@ function users(req, res, next) {
                     break;
                 case 'last_post_at':
                     req.checkBody('value')
-                        .custom(date => date instanceof Date && !NaN(Date.parse(date)))
+                        .custom(date => moment(date, moment.ISO_8601, true).isValid())
                         .withMessage('Last post date value must be valid');
                     break;
                 default:

@@ -1,48 +1,40 @@
 const knex = require('./../connection');
 
 const LIMIT = 12;
+const MOBILE_LIMIT = 6;
 
 /* comments */
 
-function findCommentById(commentId) {
+function isExists(commentId) {
     return knex('comments')
         .select('user_id', 'post_id')
         .where('id', commentId)
         .first();
 }
 
-function isPostCommentable(commentId) {
-    return knex('posts')
-        .select('commentable')
-        .leftJoin('posts', 'posts.id', 'comments.post_id')
-        .where('comments.id', commentId)
-        .first()
-        .then(res => res.commentable);
-}
 
-
-function getPostComments(postId, offset) {
+function getAll(postId, offset, reduced) {
     return knex('comments')
         .select('*')
         .where('post_id', postId)
-        .limit(LIMIT)
-        .offset(LIMIT * offset)
-        .then((rows) => {
+        .limit(reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
+        .then((comments) => {
             return knex('comments')
                 .count('*')
                 .where('post_id', postId)
                 .first()
-                .then((count) => { return { count: count.count, comments: rows }; });
+                .then(({ count }) => { return { count, comments }; });
         });
 }
 
-function addPostComment(newComment) {
+function create(newComment) {
     return knex('comments')
         .insert(newComment)
         .returning('*');
 }
 
-function updatePostComment(newComment, commentId, userId) {
+function update(newComment, commentId, userId) {
     return knex('comments')
         .update(newComment)
         .where('id', commentId)
@@ -50,7 +42,7 @@ function updatePostComment(newComment, commentId, userId) {
         .returning('*');
 }
 
-function deletePostComment(commentId, userId) {
+function deleteOne(commentId, userId) {
     return knex('comments')
         .del()
         .where('id', commentId)
@@ -58,10 +50,9 @@ function deletePostComment(commentId, userId) {
 }
 
 module.exports = {
-    findCommentById,
-    isPostCommentable,
-    addPostComment,
-    getPostComments,
-    updatePostComment,
-    deletePostComment
+    isExists,
+    create,
+    getAll,
+    update,
+    deleteOne
 };

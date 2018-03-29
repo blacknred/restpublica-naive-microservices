@@ -13,9 +13,7 @@ function mySubscription(user, authUserId) {
         .select('id')
         .where({ user_id: user.id, sub_user_id: authUserId })
         .first()
-        .then(({ id }) => {
-            return Object.assign(user, { my_subscription_id: id || null });
-        });
+        .then(id => Object.assign(user, { my_subscription: id ? id.id : null }));
 }
 
 function isExist(subscriptionId) {
@@ -33,7 +31,7 @@ function create(newSubscription) {
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query).first();
+    return knex.raw(query).then(({ rows }) => rows[0].id);
 }
 
 function getAllFollowers(userId, authUserId, offset, reduced) {
@@ -46,7 +44,7 @@ function getAllFollowers(userId, authUserId, offset, reduced) {
         .andWhere('users_subscriptions.sub_user_id', '!=', authUserId)
         .orderBy('users_subscriptions.created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
-        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? mySubscription(_row, authUserId) : _row)
         .then((subscriptions) => {
             return knex('users_subscriptions')
@@ -69,7 +67,7 @@ function getAllFollowing(userId, authUserId, offset, reduced) {
         .andWhere('user_id', '!=', authUserId)
         .orderBy('users_subscriptions.created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
-        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? mySubscription(_row, authUserId) : _row)
         .then((subscriptions) => {
             return knex('users_subscriptions')
@@ -82,15 +80,15 @@ function getAllFollowing(userId, authUserId, offset, reduced) {
         });
 }
 
-function getDashboardFollowing(authUserId) {
+function getAllDashboard(authUserId) {
     const today = new Date();
-    const lastWeek = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 14);
+    const lastMonth = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 31);
     return knex('users_subscriptions')
-        .select('users_subscriptions.id')
+        .select('users_subscriptions.user_id')
         .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
         .where('users_subscriptions.sub_user_id', authUserId)
-        .andWhere('users.last_post_at', '>', lastWeek)
+        .andWhere('users.last_post_at', '>', lastMonth)
         .orderBy('users.last_post_at', 'DESC')
         .limit(100);
 }
@@ -116,7 +114,7 @@ module.exports = {
     create,
     getAllFollowers,
     getAllFollowing,
-    getDashboardFollowing,
+    getAllDashboard,
     deleteOne,
     deleteAll
 };

@@ -17,7 +17,8 @@ const createUser = (knex, username) => {
                     description: faker.lorem.sentences(),
                     password: hash,
                     email: faker.internet.email(),
-                    avatar
+                    avatar,
+                    last_post_at: new Date()
                 });
         })
         .catch(err => console.log(err));

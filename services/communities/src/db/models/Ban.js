@@ -6,6 +6,16 @@ const MOBILE_LIMIT = 6;
 
 /* bans */
 
+function isExist(communityId, userId) {
+    const today = new Date();
+    return knex('communities_bans')
+        .select('user_id')
+        .where('id', communityId)
+        .andWhere('user_id', userId)
+        .andWhere('end_date', '>', today)
+        .first();
+}
+
 function create(newBan) {
     // upsert
     const insert = knex('communities_bans').insert(newBan);
@@ -25,7 +35,7 @@ function getAll(communityId, offset, reduced) {
         .where('community_id', communityId)
         .andWhere('end_date', '>', today)
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
-        .offset(offset * reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .then((bans) => {
             return knex('communities_bans')
                 .count('*')
@@ -46,6 +56,7 @@ function deleteAll(communityId, adminId) {
 
 
 module.exports = {
+    isExist,
     create,
     getAll,
     deleteAll
