@@ -35,7 +35,7 @@ router.get('/:pid/likes', ensureAuthenticated, likes, async (req, res, next) => 
     try {
         const post = await Post.isExists(req.params.pid);
         if (!post) throw { status: 404, message: 'Post not found' };
-        const data = await Like.getAll(req.params.pid, offset, reduced);
+        const data = await Like.getAll({ postId: req.params.pid, offset, reduced });
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);

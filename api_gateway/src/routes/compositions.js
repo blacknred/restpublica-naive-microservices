@@ -117,6 +117,19 @@ router
     })
     .get('/posts', async (ctx) => {
         // get posts data
+        if (ctx.query.dashboard) {
+            await auth;
+            // get following profiles & communities ids -- last week & max 100
+            const [rawProfiles, rawCommunities] = await Promise.all([
+                request(ctx, hosts.USERS_API, `/users/${ctx.state.consumer}/dashboard`, true),
+                request(ctx, hosts.COMMUNITIES_API,
+                    `/communities?profile=${ctx.state.consumer}&mode=dashboard`, true)
+            ]);
+            const profiles = rawProfiles.data.map(p => p.user_id);
+            const comms = rawCommunities.data.communities.map(c => c.id);
+            // get posts
+            ctx.url = `${ctx.url}&profiles=${profiles}&communities=${comms}`;
+        }
         const posts = await request(ctx, hosts.POSTS_API, ctx.url, true);
         const response = () => ctx.body = posts;
         // adds
@@ -178,31 +191,6 @@ router
         likes.data.likes = likes.data.likes.map(x => profiles.data.profiles
             .find(y => y.id === x.user_id));
         ctx.body = likes;
-    })
-
-    .get('/dashboard', auth, async (ctx) => {
-        // get following profiles & communities ids -- last week & max 100
-        const [rawProfiles, rawCommunities] = await Promise.all([
-            request(ctx, hosts.USERS_API, `/users/${ctx.state.consumer}/dashboard`, true),
-            request(ctx, hosts.COMMUNITIES_API, '/communities?dashboard=true', true)
-        ]);
-        const profiles = rawProfiles.data.map(p => p.user_id);
-        const communities = rawCommunities.data.communities.map(c => c.id);
-        console.log(profiles, communities);
-        // get posts
-        const pUrl = `/posts?dashboard=true&profiles=${profiles}&communities=${communities}`;
-        const data = await request(ctx, hosts.POSTS_API, pUrl, true);
-        ctx.body = data;
-        // const pIds = profiles.data.map(prof => `${prof.id},`);
-        // const cIds = communities.data.map(comm => `${comm.id},`);
-        // const pUrl = `/posts?profiles=${pIds}&offset=${ctx.query.offset}`;
-        // const cUrl = `/posts?communities=${cIds}&offset=${ctx.query.offset}`;
-        // const [pPosts, cPosts] = await Promise.all([
-        //     await request(ctx, hosts.POSTS_API, pUrl, true),
-        //     await request(ctx, hosts.POSTS_API, cUrl, true)
-        // ]);
-        // // delete duplicates
-        // data = [...new Set(pPosts.concat(cPosts))];
     });
 
 module.exports = router;

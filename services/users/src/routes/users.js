@@ -17,7 +17,7 @@ const { ensureAuthenticated } = require('../auth');
 const router = express.Router();
 
 
-/* users */
+/* user */
 
 router.post('/', users, async (req, res, next) => {
     const newUser = {
@@ -29,14 +29,24 @@ router.post('/', users, async (req, res, next) => {
     };
     try {
         const name = await User.isExist({ username: newUser.username });
-        if (name) throw { status: 409, message: 'Username is already in use' };
+        if (name) {
+            throw {
+                status: 409,
+                message: { param: 'username', msg: 'Username is already in use' }
+            };
+        }
         const email = await User.isExist({ email: newUser.email });
-        if (email) throw { status: 409, message: 'Email is already in use' };
+        if (email) {
+            throw {
+                status: 409,
+                message: { param: 'email', msg: 'Email is already in use' }
+            };
+        }
         newUser.avatar = await helpers.createAvatar(newUser.fullname);
         const data = await User.create(newUser);
+        await User.update({ activity_at: new Date() }, data.id);
         data.avatar = data.avatar.toString('base64');
-        const token = await encodeToken(data.id);
-        data.token = token;
+        data.token = await encodeToken(data.id);
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
@@ -46,13 +56,23 @@ router.post('/', users, async (req, res, next) => {
 router.post('/login', users, async (req, res, next) => {
     try {
         const user = await User.isExist({ username: req.body.username });
-        if (!user) throw { status: 401, message: 'Username is not in use' };
+        if (!user) {
+            throw {
+                status: 401,
+                message: { param: 'username', msg: 'Username is not in use' }
+            };
+        }
         const isPass = await User.comparePass(req.body.password, user.id);
-        if (!isPass) throw { status: 401, message: 'Incorrect password' };
+        if (!isPass) {
+            throw {
+                status: 401,
+                message: { param: 'password', msg: 'Incorrect password' }
+            };
+        }
         user.avatar = user.avatar.toString('base64');
         const token = await encodeToken(user.id);
         user.token = token;
-        await User.update({ active: true }, user.id);
+        await User.update({ active: true, activity_at: new Date() }, user.id);
         res.status(200).json({ status: 'success', data: user });
     } catch (err) {
         return next(err);
@@ -60,15 +80,10 @@ router.post('/login', users, async (req, res, next) => {
 });
 
 router.get('/check', users, async (req, res, next) => {
-    const mode = req.query.mode || 'user';
-    let checkObj = null;
     try {
-        switch (mode) {
-            case 'admin': checkObj = { id: req.user, admin: true }; break;
-            default: checkObj = { id: req.user };
-        }
-        const user = await User.isExist(checkObj);
-        res.status(200).json({ status: 'success', data: user.id || null });
+        const user = await User.isExist({ id: req.user });
+        const { id, admin } = user;
+        res.status(200).json({ status: 'success', data: { id, admin } });
     } catch (err) {
         return next(err);
     }
@@ -110,13 +125,13 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
                 //     });
                 break;
             case 'fullname':
-                req.body.fullname.toLowerCase().split(' ')
+                req.body.value.toLowerCase().split(' ')
                     .map(word => word[0].toUpperCase() + word.substr(1)).join(' ');
                 break;
             case 'active': await Subscription.deleteAll(req.user); break;
             default:
         }
-        const newUser = { [req.body.option]: req.body.value };
+        const newUser = { [req.body.option]: req.body.value, activity_at: new Date() };
         let data = await User.update(newUser, req.user);
         if (req.body.option === 'avatar') data = data.toString('base64');
         res.status(200).json({ status: 'success', data: { [req.body.option]: data } });
@@ -137,9 +152,9 @@ router.get('/', users, async (req, res, next) => {
     const reduced = req.useragent.isMobile || req.query.reduced || false;
     let data;
     try {
-        if (query) data = await User.getAllSearched(query, req.user, offset, reduced);
-        else if (list) data = await User.getAllInList(list, req.user, limiter);
-        else data = await User.getAllTrending(req.user, offset, reduced);
+        if (query) data = await User.getAllSearched({ query, userId: req.user, offset, reduced });
+        else if (list) data = await User.getAllInList({ list, userId: req.user, limiter });
+        else data = await User.getAllTrending({ userId: req.user, offset, reduced });
         if (data.profiles[0].avatar) {
             data.profiles.forEach(user => user.avatar = user.avatar.toString('base64'));
         }

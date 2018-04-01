@@ -34,60 +34,60 @@ function create(newSubscription) {
     return knex.raw(query).then(({ rows }) => rows[0].id);
 }
 
-function getAllFollowers(userId, authUserId, offset, reduced) {
+function getAllFollowers({ profileId, userId, offset, reduced }) {
     return knex('users_subscriptions')
         .select(['users_subscriptions.id', 'users.username',
             'users.fullname', 'users.avatar'])
         .rightJoin('users', 'users.id', 'users_subscriptions.sub_user_id')
-        .where('users_subscriptions.user_id', userId)
+        .where('users_subscriptions.user_id', profileId)
         .andWhere('users.active', true)
-        .andWhere('users_subscriptions.sub_user_id', '!=', authUserId)
+        .andWhere('users_subscriptions.sub_user_id', '!=', userId)
         .orderBy('users_subscriptions.created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .map(_row => _row ? mySubscription(_row, authUserId) : _row)
+        .map(_row => _row ? mySubscription(_row, userId) : _row)
         .then((subscriptions) => {
             return knex('users_subscriptions')
                 .count('*')
                 .rightJoin('users', 'users.id', 'users_subscriptions.sub_user_id')
-                .where('users_subscriptions.user_id', userId)
+                .where('users_subscriptions.user_id', profileId)
                 .andWhere('users.active', true)
                 .first()
                 .then(({ count }) => { return { count, subscriptions }; });
         });
 }
 
-function getAllFollowing(userId, authUserId, offset, reduced) {
+function getAllFollowing({ profileId, userId, offset, reduced }) {
     return knex('users_subscriptions')
         .select(['users_subscriptions.id', 'users.username',
             'users.fullname', 'users.avatar'])
         .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
-        .where('users_subscriptions.sub_user_id', userId)
+        .where('users_subscriptions.sub_user_id', profileId)
         .andWhere('users.active', true)
-        .andWhere('user_id', '!=', authUserId)
+        .andWhere('user_id', '!=', userId)
         .orderBy('users_subscriptions.created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .map(_row => _row ? mySubscription(_row, authUserId) : _row)
+        .map(_row => _row ? mySubscription(_row, userId) : _row)
         .then((subscriptions) => {
             return knex('users_subscriptions')
                 .count('*')
                 .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
-                .where('users_subscriptions.sub_user_id', userId)
+                .where('users_subscriptions.sub_user_id', profileId)
                 .andWhere('users.active', true)
                 .first()
                 .then(({ count }) => { return { count, subscriptions }; });
         });
 }
 
-function getAllDashboard(authUserId) {
+function getAllDashboard(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
         today.getMonth(), today.getDate() - 31);
     return knex('users_subscriptions')
         .select('users_subscriptions.user_id')
         .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
-        .where('users_subscriptions.sub_user_id', authUserId)
+        .where('users_subscriptions.sub_user_id', userId)
         .andWhere('users.last_post_at', '>', lastMonth)
         .orderBy('users.last_post_at', 'DESC')
         .limit(100);

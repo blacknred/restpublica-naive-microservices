@@ -22,9 +22,19 @@ router.post('/', ensureAuthenticated, appValidation,
         };
         try {
             const plan = await ApiPlan.getOne({ _id: req.body.planId });
-            if (!plan) throw { status: 409, message: 'Api plan is not in use' };
+            if (!plan) {
+                throw {
+                    status: 409,
+                    message: { param: 'plan', msg: 'Api plan is not in use' }
+                };
+            }
             const domain = await PartnerApp.getOne({ domain: req.body.value });
-            if (domain) throw { status: 409, message: 'Domain already in use' };
+            if (domain) {
+                throw {
+                    status: 409,
+                    message: { param: 'domain', msg: 'Domain is already in use' }
+                };
+            }
             const data = await PartnerApp.create(newApp);
             res.status(200).json({ status: 'success', data });
         } catch (err) {
@@ -81,9 +91,14 @@ router.put('/:aid', ensureAuthenticated, appValidation,
             }
             if (req.body.option === 'domain') {
                 const domain = await PartnerApp.getOne({ domain: req.body.value });
-                if (domain) throw { status: 409, message: 'Domain already in use' };
+                if (domain) {
+                    throw {
+                        status: 409,
+                        message: { param: 'domain', msg: 'Domain is already in use' }
+                    };
+                }
             }
-            const data = await PartnerApp.update(appId, appObj, req.user);
+            const data = await PartnerApp.update({ appId, appObj, adminId: req.user });
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);

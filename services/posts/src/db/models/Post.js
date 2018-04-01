@@ -22,7 +22,7 @@ function getTags(post) {
         .leftJoin('posts_tags', 'tags.id', 'posts_tags.tag_id')
         .where('posts_tags.post_id', post.id)
         .then((rows) => {
-            return Object.assign(post, { tags: rows.map(tag => tag.title) });
+            return { ...post, tags: rows.map(tag => tag.title) };
         });
 }
 
@@ -32,7 +32,7 @@ function getMyLike(post, userId) {
         .where('post_id', post.id)
         .andWhere('user_id', userId)
         .first()
-        .then(id => Object.assign(post, { my_like_id: id ? id.id : null }));
+        .then((id) => { return { ...post, my_like_id: id ? id.id : null }; });
 }
 
 function getLikesCount(post) {
@@ -41,7 +41,7 @@ function getLikesCount(post) {
         .where('post_id', post.id)
         .first()
         .then(({ count }) => {
-            return Object.assign(post, { likes_cnt: count });
+            return { ...post, likes_cnt: count };
         });
 }
 
@@ -51,7 +51,7 @@ function getCommentsCount(post) {
         .where('post_id', post.id)
         .first()
         .then(({ count }) => {
-            return Object.assign(post, { comments_cnt: count });
+            return { ...post, comments_cnt: count };
         });
 }
 
@@ -153,9 +153,10 @@ function getOne(slug, userId) {
         .then(_row => _row ? getMyLike(_row, userId) : _row);
 }
 
-function update(updatedPost, postId, userId) {
+function update({ updatedPost, postId, userId }) {
     return knex('posts')
         .update(updatedPost)
+        .update('updated_at', knex.fn.now())
         .where('id', postId)
         .andWhere('author_id', userId)
         .returning('*');
@@ -270,11 +271,11 @@ function getAllTrending(userId, offset, reduced) {
         });
 }
 
-function getAllSearched(pattern, userId, offset, reduced) {
+function getAllSearched({ query, userId, offset, reduced }) {
     return knex('posts')
         .select('*')
         .select(knex.raw('left (description, 40) as description'))
-        .whereRaw('LOWER(description) like ?', `%${pattern}%`)
+        .whereRaw('LOWER(description) like ?', `%${query}%`)
         .andWhere('archived', false)
         .orderBy('created_at', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
@@ -287,13 +288,13 @@ function getAllSearched(pattern, userId, offset, reduced) {
         .then((posts) => {
             return knex('posts')
                 .count('*')
-                .whereRaw('LOWER(description) like ?', `%${pattern}%`)
+                .whereRaw('LOWER(description) like ?', `%${query}%`)
                 .first()
                 .then(({ count }) => { return { count, posts }; });
         });
 }
 
-function getAllByTag(tag, userId, offset, reduced) {
+function getAllByTag({ tag, userId, offset, reduced }) {
     return knex('posts')
         .select('posts.*')
         .select(knex.raw('left (description, 40) as description'))
@@ -321,7 +322,7 @@ function getAllByTag(tag, userId, offset, reduced) {
         });
 }
 
-function getAllDashboard(profiles, communities, userId, offset, reduced) {
+function getAllDashboard({ profiles, communities, userId, offset, reduced }) {
     return knex('posts')
         .select(['posts.*', knex.raw('left (description, 40) as description')])
         .whereIn('author_id', profiles)
@@ -346,7 +347,7 @@ function getAllDashboard(profiles, communities, userId, offset, reduced) {
         });
 }
 
-function getAllByProfile(profileId, userId, offset, reduced) {
+function getAllByProfile({ profileId, userId, offset, reduced }) {
     return knex('posts')
         .select(['posts.*', knex.raw('left (description, 40) as description')])
         .where('author_id', profileId)
@@ -369,7 +370,7 @@ function getAllByProfile(profileId, userId, offset, reduced) {
         });
 }
 
-function getAllByCommunity(communityId, userId, offset, reduced) {
+function getAllByCommunity({ communityId, userId, offset, reduced }) {
     return knex('posts')
         .select(['posts.*', knex.raw('left (description, 40) as description')])
         .where('community_id', communityId)

@@ -11,16 +11,15 @@ module.exports = new CronJob({
         /*
         TODO:
         - launched microservices register self hosts and ports in redis
-        - gateway gets conf from redis
-        - ?every 10 min calls 'ping' all microservices and then updates hosts
+        - gateway gets conf from redis? every 10 min
         */
         try {
             // mocking
             const version = '/v1';
-            conf.USERS_API = process.env.USERS_API_HOST + version;
-            conf.COMMUNITIES_API = process.env.COMMUNITIES_API_HOST + version;
-            conf.POSTS_API = process.env.POSTS_API_HOST + version;
-            conf.PARTNERS_API = process.env.PARTNERS_API_HOST + version;
+            conf.USERS_API = `http://users-service:3004${version}`;
+            conf.COMMUNITIES_API = `http://communities-service:3005${version}`;
+            conf.POSTS_API = `http://posts-service:3006${version}`;
+            conf.PARTNERS_API = `http://partners-service:3008${version}`;
             log('success');
         } catch (err) {
             log(`failed with ${err.message}`);
@@ -30,4 +29,3 @@ module.exports = new CronJob({
     start: true,
     timeZone: 'Europe/Minsk'
 });
-

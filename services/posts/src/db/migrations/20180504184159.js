@@ -5,18 +5,18 @@ exports.up = (knex) => {
             table.string('slug').unique().notNullable();
             table.integer('author_id').notNullable();
             table.integer('community_id');
-            table.enu('type', ['file', 'link', 'poll']).notNullable();
+            table.string('type').notNullable();
             table.text('description');
             table.boolean('commentable').notNullable().defaultTo(true);
             table.boolean('archived').notNullable().defaultTo(false);
             table.integer('views_cnt').notNullable().defaultTo(0);
-            table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
+            table.timestamps(true, true);
         })
         .createTable('post_files', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
             table.foreign('post_id').references('posts.id');
-            table.enu('mime', ['image/jpg', 'image/gif', 'video/mp4']).notNullable();
+            table.string('mime').notNullable();
             table.string('file').notNullable();
             table.string('thumb').notNullable();
         })
@@ -24,7 +24,7 @@ exports.up = (knex) => {
             table.increments();
             table.integer('post_id').notNullable();
             table.foreign('post_id').references('posts.id');
-            table.enu('type', ['embed', 'file', 'page']).notNullable();
+            table.string('type').notNullable();
             table.string('link').notNullable();
             table.string('src').notNullable();
             table.string('thumb');
@@ -55,7 +55,7 @@ exports.up = (knex) => {
             table.foreign('post_id').references('posts.id');
             table.integer('user_id').notNullable();
             table.text('body').notNullable();
-            table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
+            table.timestamps(true, true);
         })
         .createTable('likes', (table) => {
             table.increments();

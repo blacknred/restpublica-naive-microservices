@@ -23,6 +23,11 @@ function communities(req, res, next) {
                 .isInt()
                 .withMessage('Profile id must be integer');
         }
+        if (req.query.admin) {
+            req.checkQuery('admin')
+                .isInt()
+                .withMessage('Admin id must be integer');
+        }
         if (req.query.lim) {
             req.checkQuery('lim')
                 .isIn(['id', 'name', 'title', 'avatar'])
@@ -30,7 +35,7 @@ function communities(req, res, next) {
         }
         if (req.query.mode) {
             req.checkQuery('mode')
-                .isIn(['count'])
+                .isIn(['count', 'dashboard'])
                 .withMessage('Mode must be valid');
         }
     } else if (req.method === 'POST') {

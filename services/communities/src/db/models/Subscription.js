@@ -28,7 +28,7 @@ function create(newSubscription) {
     return knex.raw(query).then(({ rows }) => rows[0].id);
 }
 
-function getAllFollowers(communityId, userId, adminId, pending, offset, reduced) {
+function getAllFollowers({ communityId, userId, adminId, pending, offset, reduced }) {
     const isAdmin = userId === adminId;
     return knex('communities_subscriptions')
         .select(['communities_subscriptions.id', 'user_id'])
@@ -54,14 +54,14 @@ function getAllFollowers(communityId, userId, adminId, pending, offset, reduced)
         });
 }
 
-function deleteOne(subscriptionId, communityId, adminId) {
+function deleteOne({ subscriptionId, communityId, userId }) {
     return knex('communities_subscriptions')
         .del()
         .leftJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
         .where('community_id', communityId)
         .where('communities_subscriptions.id', subscriptionId)
         .andWhere('communities_subscriptions.community_id', communityId)
-        .andWhere('communities.admin_id', adminId);
+        .andWhere('communities.admin_id', userId);
 }
 
 function deleteAll(communityId, adminId) {

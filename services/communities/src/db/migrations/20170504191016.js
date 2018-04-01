@@ -10,9 +10,9 @@ exports.up = (knex) => {
             table.boolean('restricted').notNullable().defaultTo(false);
             table.boolean('posts_moderation').notNullable().defaultTo(false);
             table.integer('admin_id').notNullable();
-            table.datetime('last_post_at');
             table.boolean('active').notNullable().defaultTo(true);
-            table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
+            table.datetime('last_post_at');
+            table.timestamps(true, true);
         })
         .createTable('communities_subscriptions', (table) => {
             table.increments();
@@ -20,7 +20,7 @@ exports.up = (knex) => {
             table.foreign('community_id').references('communities.id');
             table.integer('user_id').notNullable();
             table.boolean('approved').notNullable().defaultTo(false);
-            table.datetime('created_at').notNullable().defaultTo(knex.raw('now()'));
+            table.datetime('created_at').notNullable().defaultTo(knex.fn.now());
         })
         .createTable('communities_bans', (table) => {
             table.increments();

@@ -13,7 +13,7 @@ function isExists(commentId) {
 }
 
 
-function getAll(postId, offset, reduced) {
+function getAll({ postId, offset, reduced }) {
     return knex('comments')
         .select('*')
         .where('post_id', postId)
@@ -34,9 +34,10 @@ function create(newComment) {
         .returning('*');
 }
 
-function update(newComment, commentId, userId) {
+function update({ newComment, commentId, userId }) {
     return knex('comments')
         .update(newComment)
+        .update('updated_at', knex.fn.now())
         .where('id', commentId)
         .andWhere('user_id', userId)
         .returning('*');

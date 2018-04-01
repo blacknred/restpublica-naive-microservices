@@ -6,7 +6,7 @@ const MOBILE_LIMIT = 6;
 
 /* likes */
 
-function getAll(postId, offset, reduced) {
+function getAll({ postId, offset, reduced }) {
     return knex('likes')
         .select('user_id')
         .where('post_id', postId)

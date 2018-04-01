@@ -2,9 +2,10 @@
     "name": "restpublica-mocking-files-storage",
     "version": "0.0.1",
     "scripts": {
-        "start": "DEBUG=storage gulp --gulpfile app/gulpfile.js"
+        "start": "WORKER_COUNT=2 DEBUG=files-storage:* gulp --gulpfile app/gulpfile.js"
     },
     "dependencies": {
+        "debug": "^3.1.0",
         "fluent-ffmpeg": "^2.1.2",
         "koa": "^2.5.0",
         "koa-better-body": "^3.0.4",

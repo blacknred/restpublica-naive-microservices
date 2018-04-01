@@ -1,109 +1,58 @@
-/* eslint-disable consistent-return */
-/* eslint-disable max-len */
-const path = require('path');
-const fs = require('fs');
-const util = require('util');
-const Koa = require('koa');
-const logger = require('koa-logger');
-const serve = require('koa-static');
-const koaBody = require('koa-body');
-const helpers = require('./_helpers');
+const cluster = require('cluster');
+const cpus = require('os').cpus();
+const http = require('http');
+const debug = require('debug')('server');
+const app = require('./app');
 
-const mkdir = util.promisify(fs.mkdir);
-const app = new Koa();
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
-/* logs */
-app.use(logger());
-
-/* errors */
-app.use(async (ctx, next) => {
-    try {
-        await next();
-        const status = ctx.status || 404;
-        if (status === 404) ctx.throw(404, 'File Not Found');
-    } catch (err) {
-        ctx.status = err.status || 500;
-        ctx.body = {
-            status: 'error',
-            message: err.message
-        };
-    }
-});
-
-/* serve static files */
-app.use(serve(path.join(__dirname, '/static')));
-
-/* multipart */
-app.use(koaBody({ multipart: true }));
-
-/* router */
-app.use(async (ctx, next) => {
-    /* eslint-disable no-case-declarations */
-    switch (ctx.method) {
-        case 'POST':
-            const response = [];
-            const dir = Math.random().toString(36).slice(2);
-            const fullPath = path.join(__dirname, 'static', dir);
-            const files = Object.values(ctx.request.body.files || {});
-            try {
-                await mkdir(fullPath);
-                files.forEach(async (file) => {
-                    const type = file.type.split('/')[0];
-                    // process file
-                    let fileName;
-                    switch (type) {
-                        case 'video':
-                            fileName = `${Math.random().toString(36).slice(2)}.mp4`;
-                            await helpers.videoToMp4(file.path, path.join(fullPath, fileName));
-                            break;
-                        case 'image':
-                            fileName = Math.random().toString(36).slice(2) + path.extname(file.name);
-                            await helpers.imageToJpg(file.path, path.join(fullPath, fileName));
-                            // const buf = await fs.createReadStream(file.path);
-                            // await buf.pipe(fs.createWriteStream(path.join(fullPath, fileName)));
-                            break;
-                        default:
-                    }
-                    console.log('uploading %s -> %s', file.name, fileName);
-                    response.push(`http://localhost:3007/${dir}/${fileName}`); // ctx.request.URL
-
-                    // process thumbnail
-                    const thumbName = `${Math.random().toString(36).slice(2)}.jpg`;
-                    const thumbPath = path.join(fullPath, thumbName);
-                    switch (type) {
-                        case 'image': await helpers.imageThumb(file.path, thumbPath); break;
-                        case 'video': await helpers.videoThumb(file.path, fullPath); break;
-                        default:
-                    }
-                    response.push(`http://localhost:3007/${dir}/${thumbName}`); // ctx.request.URL
-                });
-                ctx.body = {
-                    status: 'success',
-                    data: response
-                };
-            } catch (err) {
-                ctx.throw(500, err.message);
-            }
-            break;
-        case 'DELETE':
-            const filePath = path.join(__dirname, 'static', ctx.path);
-            try {
-                await fs.unlinkSync(filePath);
-                console.log('deleting %s from %s', ctx.path, filePath);
-                ctx.body = {
-                    status: 'success',
-                    data: ctx.path
-                };
-            } catch (err) {
-                ctx.throw(500, err.message);
-            }
-            break;
-        default: await next();
-    }
-});
-
-/* listen */
-if (!module.parent) {
-    app.listen(3007);
-    console.log('Mocking files storage is listening on port 3007');
+function normalizePort(val) {
+    const port = parseInt(val, 10);
+    if (isNaN(port)) return val;
+    if (port >= 0) return port;
+    return false;
 }
+
+function onError(error) {
+    if (error.syscall !== 'listen') throw error;
+    switch (error.code) {
+        case 'EACCES': process.exit(1); break;
+        case 'EADDRINUSE': process.exit(1); break;
+        default: throw error;
+    }
+}
+
+const port = normalizePort(process.env.PORT || '3007');
+
+/* Clustering to exploit all the cores of a machine.
+    Node is single-threaded by default */
+
+const workersCount = process.env.WORKER_COUNT || cpus.length;
+
+if (/* process.env.NODE_ENV === 'production' && */ cluster.isMaster) {
+    // Master process
+    for (let i = 0; i < workersCount; i++) {
+        cluster.fork();
+    }
+
+    debug('Master process online with PID %s', process.pid);
+
+    cluster.on('online', (worker) => {
+        debug('Worker %s is online', worker.process.pid);
+    });
+
+    cluster.on('exit', (worker, code, signal) => {
+        debug('Worker %s died with code: %s and signal: %s',
+            worker.process.pid, code, signal);
+        debug('Starting a new worker');
+        cluster.fork();
+    });
+} else {
+    // Worker process
+    const server = http.createServer(app.callback());
+
+    server.listen(port);
+    server.on('error', onError);
+    server.on('listening', () => debug(`Listening on Port ${port}`));
+}
+

@@ -18,9 +18,17 @@ router.post('/', planValidation, async (req, res, next) => {
     };
     try {
         const plan = await ApiPlan.getOne({ name: newPlan.name });
-        if (plan) throw { status: 409, message: 'Api plan name already in use' };
+        if (plan) {
+            throw {
+                status: 409,
+                message: { param: 'name', msg: 'Api plan name already in use' }
+            };
+        }
         if (plan.limit === newPlan.limit) {
-            throw { status: 409, message: 'Api plan limit already in use' };
+            throw {
+                status: 409,
+                message: { param: 'limit', msg: 'Api plan limit already in use' }
+            };
         }
         const data = await ApiPlan.create(newPlan);
         res.status(200).json({ status: 'success', data });
@@ -57,11 +65,21 @@ router.put('/:name', planValidation, async (req, res, next) => {
         if (!plan) throw { status: 404, message: 'Api plan not found' };
         if (req.body.option === 'name') {
             const newName = await ApiPlan.getOne({ name: req.body.value });
-            if (newName) throw { status: 409, message: 'Api plan name already in use' };
+            if (newName) {
+                throw {
+                    status: 409,
+                    message: { param: 'name', msg: 'Api plan name already in use' }
+                };
+            }
         }
         if (req.body.option === 'limit') {
             const limit = await ApiPlan.getOne({ limit: req.body.value });
-            if (limit) throw { status: 409, message: 'Api plan limit already in use' };
+            if (limit) {
+                throw {
+                    status: 409,
+                    message: { param: 'limit', msg: 'Api plan limit already in use' }
+                };
+            }
         }
         const data = await ApiPlan.update(name, planObj);
         res.status(200).json({ status: 'success', data });

@@ -29,7 +29,7 @@ if (process.env.NODE_ENV !== 'test') {
     const logDir = path.join(__dirname, '..', 'logs');
     if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
     const format = `:method :url :status :response-time ms\
-    - :res[content-length] - :user-agent - :remote-addr - :remote-user`;
+    - :res[content-length] - :remote-addr - :remote-user`;
     app.use(morgan('combined', {
         stream: rfs('access.log', {
             size: '10M',

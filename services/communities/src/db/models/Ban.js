@@ -28,7 +28,7 @@ function create(newBan) {
     return knex.raw(query).first();
 }
 
-function getAll(communityId, offset, reduced) {
+function getAll({ communityId, offset, reduced }) {
     const today = new Date();
     return knex('communities_bans')
         .select(['id', 'user_id', 'end_date'])

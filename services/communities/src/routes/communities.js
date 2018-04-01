@@ -29,7 +29,12 @@ router.post('/', ensureAuthenticated, communities, async (req, res, next) => {
     };
     try {
         const name = await Community.isExist({ name: newCommunity.name });
-        if (name) throw { status: 409, message: 'Name is already in use' };
+        if (name) {
+            throw {
+                status: 409,
+                message: { param: 'name', msg: 'Name is already in use' }
+            };
+        }
         if (req.body.avatar) {
             const bin = await new Buffer(req.body.avatar, 'base64');
             await resizeImg(bin, { width: 128, height: 128 })
@@ -78,7 +83,12 @@ router.put('/:cid', ensureAuthenticated, communities, async (req, res, next) => 
             case 'name':
                 req.body.value = req.body.value.split(' ').join('_').toLowerCase();
                 const name = await Community.isExist({ name: req.body.value });
-                if (name) throw { status: 409, message: 'Name is already in use' };
+                if (name) {
+                    throw {
+                        status: 409,
+                        message: { param: 'name', msg: 'Name is already in use' }
+                    };
+                }
                 break;
             case 'title': req.body.value = req.body.value.charAt(0).toUpperCase() +
                 req.body.value.slice(1);
@@ -130,31 +140,33 @@ router.get('/', communities, async (req, res, next) => {
         --req.query.offset : 0;
     const query = req.query.q ? req.query.q.toLowerCase() : null;
     const list = req.query.list ? req.query.list.split(',') : null;
-    const admin = req.query.admin || null;
+    const admin = req.query.admin === req.user ? req.user : null;
     const profile = req.query.profile || null;
     const mode = req.query.mode || null;
-    const dashboard = req.query.dashboard || null;
     const limiter = req.query.lim || null;
     const reduced = req.useragent.isMobile || req.query.reduced || false;
     let data;
     try {
-        if (admin) {
+        if (list) data = await Community.getAllInList({ list, userId: req.user, limiter });
+        else if (query) {
+            data = await Community.getAllSearched({ query, userId: req.user, offset, reduced });
+        } else if (admin) {
             await ensureAuthenticated;
             switch (mode) {
-                case 'count': data = await Community.getAllByUserCount(req.user); break;
-                default: data = await Community.getAllByAdmin(req.user, offset, reduced);
+                case 'count': data = await Community.getAllByProfileCount(admin); break;
+                default: data = await Community.getAllByAdmin({ userId: admin, offset, reduced });
             }
         } else if (profile) {
             switch (mode) {
-                case 'count': data = await Community.getAllByUserCount(profile); break;
-                default: data = await Community.getAllByUser(req.user, offset, reduced);
+                case 'count': data = await Community.getAllByProfileCount(profile); break;
+                case 'dashboard':
+                    await ensureAuthenticated;
+                    data = await Community.getAllDashboardByProfile(req.user);
+                    break;
+                default:
+                    data = await Community.getAllByProfile({ userId: profile, offset, reduced });
             }
-        } else if (dashboard) {
-            await ensureAuthenticated;
-            data = await Community.getAllDashboard(req.user);
-        } else if (query) data = await Community.getAllSearched(query, req.user, offset, reduced);
-        else if (list) data = await Community.getAllInList(list, req.user, limiter);
-        else data = await Community.getAllTrending(req.user, offset, reduced);
+        } else data = await Community.getAllTrending({ userId: req.user, offset, reduced });
         if (data.communities && data.communities[0].avatar) {
             data.communities.forEach((com) => {
                 com.avatar = com.avatar.toString('base64');

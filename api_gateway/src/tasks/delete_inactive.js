@@ -19,19 +19,38 @@ module.exports = new CronJob({
         try {
             const ctx = {
                 method: 'DELETE',
-                state: {
-                    consumer: 0,
-                    body: {}
-                }
+                headers: { ['user-agent']: '' }, // eslint-disable-line
+                state: { consumer: 0, body: {} }
             };
-            const dUsers = await request(ctx, hosts.USERS_API, '/users', true);
-            const dComms = await request(ctx, hosts.COMMUNITIES_API, '/communities', true);
-            console.log(dUsers.data);
-            console.log(dComms.data);
-            // delete ctx.state.method;
-            // delete communities where user is admin, related subscriptions and bans
-            // delete user posts, likes, comments
-            // if posts have relation on removed communities set community_id val null
+            const [deletedUsers, deletedCommunities] = await Promise.all([
+                request(ctx, hosts.USERS_API, '/users', true),
+                request(ctx, hosts.COMMUNITIES_API, '/communities', true)
+            ]);
+            console.log(deletedUsers, deletedCommunities);
+            if (deletedUsers.data) {
+                console.log(deletedUsers.data);
+                deletedUsers.data.forEach(async (user) => {
+                    // get communities where users are admins
+                    ctx.method = 'GET';
+                    const communities = await request(ctx, hosts.COMMUNITIES_API,
+                        `/communities?admin=${user.id}`, true);
+                    // update their active value to false
+                    ctx.method = 'PUT';
+                    ctx.state.consumer = user.id;
+                    ctx.state.body = { active: false };
+                    await Promise.all([
+                        communities.data.communities.map(com => request(ctx,
+                            hosts.COMMUNITIES_API, `/communities/${com.id}`, true))
+                    ]);
+                    // TODO: delete users related community's subscriptions
+                    // TODO: delete users posts, likes, comments
+                });
+            }
+            if (deletedCommunities.data) {
+                console.log(deletedCommunities.data);
+                // TODO: if posts has relation on removed communities set community_id to null
+            }
+            delete ctx.state.method;
             log('success');
         } catch (err) {
             log(`failed with ${err.message}`);

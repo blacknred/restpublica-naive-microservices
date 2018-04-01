@@ -94,7 +94,7 @@ const authentication = async (ctx, next) => {
         ctx.state.method = 'GET';
         ctx.state.userAuthToken = userToken;
         const res = await request(ctx, hosts.USERS_API, '/users/check', true);
-        if (typeof res.data !== 'number') return;
+        if (typeof res.data.id !== 'number') return;
         ctx.state.consumer = parseInt(res.data, 10);
         delete ctx.state.method;
     }
@@ -110,8 +110,8 @@ const auth = async (ctx, next) => {
 /* Check admin for administration endpoints */
 const admin = async (ctx, next) => {
     ctx.state.method = 'GET';
-    const res = await request(ctx, hosts.USERS_API, '/users/check?mode=admin', true);
-    if (typeof res.data !== 'number') ctx.throw(401, 'Access is restricted');
+    const res = await request(ctx, hosts.USERS_API, '/users/check', true);
+    if (!res.data.admin) ctx.throw(401, 'Access is restricted');
     delete ctx.state.method;
     await next();
 };

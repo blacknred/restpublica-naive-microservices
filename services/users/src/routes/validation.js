@@ -24,11 +24,6 @@ function users(req, res, next) {
                 .isIn(['id', 'avatar', 'username', 'fullname'])
                 .withMessage('Limiter must be valid');
         }
-        if (req.query.mode) {
-            req.checkQuery('mode')
-                .isIn(['admin'])
-                .withMessage('Check mode must be valid');
-        }
     } else if (req.method === 'POST') {
         if (req.path === '/login') {
             req.checkBody('username')

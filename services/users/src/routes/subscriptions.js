@@ -38,8 +38,8 @@ router.get('/:uid/followers', ensureAuthenticated, subscriptions,
         try {
             const user = await User.isExist({ id: req.params.uid });
             if (!user) throw { status: 404, message: 'Profile not found' };
-            const data = await Subscription
-                .getAllFollowers(req.params.uid, req.user, offset, reduced);
+            const data = await Subscription.getAllFollowers(
+                { profileId: req.params.uid, userId: req.user, offset, reduced });
             data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
             res.status(200).json({ status: 'success', data });
         } catch (err) {
@@ -56,8 +56,8 @@ router.get('/:uid/following', ensureAuthenticated, subscriptions,
         try {
             const user = await User.isExist({ id: req.params.uid });
             if (!user) throw { status: 404, message: 'Profile not found' };
-            const data = await Subscription
-                .getAllFollowing(req.params.uid, req.user, offset, reduced);
+            const data = await Subscription.getAllFollowing(
+                { profileId: req.params.uid, userId: req.user, offset, reduced });
             data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
             res.status(200).json({ status: 'success', data });
         } catch (err) {

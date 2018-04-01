@@ -38,8 +38,14 @@ router.get('/:cid/followers', ensureAuthenticated, subscriptions,
         try {
             const community = await Community.isExist({ id: req.params.cid });
             if (!community) throw { status: 404, message: 'Community not found' };
-            const data = await Subscription.getAllFollowers(req.params.cid, req.user,
-                community.admin_id, pending, offset, reduced);
+            const data = await Subscription.getAllFollowers({
+                communityId: req.params.cid,
+                userId: req.user,
+                adminId: community.admin_id,
+                pending,
+                offset,
+                reduced
+            });
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);
@@ -55,7 +61,11 @@ router.delete('/:cid/follow/:sid', ensureAuthenticated, subscriptions,
             if (sub.user_id !== req.user) {
                 throw { status: 403, message: 'Permission denied' };
             }
-            await Subscription.deleteOne()(req.params.sid, req.params.cid, req.user);
+            await Subscription.deleteOne({
+                subscriptionId: req.params.sid,
+                communityId: req.params.cid,
+                userId: req.user
+            });
             res.status(200).json({ status: 'success', data: { id: req.params.sid } });
         } catch (err) {
             return next(err);

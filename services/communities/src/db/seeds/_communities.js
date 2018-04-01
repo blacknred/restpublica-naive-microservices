@@ -12,7 +12,7 @@ function createCommunity(knex, name, adminId) {
         .then((banner) => {
             return knex('communities')
                 .insert({
-                    name: name.split(' ')[0],
+                    name: name.split(' ')[0].toLowerCase(),
                     title: name,
                     description: faker.lorem.sentences(),
                     avatar,

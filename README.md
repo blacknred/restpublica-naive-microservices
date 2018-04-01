@@ -57,45 +57,44 @@ $ docker exec -ti <container-id> psql -U postgres
 
 #### (1) Users API - http://localhost:3004/v1
 
-| Endpoint                 | HTTP Method | CRUD Method | Result                       |
-|--------------------------|-------------|-------------|------------------------------|
-| /ping                    | GET         | READ        | `pong`                       |
-| /users                   | POST        | CREATE      | add an user                  |
-| /users/login             | POST        | CREATE      | log in an user               |
-| /users/check?mode=admin  | GET         | READ        | check an user id/admin/..    |a
-| /users/profile           | GET         | READ        | get logged user data         |a
-| /users                   | PUT         | UPDATE      | update an user value         |a
-| /users                   | DELETE      | DELETE      | delete an inactive users     | s
-| /users                   | GET         | READ        | get all trending profiles    | 
-| /users?query=query       | GET         | READ        | get all profiles by query    | 
-| /users?list=uids&lim=    | GET         | READ        | get limited data of profiles | 
-| /users/:name             | GET         | READ        | get the profile              | 
-| /users/:uid/follow       | POST        | CREATE      | create a subscription        |a
-| /users/:uid/followers    | GET         | READ        | get a profile followers      |a
-| /users/:uid/following    | GET         | READ        | get a profile following      |a
-| /users/:uid/dashboard    | GET         | READ        | get a profile following ids  |a
-| /users/:uid/follow/:sid  | DELETE      | DELETE      | delete the subscription      |a
+| Endpoint                | HTTP Method | CRUD Method | Result                       |
+|-------------------------|-------------|-------------|------------------------------|
+| /ping                   | GET         | READ        | `pong`                       |
+| /users                  | POST        | CREATE      | add an user                  |
+| /users/login            | POST        | CREATE      | log in an user               |
+| /users/check            | GET         | READ        | check an user id             |ai
+| /users/profile          | GET         | READ        | get logged user data         |a
+| /users                  | PUT         | UPDATE      | update an user value         |a
+| /users                  | DELETE      | DELETE      | delete the inactive users    | i
+| /users                  | GET         | READ        | get all trending profiles    | 
+| /users?q=query          | GET         | READ        | get all profiles by query    | 
+| /users?list=uids&lim=   | GET         | READ        | get limited data of profiles | i
+| /users/:name            | GET         | READ        | get the profile              | 
+| /users/:uid/follow      | POST        | CREATE      | create a subscription        |a
+| /users/:uid/followers   | GET         | READ        | get a profile followers      |a
+| /users/:uid/following   | GET         | READ        | get a profile following      |a
+| /users/:uid/dashboard   | GET         | READ        | get a profile following ids  |a
+| /users/:uid/follow/:sid | DELETE      | DELETE      | delete the subscription      |a
 
 #### (2) Communities API - http://localhost:3005/v1
 
-| Endpoint                      | HTTP Method | CRUD Method | Result                    |
-|-------------------------------|-------------|-------------|---------------------------|
-| /ping                         | GET         | READ        | `pong`                    |
-| /communities                  | POST        | CREATE      | add a com-ty              |a
-| /communities                  | GET         | READ        | get all trending com-s    | 
-| /communities?admin=true&mode= | GET         | READ        | get user admined com-s    |a
-| /communities?dashboard=true   | GET         | READ        | get user com-s ids        |a
-| /communities?query=query      | GET         | READ        | get all com-s by query    | 
-| /communities?list=cids&lim=   | GET         | READ        | get limited data of com-s | 
-| /communities?profile=pid      | GET         | READ        | get all profile com-s     | 
-| /communities/:name            | GET         | READ        | get the com-ty            | 
-| /communities/:cid             | PUT         | UPDATE      | update the com-ty         |a 
-| /communities/:cid             | DELETE      | DELETE      | delete the com-ty         |a
-| /communities/:cid/follow      | POST        | CREATE      | create a subscription     |a
-| /communities/:cid/followers   | GET         | READ        | get the com-ty followers  |a
-| /communities/:cid/follow/sid  | DELETE      | DELETE      | delete the subscription   |a
-| /communities/:cid/ban         | POST        | CREATE      | create a ban              |a
-| /communities/:cid/bans        | GET         | READ        | get all bans              |a
+| Endpoint                       | HTTP Method | CRUD Method | Result                   |
+|--------------------------------|-------------|-------------|--------------------------|
+| /ping                          | GET         | READ        | `pong`                   |
+| /communities                   | POST        | CREATE      | add a com-ty             |a
+| /communities                   | GET         | READ        | get all trending com-s   |
+| /communities?q=query           | GET         | READ        | get all com-s by query   | 
+| /communities?admin=aid&mode=   | GET         | READ        | get all com-s by admin   |a
+| /communities?profile=pid&mode= | GET         | READ        | get all com-s by profile |
+| /communities?list=cids&lim=    | GET         | READ        | get limited com-s's data | i
+| /communities/:name             | GET         | READ        | get the com-ty           | 
+| /communities/:cid              | PUT         | UPDATE      | update the com-ty        |a 
+| /communities                   | DELETE      | DELETE      | delete the com-ty        |ai
+| /communities/:cid/follow       | POST        | CREATE      | create a subscription    |a
+| /communities/:cid/followers    | GET         | READ        | get the com-ty followers |a
+| /communities/:cid/follow/sid   | DELETE      | DELETE      | delete the subscription  |a
+| /communities/:cid/ban          | POST        | CREATE      | create a ban             |a
+| /communities/:cid/bans         |  GET         | READ       | get all bans             |a
 
 #### (3) Posts API - http://localhost:3006/v1/
 
@@ -104,7 +103,7 @@ $ docker exec -ti <container-id> psql -U postgres
 | /posts                       | POST        | CREATE      | add a post            |a
 | /posts                       | GET         | READ        | get trending posts    | 
 | /posts?tag=tag               | GET         | READ        | get posts by tag      | 
-| /posts?query=query           | GET         | READ        | get posts by search   | 
+| /posts?q=query               | GET         | READ        | get posts by search   | 
 | /posts?profile=pids&mode=    | GET         | READ        | get posts by user     | 
 | /posts?community=cids&?mode= | GET         | READ        | get community posts   |
 | /posts?dashboard=true        | GET         | READ        | get community posts   |a
@@ -119,21 +118,21 @@ $ docker exec -ti <container-id> psql -U postgres
 | /posts/:pid/likes            | GET         | READ        | get post likes        |a
 | /posts/:pid/likes            | DELETE      | DELETE      | delete the like       |a
 | /tags                        | GET         | READ        | get all trending tags |
-| /tags?query=query            | GET         | READ        | get all tags by query |
+| /tags?q=query                | GET         | READ        | get all tags by query |
 
 #### (4) Partners API - http://localhost:3008/v1/
 
 | Endpoint       | HTTP Method | CRUD Method | Result        |
 |----------------|-------------|-------------|---------------|
 | /ping          | GET         | READ        | `pong`        |a
-| /plans         | POST        | CREATE      | add a plan    |a
+| /plans         | POST        | CREATE      | add a plan    |aa
 | /plans         | GET         | READ        | get all plans |a
 | /plans/:pid    | GET         | READ        | get a plan    | 
-| /plans/:pid    | PUT         | UPDATE      | update a plan |a
-| /plans/:pid    | DELETE      | DELETE      | delete a plan |a
+| /plans/:pid    | PUT         | UPDATE      | update a plan |aa
+| /plans/:pid    | DELETE      | DELETE      | delete a plan |aa
 | /apps          | POST        | CREATE      | add an app    |a
 | /apps/check    | POST        | CREATE      | check an app  |a
-| /apps          | GET         | READ        | get all apps  |a
+| /apps          | GET         | READ        | get all apps  |aa
 | /apps/:aid     | GET         | READ        | get an app    |
 | /apps/:aid     | PUT         | UPDATE      | update an app |a
 | /apps/:aid     | DELETE      | DELETE      | delete an app |a

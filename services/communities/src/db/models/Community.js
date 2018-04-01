@@ -21,7 +21,7 @@ function mySubscription(community, userId) {
         .where({ community_id: community.id, user_id: userId })
         .andWhere({ approved: true })
         .first()
-        .then(id => Object.assign(community, { my_subscription: id ? id.id : null }));
+        .then((id) => { return { ...community, my_subscription: id ? id.id : null }; });
 }
 
 function followersCount(community) {
@@ -30,7 +30,7 @@ function followersCount(community) {
         .where({ community_id: community.id, approved: true })
         .first()
         .then(({ count }) => {
-            return Object.assign(community, { followers_cnt: count });
+            return { ...community, followers_cnt: count };
         });
 }
 
@@ -44,6 +44,7 @@ function create(newCommunity) {
 function update(communityObj, communityId) {
     return knex('communities')
         .update(communityObj)
+        .update('updated_at', knex.fn.now())
         .where('id', communityId)
         .returning(`${Object.keys(communityObj)[0]}`);
 }
@@ -59,7 +60,7 @@ function getOne(name, userId) {
 }
 
 
-function getAllByUser(userId, authUserId, offset, reduced) {
+function getAllByProfile({ userId, offset, reduced }) {
     return knex('communities')
         .select(['communities.id', 'title', 'avatar'])
         .rightJoin('communities_subscriptions',
@@ -84,7 +85,7 @@ function getAllByUser(userId, authUserId, offset, reduced) {
         });
 }
 
-function getAllByUserCount(userId) {
+function getAllByProfileCount(userId) {
     return knex('communities')
         .count('*')
         .rightJoin('communities_subscriptions',
@@ -96,7 +97,7 @@ function getAllByUserCount(userId) {
         .then(({ count }) => { return { count }; });
 }
 
-function getAllDashboard(userId) {
+function getAllDashboardByProfile(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
         today.getMonth(), today.getDate() - 31);
@@ -111,10 +112,10 @@ function getAllDashboard(userId) {
         .then((communities) => { return { communities }; });
 }
 
-function getAllByAdmin(adminId, offset, reduced) {
+function getAllByAdmin({ userId, offset, reduced }) {
     return knex('communities')
         .select(['id', 'title', 'avatar', 'last_post_at'])
-        .where('admin_id', adminId)
+        .where('admin_id', userId)
         .andWhere('active', true)
         .orderBy('created_at', 'ASC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
@@ -123,25 +124,25 @@ function getAllByAdmin(adminId, offset, reduced) {
         .then((communities) => {
             return knex('communities')
                 .count('*')
-                .where('admin_id', adminId)
+                .where('admin_id', userId)
                 .andWhere('active', true)
                 .first()
                 .then(({ count }) => { return { count, communities }; });
         });
 }
 
-function getAllInList(arr, userId, lim) {
+function getAllInList({ list, userId, limiter }) {
     return knex('communities')
         .select('id')
-        .select(lim || ['title', 'name', 'avatar'])
-        .whereIn('id', arr)
+        .select(limiter || ['title', 'name', 'avatar'])
+        .whereIn('id', list)
         .andWhere({ active: true })
-        .map(_row => _row && !lim ? followersCount(_row) : _row)
-        .map(_row => _row && !lim ? mySubscription(_row, userId) : _row)
+        .map(_row => _row && !limiter ? followersCount(_row) : _row)
+        .map(_row => _row && !limiter ? mySubscription(_row, userId) : _row)
         .then((communities) => { return { communities }; });
 }
 
-function getAllTrending(userId, offset, reduced) {
+function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const last2Months = new Date(today.getFullYear(),
         today.getMonth(), today.getDate() - 60);
@@ -172,10 +173,10 @@ function getAllTrending(userId, offset, reduced) {
         });
 }
 
-function getAllSearched(pattern, userId, offset, reduced) {
+function getAllSearched({ query, userId, offset, reduced }) {
     return knex('communities')
         .select(['id', 'title', 'avatar'])
-        .whereRaw('LOWER(title) like ?', `%${pattern}%`)
+        .whereRaw('LOWER(title) like ?', `%${query}%`)
         .andWhere('active', true)
         .orderBy('created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
@@ -185,7 +186,7 @@ function getAllSearched(pattern, userId, offset, reduced) {
         .then((communities) => {
             return knex('communities')
                 .count('*')
-                .whereRaw('LOWER(title) like ?', `%${pattern}%`)
+                .whereRaw('LOWER(title) like ?', `%${query}%`)
                 .andWhere('active', true)
                 .first()
                 .then(({ count }) => { return { count, communities }; });
@@ -198,7 +199,7 @@ function deleteAllInactive() {
     knex('communities')
         .del()
         .where('active', false)
-        .andWhere('activity_at', '>', monthAgo)
+        .andWhere('last_post_at', '>', monthAgo)
         .returning('id');
 }
 
@@ -210,9 +211,9 @@ module.exports = {
     getAllInList,
     getAllTrending,
     getAllSearched,
-    getAllByUser,
-    getAllByUserCount,
-    getAllDashboard,
+    getAllByProfile,
+    getAllByProfileCount,
+    getAllDashboardByProfile,
     getAllByAdmin,
     deleteAllInactive,
 };

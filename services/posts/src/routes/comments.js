@@ -41,7 +41,7 @@ router.get('/:pid/comments', comments, async (req, res, next) => {
         if (post.archived && post.author_id !== req.user) {
             throw { status: 403, message: 'Permission denied' };
         }
-        const data = await Comment.getAll(req.params.pid, offset, reduced);
+        const data = await Comment.getAll({ postId: req.params.pid, offset, reduced });
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
@@ -57,7 +57,8 @@ router.put('/:pid/comments/:cid', ensureAuthenticated, comments,
             if (comment.user_id !== req.user) {
                 throw { status: 403, message: 'Permission denied' };
             }
-            const data = await Comment.update(newComment, req.params.cid, req.user);
+            const data = await Comment.update(
+                { newComment, commentId: req.params.cid, userId: req.user });
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);

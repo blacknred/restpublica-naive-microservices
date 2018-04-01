@@ -97,21 +97,24 @@ router.get('/', posts, async (req, res, next) => {
     const reduced = req.useragent.isMobile || req.query.reduced;
     let data;
     try {
-        if (query) data = await Post.getAllSearched(query, req.user, offset, reduced);
-        else if (tag) data = await Post.getAllByTag(tag, req.user, offset, reduced);
+        if (query) data = await Post.getAllSearched({ query, userId: req.user, offset, reduced });
+        else if (tag) data = await Post.getAllByTag({ tag, userId: req.user, offset, reduced });
         else if (profile) {
             switch (mode) {
                 case 'count': data = await Post.getAllCountByProfile(profile, req.user); break;
-                default: data = await Post.getAllByProfile(profile, req.user, offset, reduced);
+                default: data = await Post.getAllByProfile(
+                    { profileId: profile, userId: req.user, offset, reduced });
             }
         } else if (community) {
             switch (mode) {
                 case 'count': data = await Post.getAllCountByCommunity(community); break;
-                default: data = await Post.getAllByCommunity(community, req.user, offset, reduced);
+                default: data = await Post.getAllByCommunity(
+                    { communityId: community, userId: req.user, offset, reduced });
             }
         } else if (dashboard) {
-            data = await Post.getAllDashboard(profiles, communities, req.user, offset, reduced);
-        } else data = await Post.getAllTrending(req.user, offset, reduced);
+            data = await Post.getAllDashboard(
+                { profiles, communities, userId: req.user, offset, reduced });
+        } else data = await Post.getAllTrending({ userId: req.user, offset, reduced });
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
@@ -140,7 +143,7 @@ router.put('/:pid', ensureAuthenticated, posts, async (req, res, next) => {
         const post = await Post.isExists(req.params.pid);
         if (!post) throw { status: 404, message: 'Post not found' };
         if (post.author_id !== req.user) throw { status: 403, message: 'Permission denied' };
-        const data = await Post.update(updatedPost, req.params.pid, req.user);
+        const data = await Post.update({ updatedPost, postId: req.params.pid, userId: req.user });
         if (req.body.tags) {
             const tags = req.body.tags.split(',');
             await Tag.deleteAllFromPost(data[0].id);

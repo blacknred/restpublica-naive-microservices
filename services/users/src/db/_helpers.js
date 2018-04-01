@@ -14,7 +14,7 @@ function genUniqueNumbersArr(length, max) {
 function genUniqueNamesArr(length) {
     const strings = [];
     while (strings.length < length) {
-        const item = faker.name.firstName();
+        const item = faker.name.firstName().toLowerCase();
         if (strings.indexOf(item) === -1) {
             strings.push(item);
         }
