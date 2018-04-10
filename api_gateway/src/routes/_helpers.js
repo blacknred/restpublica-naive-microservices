@@ -11,11 +11,11 @@ const client = redis.createClient(6379, 'redis-cache');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 // time-span to count the failed requests in sec
-const WATCHING_TIMESPAN = 60 * 10;
+const WATCHING_TIMESPAN = process.env.WATCHING_TIMESPAN || 60 * 10;
 // "freeze" period in sec
-const BLOCKING_TIMESPAN = 60 * 5;
+const BLOCKING_TIMESPAN = process.env.BLOCKING_TIMESPAN || 60 * 5;
 // limit of failed requests
-const FAILS_LIMIT = 15;
+const FAILS_LIMIT = process.env.FAILS_LIMIT || 15;
 
 
 const request = async (ctx, host, url, r = false, fallback) => {

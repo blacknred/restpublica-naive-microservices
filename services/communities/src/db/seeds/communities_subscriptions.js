@@ -20,7 +20,6 @@ exports.seed = (knex, Promise) => {
                 .first();
         })
         .then((cnt) => {
-            console.log(cnt.count);
             const records = [];
             if (process.env.NODE_ENV === 'test') {
                 records.push(createSubscription(knex, 1, 2));

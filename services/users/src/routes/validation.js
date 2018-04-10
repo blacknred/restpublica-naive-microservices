@@ -21,7 +21,7 @@ function users(req, res, next) {
         }
         if (req.query.lim) {
             req.checkQuery('lim')
-                .isIn(['id', 'avatar', 'username', 'fullname'])
+                .isIn(['id', 'avatar', 'username'])
                 .withMessage('Limiter must be valid');
         }
     } else if (req.method === 'POST') {
@@ -48,7 +48,8 @@ function users(req, res, next) {
         }
     } else if (req.method === 'PUT') {
         req.checkBody('option')
-            .isIn(['username', 'email', 'fullname', 'description', 'active', 'avatar', 'last_post_at'])
+            .isIn(['username', 'email', 'fullname', 'description', 'active',
+                'password', 'avatar', 'email_notify', 'feed_rand', 'last_post_at'])
             .withMessage('Option is not valid');
         req.checkBody('value')
             .notEmpty()
@@ -66,14 +67,25 @@ function users(req, res, next) {
                         .withMessage('Avatar value must be base64');
                     break;
                 case 'active':
+                case 'email_notify':
                     req.checkBody('value')
                         .isBoolean()
-                        .withMessage('Active value must be boolean');
+                        .withMessage(`${req.body.option} value must be boolean`);
                     break;
                 case 'last_post_at':
                     req.checkBody('value')
                         .custom(date => moment(date, moment.ISO_8601, true).isValid())
                         .withMessage('Last post date value must be valid');
+                    break;
+                case 'feed_rand':
+                    req.checkBody('value')
+                        .isIn([0, 1, 2, 3])
+                        .withMessage('Feed randomize value must be valid');
+                    break;
+                case 'password':
+                    req.checkBody('value')
+                        .matches(PASSWORDPATTERN)
+                        .withMessage('Password must has at least 5 chars and one number');
                     break;
                 default:
             }

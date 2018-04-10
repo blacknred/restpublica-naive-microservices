@@ -22,7 +22,7 @@ function comparePass(userPassword, userId) {
 
 function isExist(obj) {
     return knex('users')
-        .select(['id', 'username', 'avatar', 'admin'])
+        .select(['id', 'username', 'avatar', 'admin', 'feed_rand'])
         .where(obj)
         .first();
 }
@@ -32,13 +32,14 @@ function create(newUser) {
     newUser.password = bcrypt.hashSync(newUser.password, salt);
     return knex('users')
         .insert(newUser)
-        .returning(['id', 'username', 'avatar'])
+        .returning(['id', 'username', 'avatar', 'feed_rand'])
         .then(rows => rows[0]);
 }
 
 function getUser(userId) {
     return knex('users')
-        .select('*')
+        .select(['username', 'fullname', 'description', 'email',
+            'avatar', 'feed_rand', 'email_notify'])
         .where('id', userId)
         .andWhere({ active: true })
         .first();
@@ -47,6 +48,7 @@ function getUser(userId) {
 function update(userObj, userId) {
     return knex('users')
         .update(userObj)
+        .update('updated_at', new Date())
         .where('id', userId)
         .returning(`${Object.keys(userObj)[0]}`)
         .then(rows => rows[0]);
@@ -91,7 +93,7 @@ function getOne(username, authUserId) {
 function getAllInList({ list, userId, limiter }) {
     return knex('users')
         .select('id')
-        .select(limiter || ['username', 'fullname', 'avatar'])
+        .select(limiter || ['username', 'avatar'])
         .whereIn('id', list)
         .andWhere({ active: true })
         .map(_row => _row && !limiter ? mySubscription(_row, userId) : _row)

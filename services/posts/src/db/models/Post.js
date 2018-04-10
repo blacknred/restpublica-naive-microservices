@@ -21,9 +21,7 @@ function getTags(post) {
         .select('title')
         .leftJoin('posts_tags', 'tags.id', 'posts_tags.tag_id')
         .where('posts_tags.post_id', post.id)
-        .then((rows) => {
-            return { ...post, tags: rows.map(tag => tag.title) };
-        });
+        .then((rows) => { return { ...post, tags: rows.map(tag => tag.title) }; });
 }
 
 function getMyLike(post, userId) {
@@ -40,9 +38,7 @@ function getLikesCount(post) {
         .count()
         .where('post_id', post.id)
         .first()
-        .then(({ count }) => {
-            return { ...post, likes_cnt: count };
-        });
+        .then(({ count }) => { return { ...post, likes_cnt: count }; });
 }
 
 function getCommentsCount(post) {
@@ -50,9 +46,7 @@ function getCommentsCount(post) {
         .count('*')
         .where('post_id', post.id)
         .first()
-        .then(({ count }) => {
-            return { ...post, comments_cnt: count };
-        });
+        .then(({ count }) => { return { ...post, comments_cnt: count }; });
 }
 
 function getContent(post, userId) {
@@ -61,25 +55,20 @@ function getContent(post, userId) {
             return knex('post_files')
                 .select('*')
                 .where('post_id', post.id)
-                .then((rows) => {
-                    return Object.assign(post, { content: rows });
-                });
+                .then((content) => { return { ...post, content }; });
         case 'link':
             return knex('post_links')
                 .select('*')
                 .where('post_id', post.id)
                 .first()
-                .then((row) => {
-                    return Object.assign(post, { content: row });
-                });
+                .then((content) => { return { ...post, content }; });
         case 'poll':
             return knex('post_polls')
                 .select('*')
                 .where('post_id', post.id)
                 .first()
                 .then((poll) => {
-                    post.content = Object.assign(poll,
-                        { options: [], myVotedOptionId: null });
+                    post.content = { ...poll, options: [], myVotedOptionId: null };
                     return knex('post_polls_options')
                         .select('*')
                         .where('poll_id', poll.id);
@@ -89,8 +78,8 @@ function getContent(post, userId) {
                         .count('*')
                         .where('option_id', opt.id)
                         .first()
-                        .then((count) => {
-                            opt.votes_count = count.count;
+                        .then(({ count }) => {
+                            opt.votes_cnt = count;
                             post.content.options[i] = opt;
                         });
                 })
@@ -245,7 +234,7 @@ function deleteOne(postId, userId) {
 }
 
 
-function getAllTrending(userId, offset, reduced) {
+function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
         today.getMonth(), today.getDate() - 31);
@@ -266,6 +255,7 @@ function getAllTrending(userId, offset, reduced) {
             return knex('posts')
                 .count('*')
                 .where('created_at', '>', lastMonth)
+                .andWhere('archived', false)
                 .first()
                 .then(({ count }) => { return { count, posts }; });
         });
@@ -313,7 +303,7 @@ function getAllByTag({ tag, userId, offset, reduced }) {
         .then((posts) => {
             return knex('posts')
                 .count('posts.id')
-                .leftJoin('posts_tags', 'posts.id', 'posts_tags.post_id')
+                .leftJoin('posts_tags', 'posts.id', 'posts8_tags.post_id')
                 .leftJoin('tags', 'posts_tags.tag_id', 'tags.id')
                 .where('tags.title', tag)
                 .andWhere('posts.archived', false)
@@ -324,7 +314,7 @@ function getAllByTag({ tag, userId, offset, reduced }) {
 
 function getAllDashboard({ profiles, communities, userId, offset, reduced }) {
     return knex('posts')
-        .select(['posts.*', knex.raw('left (description, 40) as description')])
+        .select('*')
         .whereIn('author_id', profiles)
         .orWhereIn('community_id', communities)
         .andWhere('archived', false)

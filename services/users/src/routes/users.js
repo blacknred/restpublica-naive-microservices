@@ -44,7 +44,6 @@ router.post('/', users, async (req, res, next) => {
         }
         newUser.avatar = await helpers.createAvatar(newUser.fullname);
         const data = await User.create(newUser);
-        await User.update({ activity_at: new Date() }, data.id);
         data.avatar = data.avatar.toString('base64');
         data.token = await encodeToken(data.id);
         res.status(200).json({ status: 'success', data });
@@ -72,7 +71,8 @@ router.post('/login', users, async (req, res, next) => {
         user.avatar = user.avatar.toString('base64');
         const token = await encodeToken(user.id);
         user.token = token;
-        await User.update({ active: true, activity_at: new Date() }, user.id);
+        delete user.admin;
+        await User.update({ active: true }, user.id);
         res.status(200).json({ status: 'success', data: user });
     } catch (err) {
         return next(err);
@@ -103,12 +103,22 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
     try {
         switch (req.body.option) {
             case 'username':
-                const name = await User.isExist({ username: req.body.username });
-                if (name) throw { status: 409, message: 'Username is already in use' };
+                const name = await User.isExist({ username: req.body.value });
+                if (name) {
+                    throw {
+                        status: 409,
+                        message: { param: 'username', msg: 'Username is already in use' }
+                    };
+                }
                 break;
             case 'email':
-                const email = await User.isExist({ email: req.body.email });
-                if (email) throw { status: 409, message: 'Email is already in use' };
+                const email = await User.isExist({ email: req.body.value });
+                if (email) {
+                    throw {
+                        status: 409,
+                        message: { param: 'email', msg: 'Email is already in use' }
+                    };
+                }
                 break;
             case 'avatar':
                 const sanitisedValue = req.body.value.replace(/\n/g, '');
@@ -131,7 +141,7 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
             case 'active': await Subscription.deleteAll(req.user); break;
             default:
         }
-        const newUser = { [req.body.option]: req.body.value, activity_at: new Date() };
+        const newUser = { [req.body.option]: req.body.value };
         let data = await User.update(newUser, req.user);
         if (req.body.option === 'avatar') data = data.toString('base64');
         res.status(200).json({ status: 'success', data: { [req.body.option]: data } });

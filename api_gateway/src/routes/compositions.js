@@ -147,9 +147,9 @@ router
             posts.data.posts.forEach(x => x.author = authors.data.profiles
                 .find(y => y.id === x.author_id));
             posts.data.posts.forEach((x) => {
-                x.communityName = communities.data.communities
+                x.community_name = communities.data.communities
                     .find(y => y.id === x.community_id);
-                if (x.communityName) x.communityName = x.communityName.name;
+                if (x.community_name) x.community_name = x.community_name.name;
             });
         }
         response();

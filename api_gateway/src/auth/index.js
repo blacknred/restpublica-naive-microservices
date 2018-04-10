@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* eslint-disable no-throw-literal */
 
 const debug = require('debug')('api-gateway');
 const Promise = require('bluebird');
@@ -8,6 +8,8 @@ const ms = require('ms');
 const hosts = require('../conf');
 const { genApiSecret } = require('./local');
 const { request } = require('../routes/_helpers');
+
+const DEFAULT_MAX_REQUESTS_COUNT = process.env.MAX_REQUESTS_COUNT || 20;
 
 /* Get max requests count */
 const getMaxRequestsCount = async (ctx) => {
@@ -34,7 +36,7 @@ const getMaxRequestsCount = async (ctx) => {
             ctx.throw(401, 'Invalid API key');
         }
     }
-    return 50; // default max request count
+    return DEFAULT_MAX_REQUESTS_COUNT;
 };
 
 /* Implement rate-limiting */
@@ -95,7 +97,7 @@ const authentication = async (ctx, next) => {
         ctx.state.userAuthToken = userToken;
         const res = await request(ctx, hosts.USERS_API, '/users/check', true);
         if (typeof res.data.id !== 'number') return;
-        ctx.state.consumer = parseInt(res.data, 10);
+        ctx.state.consumer = parseInt(res.data.id, 10);
         delete ctx.state.method;
     }
     await next();

@@ -18,7 +18,7 @@ const app = new Koa();
 // logging
 // rate-limiting
 // authentication
-// route requests
+// request routing
 // aggregate data
 // circuit breaker
 
@@ -41,11 +41,14 @@ if (process.env.NODE_ENV !== 'test') {
     app.use(morgan(format));
 }
 // CORS
-app.use(cors());
+app.use(cors({
+    exposeHeaders: ['X-RateLimit-Limit',
+        'X-RateLimit-Remaining', 'X-RateLimit-Reset']
+}));
 // Prevent bruteforce
 app.use(helmet());
 // Body
-app.use(koaBody({ formLimit: '1mb' }));
+app.use(koaBody({ formLimit: '2mb', jsonLimit: '2mb' }));
 // Errors
 app.use(async (ctx, next) => {
     try {

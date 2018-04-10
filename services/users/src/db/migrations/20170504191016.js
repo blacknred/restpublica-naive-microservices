@@ -9,10 +9,11 @@ exports.up = (knex) => {
             table.string('email').unique().notNullable();
             table.binary('avatar').notNullable();
             table.boolean('admin').notNullable().defaultTo(false);
+            table.boolean('email_notify').notNullable().defaultTo(true);
+            table.enu('feed_rand', [0, 1, 2, 3]).notNullable().defaultTo(1);
             table.boolean('active').notNullable().defaultTo(true);
             table.datetime('last_post_at');
-            table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
-            table.timestamp('activity_at').notNullable().defaultTo(knex.fn.now());
+            table.timestamps(true, true);
         })
         .createTable('users_subscriptions', (table) => {
             table.increments();
