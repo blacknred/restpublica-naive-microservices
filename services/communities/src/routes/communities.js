@@ -159,9 +159,9 @@ router.get('/', communities, async (req, res, next) => {
         } else if (profile) {
             switch (mode) {
                 case 'count': data = await Community.getAllByProfileCount(profile); break;
-                case 'dashboard':
+                case 'feed':
                     await ensureAuthenticated;
-                    data = await Community.getAllDashboardByProfile(req.user);
+                    data = await Community.getAllFeedByProfile(req.user);
                     break;
                 default:
                     data = await Community.getAllByProfile({ userId: profile, offset, reduced });

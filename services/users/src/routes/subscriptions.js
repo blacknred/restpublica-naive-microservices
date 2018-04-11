@@ -66,10 +66,10 @@ router.get('/:uid/following', ensureAuthenticated, subscriptions,
     }
 );
 
-router.get('/:uid/dashboard', ensureAuthenticated, subscriptions,
+router.get('/:uid/feed', ensureAuthenticated, subscriptions,
     async (req, res, next) => {
         try {
-            const data = await Subscription.getAllDashboard(req.user);
+            const data = await Subscription.getAllFeed(req.user);
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);

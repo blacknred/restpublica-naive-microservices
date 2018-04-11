@@ -93,7 +93,7 @@ router.get('/', posts, async (req, res, next) => {
     const profiles = req.query.profiles ? req.query.profiles.split(',') : null;
     const communities = req.query.communities ? req.query.communities.split(',') : null;
     const mode = req.query.mode || null;
-    const dashboard = req.query.dashboard || null;
+    const feed = req.query.feed || null;
     const reduced = req.useragent.isMobile || req.query.reduced;
     let data;
     try {
@@ -111,8 +111,8 @@ router.get('/', posts, async (req, res, next) => {
                 default: data = await Post.getAllByCommunity(
                     { communityId: community, userId: req.user, offset, reduced });
             }
-        } else if (dashboard) {
-            data = await Post.getAllDashboard(
+        } else if (feed) {
+            data = await Post.getAllFeed(
                 { profiles, communities, userId: req.user, offset, reduced });
         } else data = await Post.getAllTrending({ userId: req.user, offset, reduced });
         res.status(200).json({ status: 'success', data });

@@ -73,7 +73,7 @@ $ docker exec -ti <container-id> psql -U postgres
 | /users/:uid/follow      | POST        | CREATE      | create a subscription        |a
 | /users/:uid/followers   | GET         | READ        | get a profile followers      |a
 | /users/:uid/following   | GET         | READ        | get a profile following      |a
-| /users/:uid/dashboard   | GET         | READ        | get a profile following ids  |a
+| /users/:uid/feed        | GET         | READ        | get a profile following ids  |a
 | /users/:uid/follow/:sid | DELETE      | DELETE      | delete the subscription      |a
 
 #### (2) Communities API - http://localhost:3005/v1
@@ -106,7 +106,7 @@ $ docker exec -ti <container-id> psql -U postgres
 | /posts?q=query               | GET         | READ        | get posts by search   | 
 | /posts?profile=pids&mode=    | GET         | READ        | get posts by user     | 
 | /posts?community=cids&?mode= | GET         | READ        | get community posts   |
-| /posts?dashboard=true        | GET         | READ        | get community posts   |a
+| /posts?feed=true        | GET         | READ        | get community posts   |a
 | /posts/:slug                 | GET         | READ        | get the post          | 
 | /posts/:pid                  | PUT         | UPDATE      | update the post       |a
 | /posts/:pid                  | DELETE      | DELETE      | delete the post       |a
@@ -146,7 +146,7 @@ $ docker exec -ti <container-id> psql -U postgres
 
 | Endpoint     | Result                            |
 |--------------|-----------------------------------|
-| /            | render dashboard or landing page  |
+| /            | render feed or landing page       |
 | /login       | login form on landing page        |
 | /register    | register form on landing page     |
 | /logout      | log a user out to landing pag     |

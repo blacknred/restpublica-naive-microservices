@@ -35,7 +35,7 @@ function communities(req, res, next) {
         }
         if (req.query.mode) {
             req.checkQuery('mode')
-                .isIn(['count', 'dashboard'])
+                .isIn(['count', 'feed'])
                 .withMessage('Mode must be valid');
         }
     } else if (req.method === 'POST') {

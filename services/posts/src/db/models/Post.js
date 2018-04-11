@@ -312,7 +312,7 @@ function getAllByTag({ tag, userId, offset, reduced }) {
         });
 }
 
-function getAllDashboard({ profiles, communities, userId, offset, reduced }) {
+function getAllFeed({ profiles, communities, userId, offset, reduced }) {
     return knex('posts')
         .select('*')
         .whereIn('author_id', profiles)
@@ -415,7 +415,7 @@ module.exports = {
     getAllSearched,
     getAllByProfile,
     getAllByCommunity,
-    getAllDashboard,
+    getAllFeed,
     getAllCountByProfile,
     getAllCountByCommunity,
     getAllByTag

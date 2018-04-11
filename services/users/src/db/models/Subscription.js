@@ -80,7 +80,7 @@ function getAllFollowing({ profileId, userId, offset, reduced }) {
         });
 }
 
-function getAllDashboard(userId) {
+function getAllFeed(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
         today.getMonth(), today.getDate() - 31);
@@ -114,7 +114,7 @@ module.exports = {
     create,
     getAllFollowers,
     getAllFollowing,
-    getAllDashboard,
+    getAllFeed,
     deleteOne,
     deleteAll
 };

@@ -97,7 +97,7 @@ function getAllByProfileCount(userId) {
         .then(({ count }) => { return { count }; });
 }
 
-function getAllDashboardByProfile(userId) {
+function getAllFeedByProfile(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
         today.getMonth(), today.getDate() - 31);
@@ -213,7 +213,7 @@ module.exports = {
     getAllSearched,
     getAllByProfile,
     getAllByProfileCount,
-    getAllDashboardByProfile,
+    getAllFeedByProfile,
     getAllByAdmin,
     deleteAllInactive,
 };

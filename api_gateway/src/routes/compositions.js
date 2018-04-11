@@ -117,13 +117,13 @@ router
     })
     .get('/posts', async (ctx) => {
         // get posts data
-        if (ctx.query.dashboard) {
+        if (ctx.query.feed) {
             await auth;
             // get following profiles & communities ids -- last week & max 100
             const [rawProfiles, rawCommunities] = await Promise.all([
-                request(ctx, hosts.USERS_API, `/users/${ctx.state.consumer}/dashboard`, true),
+                request(ctx, hosts.USERS_API, `/users/${ctx.state.consumer}/feed`, true),
                 request(ctx, hosts.COMMUNITIES_API,
-                    `/communities?profile=${ctx.state.consumer}&mode=dashboard`, true)
+                    `/communities?profile=${ctx.state.consumer}&mode=feed`, true)
             ]);
             const profiles = rawProfiles.data.map(p => p.user_id);
             const comms = rawCommunities.data.communities.map(c => c.id);
