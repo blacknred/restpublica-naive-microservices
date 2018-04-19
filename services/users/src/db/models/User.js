@@ -46,6 +46,10 @@ function getUser(userId) {
 }
 
 function update(userObj, userId) {
+    if (userObj.password) {
+        const salt = bcrypt.genSaltSync();
+        userObj.password = bcrypt.hashSync(userObj.password, salt);
+    }
     return knex('users')
         .update(userObj)
         .update('updated_at', new Date())

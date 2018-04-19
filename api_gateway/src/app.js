@@ -57,6 +57,7 @@ app.use(async (ctx, next) => {
         if (status === 404) ctx.throw(404, ctx.body || 'Not Found');
     } catch (err) {
         debug(err.message);
+        console.log(err.message);
         ctx.status = err.status || 500;
         ctx.body = {
             status: 'error',
