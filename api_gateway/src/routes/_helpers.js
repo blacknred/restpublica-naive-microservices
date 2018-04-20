@@ -50,7 +50,7 @@ const request = async (ctx, host, url, r = false, fallback) => {
             'user-agent': ctx.headers['user-agent']
         },
         data: ctx.state.body || ctx.request.body,
-        timeout: 2000,
+        timeout: 8000,
         maxRedirects: 5,
         // ?proxy: {}
         validateStatus: status => status >= 200 && status < 500,
