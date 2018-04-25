@@ -33,7 +33,6 @@ app.use((req, res, next) => {
 // eslint-disable-next-line
 app.use((err, req, res, next) => {
     debug(err.message);
-    console.log(err.message);
     res.status(err.status || 500);
     res.json({
         status: 'error',

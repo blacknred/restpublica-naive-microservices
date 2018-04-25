@@ -98,27 +98,27 @@ $ docker exec -ti <container-id> psql -U postgres
 
 #### (3) Posts API - http://localhost:3006/v1/
 
-| Endpoint                     | HTTP Method | CRUD Method | Result                |
-|------------------------------|-------------|-------------|-----------------------|
-| /posts                       | POST        | CREATE      | add a post            |a
-| /posts                       | GET         | READ        | get trending posts    | 
-| /posts?tag=tag               | GET         | READ        | get posts by tag      | 
-| /posts?q=query               | GET         | READ        | get posts by search   | 
-| /posts?profile=pids&mode=    | GET         | READ        | get posts by user     | 
-| /posts?community=cids&?mode= | GET         | READ        | get community posts   |
-| /posts?feed=true        | GET         | READ        | get community posts   |a
-| /posts/:slug                 | GET         | READ        | get the post          | 
-| /posts/:pid                  | PUT         | UPDATE      | update the post       |a
-| /posts/:pid                  | DELETE      | DELETE      | delete the post       |a
-| /posts/:pid/comments         | POST        | CREATE      | create a comment      |a
-| /posts/:pid/comments         | GET         | READ        | get post comments     | 
-| /posts/:pid/comments/:cid    | PUT         | UPDATE      | update the comment    |a
-| /posts/:pid/comments/:cid    | DELETE      | DELETE      | delete the comment    |a
-| /posts/:pid/likes            | POST        | CREATE      | create a post like    |a
-| /posts/:pid/likes            | GET         | READ        | get post likes        |a
-| /posts/:pid/likes            | DELETE      | DELETE      | delete the like       |a
-| /tags                        | GET         | READ        | get all trending tags |
-| /tags?q=query                | GET         | READ        | get all tags by query |
+| Endpoint                    | HTTP Method | CRUD Method | Result                |
+|-----------------------------|-------------|-------------|-----------------------|
+| /posts                      | POST        | CREATE      | add a post            |a
+| /posts                      | GET         | READ        | get trending posts    | 
+| /posts?tag=tag              | GET         | READ        | get posts by tag      | 
+| /posts?q=query              | GET         | READ        | get posts by search   | 
+| /posts?profile=pid&mode=    | GET         | READ        | get posts by user     | 
+| /posts?community=cid&?mode= | GET         | READ        | get community posts   |
+| /posts?feed=true            | GET         | READ        | get community posts   |a
+| /posts/:slug                | GET         | READ        | get the post          | 
+| /posts/:pid                 | PUT         | UPDATE      | update the post       |a
+| /posts/:pid                 | DELETE      | DELETE      | delete the post       |a
+| /posts/:pid/comments        | POST        | CREATE      | create a comment      |a
+| /posts/:pid/comments        | GET         | READ        | get post comments     | 
+| /posts/:pid/comments/:cid   | PUT         | UPDATE      | update the comment    |a
+| /posts/:pid/comments/:cid   | DELETE      | DELETE      | delete the comment    |a
+| /posts/:pid/likes           | POST        | CREATE      | create a post like    |a
+| /posts/:pid/likes           | GET         | READ        | get post likes        |a
+| /posts/:pid/likes           | DELETE      | DELETE      | delete the like       |a
+| /tags                       | GET         | READ        | get all trending tags |
+| /tags?q=query               | GET         | READ        | get all tags by query |
 
 #### (4) Partners API - http://localhost:3008/v1/
 
