@@ -15,7 +15,7 @@ function videoToMp4(input, output) {
 
 function imageThumb(imgPath, thumbPath) {
     sharp(imgPath)
-        .resize(200, null)
+        .resize(300, null)
         .toFile(thumbPath);
 }
 

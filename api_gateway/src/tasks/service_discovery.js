@@ -20,6 +20,7 @@ module.exports = new CronJob({
             conf.COMMUNITIES_API = `http://communities-service:3005${version}`;
             conf.POSTS_API = `http://posts-service:3006${version}`;
             conf.PARTNERS_API = `http://partners-service:3008${version}`;
+            conf.STORAGE = 'http://files-storage:3007';
             log('success');
         } catch (err) {
             log(`failed with ${err.message}`);

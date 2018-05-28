@@ -12,7 +12,9 @@ const createPost = (knex, i) => {
         views_cnt: Math.floor(Math.random() * (test ? 30 : 500)) + 1,
         created_at: faker.date.past()
     };
-    if (i % 3 === 0) post.community_id = Math.floor(Math.random() * (test ? 2 : 10)) + 1;
+    if (i % 3 === 0) {
+        post.community_id = Math.floor(Math.random() * (test ? 2 : 10)) + 1;
+    }
     return knex('posts')
         .insert(post)
         .catch(err => console.log(err));

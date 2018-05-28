@@ -29,7 +29,9 @@ const getMaxRequestsCount = async (ctx) => {
                 api_key: apiKey,
                 domain: ctx.request.origin
             };
-            const res = await request(ctx, hosts.PARTNERS_API, '/apps/check', true);
+            const res = await request({
+                ctx, host: hosts.PARTNERS_API, url: '/apps/check', r: true
+            });
             if (typeof res.data.limit !== 'number') throw new Error();
             return parseInt(res.data.limit, 10);
         } catch (err) {
@@ -95,7 +97,9 @@ const authentication = async (ctx, next) => {
         if (typeof userToken === 'undefined') await next();
         ctx.state.method = 'GET';
         ctx.state.userAuthToken = userToken;
-        const res = await request(ctx, hosts.USERS_API, '/users/check', true);
+        const res = await request({
+            ctx, host: hosts.USERS_API, url: '/users/check', r: true
+        });
         if (typeof res.data.id !== 'number') return;
         ctx.state.consumer = parseInt(res.data.id, 10);
         delete ctx.state.method;
@@ -112,7 +116,9 @@ const auth = async (ctx, next) => {
 /* Check admin for administration endpoints */
 const admin = async (ctx, next) => {
     ctx.state.method = 'GET';
-    const res = await request(ctx, hosts.USERS_API, '/users/check', true);
+    const res = await request({
+        ctx, host: hosts.USERS_API, url: '/users/check', r: true
+    });
     if (!res.data.admin) ctx.throw(401, 'Access is restricted');
     delete ctx.state.method;
     await next();

@@ -18,7 +18,7 @@ const BLOCKING_TIMESPAN = process.env.BLOCKING_TIMESPAN || 60 * 5;
 const FAILS_LIMIT = process.env.FAILS_LIMIT || 15;
 
 
-const request = async (ctx, host, url, r = false, fallback) => {
+const request = async ({ ctx, host, url = null, r = false, fallback = null }) => {
     // Use timeouts
     // Requests may be redirects or compositions
     /* In case of some microservice is not answering:
@@ -43,7 +43,7 @@ const request = async (ctx, host, url, r = false, fallback) => {
     const hostFailesCounter = `host_fails_counter_${host}`;
     // conf for request
     const conf = {
-        url: host + url,
+        url: host + (url || ctx.url),
         method: ctx.state.method || ctx.method,
         headers: {
             'x-access-token': ctx.state.userAuthToken || genToken(ctx.state.consumer),
@@ -99,7 +99,7 @@ const request = async (ctx, host, url, r = false, fallback) => {
     }
 };
 
-
+// TODO: remove or?
 const timeout = async (ctx, next) => {
     const delay = 5000;
     // const status = options.status || 408;

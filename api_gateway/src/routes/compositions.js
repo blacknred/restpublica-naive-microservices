@@ -8,189 +8,198 @@ const { request } = require('./_helpers');
 
 const router = new Router();
 
-/* Compose multiple backend services and aggregating the results */
+/* Compose multiple backend services and aggregate the results */
 
 router
-    .get('/users', async (ctx) => {
-        // get profiles data
-        const profiles = await request(ctx, hosts.USERS_API, ctx.url, true);
-        const response = () => ctx.body = profiles;
-        // adds
-        if (profiles.status === 'success') {
-            // get preview posts
-            const requests = profiles.data.profiles.map(user => request(ctx, hosts.POSTS_API,
-                `/posts?profile=${user.id}&reduced=true`, true, response));
-            let rawPosts = await Promise.all(requests);
-            rawPosts = rawPosts.map(p => p.data.posts);
-            const posts = [].concat(...rawPosts);
-            profiles.data.profiles.forEach(x => x.posts = posts.filter(y => y.author_id === x.id));
-        }
-        response();
-    })
     .get('/users/:name', async (ctx) => {
-        // get profile data
-        const profile = await request(ctx, hosts.USERS_API, ctx.url, true);
-        const response = () => ctx.body = profile;
-        // adds
-        if (profile.status === 'success') {
-            // get communities subscriptions count
+        /* get profile */
+        const profile = await request({ ctx, host: hosts.USERS_API, url: ctx.url, r: true });
+        const res = () => ctx.body = profile;
+        /* adds */
+        if (profile.status) {
+            // get posts count & communities subscriptions count
             const cUrl = `/communities?profile=${profile.data.id}&mode=count`;
-            // get posts count
             const pUrl = `/posts?profile=${profile.data.id}&mode=count`;
-            const [pCnt, cCnt] = await Promise.all([
-                request(ctx, hosts.POSTS_API, pUrl, true, response),
-                request(ctx, hosts.COMMUNITIES_API, cUrl, true, response),
+            const [postsCnt, communitiesCnt] = await Promise.all([
+                request({ ctx, host: hosts.POSTS_API, url: pUrl, r: true, fallback: res }),
+                request({ ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true, fallback: res }),
             ]);
-            profile.data.posts_cnt = pCnt.data.count;
-            profile.data.communities_cnt = cCnt.data.count;
+            profile.data.posts_cnt = postsCnt.data.count;
+            profile.data.communities_cnt = communitiesCnt.data.count;
         }
-        response();
+        res();
     })
-
     .get('/communities/:name', async (ctx) => {
-        // get community data
-        const community = await request(ctx, hosts.COMMUNITIES_API, ctx.url, true);
-        const response = () => ctx.body = community;
-        // adds
-        if (community.status === 'success') {
-            // get posts count
+        /* get community */
+        const community =
+            await request({ ctx, host: hosts.COMMUNITIES_API, url: ctx.url, r: true });
+        const res = () => ctx.body = community;
+        /* adds */
+        if (community.status) {
+            // get posts count & admin data
             const pUrl = `/posts?community=${community.data.id}&mode=count`;
-            // get admin data
             const uUrl = `/users?list=${community.data.admin_id}`;
-            const [pCnt, admin] = await Promise.all([
-                request(ctx, hosts.POSTS_API, pUrl, true, response),
-                request(ctx, hosts.USERS_API, uUrl, true, response),
+            const [postsCnt, admin] = await Promise.all([
+                request({ ctx, host: hosts.POSTS_API, url: pUrl, r: true, fallback: res }),
+                request({ ctx, host: hosts.USERS_API, url: uUrl, r: true, fallback: res }),
             ]);
-            community.data.posts_cnt = pCnt.data.count;
+            community.data.posts_cnt = postsCnt.data.count;
             community.data.admin = admin.data.profiles[0];
         }
-        response();
+        res();
     })
     .get('/communities/:cid/followers', auth, async (ctx) => {
-        // get followers
-        const followers = await request(ctx, hosts.COMMUNITIES_API, ctx.url, true);
-        const response = () => ctx.body = followers;
-        // adds
-        if (followers.status === 'success') {
+        /* get followers */
+        const followers =
+            await request({ ctx, host: hosts.COMMUNITIES_API, url: ctx.url, r: true });
+        const res = () => ctx.body = followers;
+        /* adds */
+        if (followers.status) {
             // get profiles data
-            const pUrl = `/users?list=${followers.data.subscriptions.map(fol => fol.user_id)}`;
-            const profiles = await request(ctx, hosts.USERS_API, pUrl, true);
+            const uUrl = `/users?list=${followers.data.subscriptions.map(f => f.user_id)}`;
+            const profiles =
+                await request({ ctx, host: hosts.USERS_API, url: uUrl, r: true, fallback: res });
             followers.data.subscriptions.forEach(x => x.user = profiles.data.profiles
                 .find(y => y.id === x.user_id));
         }
-        response();
+        res();
     })
     .get('/communities/:cid/bans', auth, async (ctx) => {
-        // get banned profiles
-        const bans = await request(ctx, hosts.COMMUNITIES_API, ctx.url, true);
-        const response = () => ctx.body = bans;
-        // adds
-        if (bans.status === 'success') {
+        /* get banned profiles */
+        const bans = await request({ ctx, host: hosts.COMMUNITIES_API, url: ctx.url, r: true });
+        const res = () => ctx.body = bans;
+        /* adds */
+        if (bans.status) {
             // get profiles data
-            const pUrl = `/users?list=${bans.data.bans.map(ban => ban.user_id)}`;
-            const profiles = await request(ctx, hosts.USERS_API, pUrl, true);
+            const uUrl = `/users?list=${bans.data.bans.map(ban => ban.user_id)}`;
+            const profiles =
+                await request({ ctx, host: hosts.USERS_API, url: uUrl, r: true, fallback: res });
             bans.data.bans.forEach(x => x.user = profiles.data.profiles
                 .find(y => y.id === x.user_id));
         }
-        response();
+        res();
     })
 
     .post('/posts', auth, async (ctx) => {
-        // create post
-        const post = await request(ctx, hosts.POSTS_API, ctx.url, true);
-        const response = () => ctx.body = post;
-        // adds
-        if (post.status === 'success') {
-            // update last_post_at datetime
+        /* create post */
+        const post = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
+        const res = () => ctx.body = post;
+        /* adds */
+        if (post.status) {
+            // update last_post_at option
             ctx.state.method = 'PUT';
             ctx.state.body = {
                 option: 'last_post_at',
                 value: new Date()
             };
+            const cUrl = post.data.community_id ? `/communities/${post.data.community_id}` : null;
             await Promise.all([
-                request(ctx, hosts.USERS_API, '/users', true, response),
-                post.data.community_id ? request(ctx, hosts.COMMUNITIES_API,
-                    `/communities/${post.data.community_id}`, true, response) : null
+                request({ ctx, host: hosts.USERS_API, url: '/users', r: true, fallback: res }),
+                !cUrl ? null : request({
+                    ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true, fallback: res
+                })
             ]);
         }
-        response();
+        res();
     })
-    .get('/posts', async (ctx) => {
-        // get posts data
+    .get('/posts', auth, async (ctx) => {
+        /* get posts */
+        let pUrl = ctx.url;
         if (ctx.query.feed) {
-            await auth;
-            // get following profiles & communities ids -- last week & max 100
-            const [rawProfiles, rawCommunities] = await Promise.all([
-                request(ctx, hosts.USERS_API, `/users/${ctx.state.consumer}/feed`, true),
-                request(ctx, hosts.COMMUNITIES_API,
-                    `/communities?profile=${ctx.state.consumer}&mode=feed`, true)
+            // in case of feed request get user following profiles &
+            // communities ids -- last week & max 100
+            // TODO: implement ctx.query.feed_rand
+            const uUrl = `/users/${ctx.state.consumer}/feed`;
+            const cUrl = `/communities?profile=${ctx.state.consumer}&mode=feed`;
+            const [followingProfiles, followingCommunities] = await Promise.all([
+                request({ ctx, host: hosts.USERS_API, url: uUrl, r: true }),
+                request({ ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true })
             ]);
-            const profiles = rawProfiles.data.map(p => p.user_id);
-            const comms = rawCommunities.data.communities.map(c => c.id);
-            // get posts
-            ctx.url = `${ctx.url}&profiles=${profiles}&communities=${comms}`;
+            const profilesId = followingProfiles.data.map(p => p.user_id);
+            const communitiesId = followingCommunities.data.communities.map(c => c.id);
+            pUrl = `${ctx.url}&profiles=${profilesId}&communities=${communitiesId}`;
         }
-        const posts = await request(ctx, hosts.POSTS_API, ctx.url, true);
-        const response = () => ctx.body = posts;
-        // adds
-        if (posts.status === 'success') {
-            // get authors data
-            const profileIds = [...new Set(posts.data.posts.map(post => post.author_id))];
-            const pUrl = `/users?list=${profileIds}`;
+        const posts = await request({ ctx, host: hosts.POSTS_API, url: pUrl, r: true });
+        const res = () => ctx.body = posts;
+        /* adds */
+        if (posts.status) {
+            // get authors data of posts and posts' comments
+            const postsAuthorsId = posts.data.posts.map(post => post.author_id);
+            const commentsAuthorsId = [].concat(...posts.data.posts
+                .map(post => post.comments.map(com => com.user_id)));
+            const profilesId = [...new Set(postsAuthorsId.concat(commentsAuthorsId))];
+            const uUrl = `/users?list=${profilesId}`;
             // get communities names
-            const communityIds = [...new Set(posts.data.posts.map(p => p.community_id))];
-            const cUrl = `/communities?list=${communityIds.filter(p => p > 0)}&lim=name`;
+            const communitiesId = [...new Set(posts.data.posts.map(p => p.community_id))];
+            const cUrl = `/communities?list=${communitiesId.filter(p => p > 0)}&lim=name`;
             const [authors, communities] = await Promise.all([
-                request(ctx, hosts.USERS_API, pUrl, true, response),
-                request(ctx, hosts.COMMUNITIES_API, cUrl, true, response)
+                request({ ctx, host: hosts.USERS_API, url: uUrl, r: true, fallback: res }),
+                request({ ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true, fallback: res })
             ]);
-            posts.data.posts.forEach(x => x.author = authors.data.profiles
-                .find(y => y.id === x.author_id));
+            // combine data
             posts.data.posts.forEach((x) => {
+                x.author = authors.data.profiles.find(y => y.id === x.author_id);
                 x.community_name = communities.data.communities
                     .find(y => y.id === x.community_id);
                 if (x.community_name) x.community_name = x.community_name.name;
+                x.comments.forEach((com) => {
+                    com.author = authors.data.profiles.find(y => y.id === com.user_id);
+                });
             });
         }
-        response();
+        res();
     })
     .get('/posts/:slug', async (ctx) => {
-        // get post data
-        const post = await request(ctx, hosts.POSTS_API, ctx.url, true);
-        const response = () => ctx.body = post;
-        // adds
-        if (post.status === 'success') {
-            // get author data
-            const pUrl = `/users?list=${post.data.author_id}`;
-            // get community name
+        /* get post */
+        const post = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
+        const res = () => ctx.body = post;
+        /* adds */
+        if (post.status) {
+            // get authors data & communities name
+            const uUrl = `/users?list=${post.data.author_id}`;
             const cUrl = `/communities?list=${post.data.community_id}&lim=name`;
             const [author, community] = await Promise.all([
-                request(ctx, hosts.USERS_API, pUrl, true, response),
-                !post.data.community_id ? null :
-                    request(ctx, hosts.COMMUNITIES_API, cUrl, true, response)
+                request({ ctx, host: hosts.USERS_API, url: uUrl, r: true, fallback: res }),
+                !post.data.community_id ? null : request({
+                    ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true, fallback: res
+                })
             ]);
             post.data.author = author.data.profiles[0];
             if (community) post.data.communityName = community.data.communities[0].name;
         }
-        response();
+        res();
     })
     .get('/posts/:pid/comments', async (ctx) => {
-        // get post comments
-        const comments = await request(ctx, hosts.POSTS_API, ctx.url, true);
-        const userIds = [...new Set(comments.data.comments.map(com => com.user_id))];
-        const profiles = await request(ctx, hosts.USERS_API, `/users?list=${userIds}`, true);
-        comments.data.comments = comments.data.comments.map(x => profiles.data.profiles
-            .find(y => y.id === x.user_id));
-        ctx.body = comments;
+        /* get post comments */
+        const comments = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
+        const res = () => ctx.body = comments;
+        /* adds */
+        if (comments.status) {
+            // get authors data
+            const authorsId = [...new Set(comments.data.comments.map(com => com.user_id))];
+            const profiles = await request({
+                ctx, host: hosts.USERS_API, url: `/users?list=${authorsId}`, r: true, fallback: res
+            });
+            comments.data.comments.forEach(x => x.author = profiles.data.profiles
+                .find(y => y.id === x.user_id));
+        }
+        res();
     })
     .get('/posts/:pid/likes', auth, async (ctx) => {
-        // get post likes
-        const likes = await request(ctx, hosts.POSTS_API, ctx.url, true);
-        const userIds = [...new Set(likes.data.likes.map(like => like.user_id))];
-        const profiles = await request(ctx, hosts.USERS_API, `/users?list=${userIds}`, true);
-        likes.data.likes = likes.data.likes.map(x => profiles.data.profiles
-            .find(y => y.id === x.user_id));
-        ctx.body = likes;
+        /* get post likes */
+        const likes = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
+        const res = () => ctx.body = likes;
+        /* adds */
+        if (likes.status) {
+            // get authors data
+            const userIds = [...new Set(likes.data.likes.map(like => like.user_id))];
+            const profiles = await request({
+                ctx, host: hosts.USERS_API, url: `/users?list=${userIds}`, r: true, fallback: res
+            });
+            likes.data.likes = likes.data.likes.map(x => profiles.data.profiles
+                .find(y => y.id === x.user_id));
+        }
+        res();
     });
 
 module.exports = router;

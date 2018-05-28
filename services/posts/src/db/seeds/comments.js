@@ -7,7 +7,8 @@ const createComment = (knex) => {
         .insert({
             post_id: Math.floor(Math.random() * (test ? 10 : 500)) + 1,
             user_id: Math.floor(Math.random() * (test ? 3 : 40)) + 1,
-            body: faker.lorem.sentences()
+            body: faker.lorem.sentences(),
+            created_at: faker.date.past()
         })
         .catch(err => console.log(err));
 };

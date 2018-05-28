@@ -1,16 +1,22 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-case-declarations */
 /* eslint-disable no-throw-literal */
+
 const express = require('express');
-const url = require('url');
-const Post = require('../db/models/Post');
 const Tag = require('../db/models/Tag');
-const { deleteStorageFiles } = require('./_helpers');
-const dbHelpers = require('../db/_helpers');
+const Post = require('../db/models/Post');
 const { posts } = require('./validation');
+const dbHelpers = require('../db/_helpers');
 const { ensureAuthenticated } = require('../auth');
+const { deleteStorageFiles } = require('./_helpers');
 
 const router = express.Router();
+
+const MIMES = {
+    img: 'image/jpg',
+    gif: 'image/gif',
+    video: 'video/mp4'
+};
 
 /* posts */
 
@@ -28,55 +34,59 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
         const post = await Post.create(newPost);
         switch (req.body.type) {
             case 'file':
-                const mimes = {
-                    img: 'image/jpg',
-                    gif: 'image/gif',
-                    video: 'video/mp4'
-                };
-                const fileObj = {
-                    post_id: post[0].id,
-                    mime: mimes[req.body.fileType],
-                    file: req.body.fileUrl,
-                    thumb: req.body.fileThumbUrl
-                };
-                await Post.addFiles(fileObj);
+                req.body.files.forEach(async (file) => {
+                    await Post.addFiles({
+                        post_id: post[0].id,
+                        mime: MIMES[req.body.filesType],
+                        file: file.file,
+                        thumb: file.thumb
+                    });
+                });
                 break;
             case 'link':
                 const newLink = {
                     post_id: post[0].id,
+                    link: req.body.link,
                     type: req.body.linkType,
-                    link: req.body.linkUrl,
-                    src: url.parse(req.body.linkUrl).hostname,
-                    title: req.body.linkTitle || null,
-                    thumb: req.body.linkThumb || null
+                    src: req.body.linkSrc,
+                    // title: req.body.linkTitle || null,
+                    description: req.body.linkDescription || null,
+                    thumb: req.body.linkImg || null
                 };
                 await Post.addLink(newLink);
                 break;
             case 'poll':
                 const newPoll = {
                     post_id: post[0].id,
-                    subject: req.body.pollSubject,
-                    ends_at: req.body.pollEndsAt
+                    ends_at: req.body.pollEndsAt || null
                 };
                 const addedPoll = await Post.addPoll(newPoll);
                 const pollOptions = JSON.parse(req.body.pollOptions);
                 pollOptions.forEach(async (opt) => {
                     const newPollOption = {
                         poll_id: addedPoll[0].id,
-                        option: opt
+                        text: opt.text,
+                        img: opt.img || null
                     };
                     await Post.addPollOption(newPollOption);
                 });
                 break;
+            case 'repost':
+                const repostObj = {
+                    post_id: post[0].id,
+                    reposted_id: req.body.repostedId
+                };
+                await Post.addRepost(repostObj);
+                break;
             default:
         }
-        if (req.body.tags) {
-            const tags = req.body.tags.split(',');
-            tags.forEach(async (tag) => {
-                const tagId = await Tag.create(tag);
+        const wordsInDescription = req.body.description.trim().split(' ');
+        wordsInDescription.forEach(async (word) => {
+            if (word[0] === '#') {
+                const tagId = await Tag.create(word);
                 await Tag.addOneToPost(tagId, post[0].id);
-            });
-        }
+            }
+        });
         res.status(200).json({ status: 'success', data: post[0] });
     } catch (err) {
         return next(err);

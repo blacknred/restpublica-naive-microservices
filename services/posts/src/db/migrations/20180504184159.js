@@ -29,25 +29,33 @@ exports.up = (knex) => {
             table.string('src').notNullable();
             table.string('thumb');
             table.string('title');
+            table.string('description');
         })
         .createTable('post_polls', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
             table.foreign('post_id').references('posts.id');
-            table.text('subject').notNullable();
             table.datetime('ends_at');
         })
         .createTable('post_polls_options', (table) => {
             table.increments();
             table.integer('poll_id').notNullable();
             table.foreign('poll_id').references('post_polls.id');
-            table.text('option').notNullable();
+            table.text('text').notNullable();
+            table.string('img');
         })
         .createTable('post_polls_voices', (table) => {
             table.increments();
             table.integer('option_id').notNullable();
             table.foreign('option_id').references('post_polls_options.id');
             table.integer('user_id').notNullable();
+        })
+        .createTable('reposts', (table) => {
+            table.increments();
+            table.integer('post_id').notNullable();
+            table.foreign('post_id').references('posts.id');
+            table.integer('reposted_id').notNullable();
+            table.foreign('reposted_id').references('posts.id');
         })
         .createTable('comments', (table) => {
             table.increments();

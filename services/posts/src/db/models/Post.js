@@ -16,13 +16,13 @@ function isExists(postId) {
         .first();
 }
 
-function getTags(post) {
-    return knex('tags')
-        .select('title')
-        .leftJoin('posts_tags', 'tags.id', 'posts_tags.tag_id')
-        .where('posts_tags.post_id', post.id)
-        .then((rows) => { return { ...post, tags: rows.map(tag => tag.title) }; });
-}
+// function getTags(post) {
+//     return knex('tags')
+//         .select('title')
+//         .leftJoin('posts_tags', 'tags.id', 'posts_tags.tag_id')
+//         .where('posts_tags.post_id', post.id)
+//         .then((rows) => { return { ...post, tags: rows.map(tag => tag.title) }; });
+// }
 
 function getMyLike(post, userId) {
     return knex('likes')
@@ -41,12 +41,29 @@ function getLikesCount(post) {
         .then(({ count }) => { return { ...post, likes_cnt: count }; });
 }
 
+function getRepostsCount(post) {
+    return knex('reposts')
+        .count('*')
+        .where('post_id', post.id)
+        .first()
+        .then(({ count }) => { return { ...post, reposts_cnt: count }; });
+}
+
 function getCommentsCount(post) {
     return knex('comments')
         .count('*')
         .where('post_id', post.id)
         .first()
         .then(({ count }) => { return { ...post, comments_cnt: count }; });
+}
+
+function getLastComments(post) {
+    return knex('comments')
+        .select('*')
+        .where('post_id', post.id)
+        .orderBy('created_at', 'desc')
+        .limit(3)
+        .then((rows) => { return { ...post, comments: rows }; });
 }
 
 function getContent(post, userId) {
@@ -62,6 +79,13 @@ function getContent(post, userId) {
                 .where('post_id', post.id)
                 .first()
                 .then((content) => { return { ...post, content }; });
+        case 'repost':
+            return knex('posts')
+                .select(['id', 'slug', 'author_id', 'description', 'type'])
+                .where('post_id', post.id)
+                .first()
+                .then((content) => { return { ...post, content }; })
+                .then(filledPost => getContent(filledPost.content, userId));
         case 'poll':
             return knex('post_polls')
                 .select('*')
@@ -99,6 +123,9 @@ function getContent(post, userId) {
     }
 }
 
+/* */
+
+
 function addFiles(fileObj) {
     return knex('post_files')
         .insert(fileObj)
@@ -123,6 +150,29 @@ function addPollOption(pollOptionObj) {
         .returning('*');
 }
 
+function addRepost(repostObj) {
+    return knex('reposts')
+        .insert(repostObj)
+        .returning('*');
+}
+
+function getAllCountByProfile(profileId, userId) {
+    return knex('posts')
+        .count('*')
+        .where('author_id', profileId)
+        .andWhere({ archived: profileId === userId ? true || false : false })
+        .first()
+        .then(({ count }) => { return { count }; });
+}
+
+function getAllCountByCommunity(communityId) {
+    return knex('posts')
+        .count('*')
+        .where('community_id', communityId)
+        .andWhere('archived', false)
+        .then(({ count }) => { return { count }; });
+}
+
 function create(newPost) {
     return knex('posts')
         .insert(newPost)
@@ -136,10 +186,11 @@ function getOne(slug, userId) {
         .orWhere({ slug, author_id: userId })
         .first()
         .then(_row => _row ? getLikesCount(_row) : _row)
+        .then(_row => _row ? getRepostsCount(_row) : _row)
         .then(_row => _row ? getCommentsCount(_row) : _row)
         .then(_row => _row ? getContent(_row, userId) : _row)
-        .then(_row => _row ? getTags(_row) : _row)
         .then(_row => _row ? getMyLike(_row, userId) : _row);
+        // .then(_row => _row ? getTags(_row) : _row);
 }
 
 function update({ updatedPost, postId, userId }) {
@@ -187,6 +238,11 @@ function deleteOne(postId, userId) {
                                     .then(paths => filesToDelete = Object.values(paths[0]));
                             case 'link':
                                 return knex('post_links')
+                                    .del()
+                                    .where('post_id', postId)
+                                    .transacting(trx);
+                            case 'repost':
+                                return knex('reposts')
                                     .del()
                                     .where('post_id', postId)
                                     .transacting(trx);
@@ -247,10 +303,11 @@ function getAllTrending({ userId, offset, reduced }) {
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? getLikesCount(_row) : _row)
+        .map(_row => _row ? getRepostsCount(_row) : _row)
         .map(_row => _row ? getCommentsCount(_row) : _row)
         .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getTags(_row) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
+        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -271,10 +328,12 @@ function getAllSearched({ query, userId, offset, reduced }) {
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? getLikesCount(_row) : _row)
+        .map(_row => _row ? getRepostsCount(_row) : _row)
         .map(_row => _row ? getCommentsCount(_row) : _row)
         .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getTags(_row) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
+        .map(_row => _row ? getLastComments(_row) : _row)
+        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -296,10 +355,12 @@ function getAllByTag({ tag, userId, offset, reduced }) {
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? getLikesCount(_row) : _row)
+        .map(_row => _row ? getRepostsCount(_row) : _row)
         .map(_row => _row ? getCommentsCount(_row) : _row)
         .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getTags(_row) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
+        .map(_row => _row ? getLastComments(_row) : _row)
+        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('posts.id')
@@ -322,10 +383,12 @@ function getAllFeed({ profiles, communities, userId, offset, reduced }) {
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? getLikesCount(_row) : _row)
+        .map(_row => _row ? getRepostsCount(_row) : _row)
         .map(_row => _row ? getCommentsCount(_row) : _row)
         .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getTags(_row) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
+        .map(_row => _row ? getLastComments(_row) : _row)
+        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -346,10 +409,12 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT / 2 : LIMIT / 2))
         .map(_row => _row ? getLikesCount(_row) : _row)
+        .map(_row => _row ? getRepostsCount(_row) : _row)
         .map(_row => _row ? getCommentsCount(_row) : _row)
         .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getTags(_row) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
+        .map(_row => _row ? getLastComments(_row) : _row)
+        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -369,10 +434,12 @@ function getAllByCommunity({ communityId, userId, offset, reduced }) {
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? getLikesCount(_row) : _row)
+        .map(_row => _row ? getRepostsCount(_row) : _row)
         .map(_row => _row ? getCommentsCount(_row) : _row)
         .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getTags(_row) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
+        .map(_row => _row ? getLastComments(_row) : _row)
+        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -383,30 +450,13 @@ function getAllByCommunity({ communityId, userId, offset, reduced }) {
         });
 }
 
-
-function getAllCountByProfile(profileId, userId) {
-    return knex('posts')
-        .count('*')
-        .where('author_id', profileId)
-        .andWhere({ archived: profileId === userId ? true || false : false })
-        .first()
-        .then(({ count }) => { return { count }; });
-}
-
-function getAllCountByCommunity(communityId) {
-    return knex('posts')
-        .count('*')
-        .where('community_id', communityId)
-        .andWhere('archived', false)
-        .then(({ count }) => { return { count }; });
-}
-
 module.exports = {
     isExists,
     addFiles,
     addLink,
     addPoll,
     addPollOption,
+    addRepost,
     create,
     getOne,
     update,

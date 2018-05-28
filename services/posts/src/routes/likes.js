@@ -15,7 +15,7 @@ router.post('/:pid/likes', ensureAuthenticated, likes,
     async (req, res, next) => {
         const newLike = {
             post_id: req.params.pid,
-            user_id: req.user
+            user_id: req.body.userId
         };
         try {
             const post = await Post.isExists(req.params.pid);
@@ -48,7 +48,7 @@ router.delete('/:pid/likes', ensureAuthenticated, likes, async (req, res, next) 
         if (!post) throw { status: 404, message: 'Post not found' };
         const data = await Like.deleteOne(req.params.pid, req.user);
         if (!data) throw { status: 404, message: 'Like not found' };
-        res.status(200).json({ status: 'success', data: { id: req.params.pid } });
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }

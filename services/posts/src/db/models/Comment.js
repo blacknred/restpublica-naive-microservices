@@ -17,6 +17,7 @@ function getAll({ postId, offset, reduced }) {
     return knex('comments')
         .select('*')
         .where('post_id', postId)
+        .orderBy('created_at', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .then((comments) => {
@@ -31,7 +32,8 @@ function getAll({ postId, offset, reduced }) {
 function create(newComment) {
     return knex('comments')
         .insert(newComment)
-        .returning('*');
+        .returning('*')
+        .then(rows => rows[0]);
 }
 
 function update({ newComment, commentId, userId }) {

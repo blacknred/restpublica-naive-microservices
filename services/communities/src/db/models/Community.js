@@ -100,12 +100,13 @@ function getAllByProfileCount(userId) {
 function getAllFeedByProfile(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 31);
+        today.getMonth(), today.getDate() - 60);
     return knex('communities')
         .select('communities.id')
         .rightJoin('communities_subscriptions',
             'communities_subscriptions.community_id', 'communities.id')
         .where('communities_subscriptions.user_id', userId)
+        .andWhere('communities_subscriptions.approved', true)
         .andWhere('communities.last_post_at', '>', lastMonth)
         .orderBy('communities.last_post_at', 'DESC')
         .limit(100)

@@ -107,7 +107,7 @@ function getAllInList({ list, userId, limiter }) {
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 31);
+        today.getMonth(), today.getDate() - 60);
     return knex('users_subscriptions')
         .select('user_id')
         .where('created_at', '>', lastMonth)

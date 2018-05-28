@@ -30,13 +30,14 @@ function create(newLike) {
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query).then(({ rows }) => rows[0].id);
+    return knex.raw(query).then(({ rows }) => { return { id: rows[0].id }; });
 }
 
 function deleteOne(postId, userId) {
     return knex('likes')
         .del()
-        .where({ post_id: postId, user_id: userId });
+        .where({ post_id: postId, user_id: userId })
+        .then(() => { return { id: postId }; });
 }
 
 module.exports = {

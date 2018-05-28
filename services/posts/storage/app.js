@@ -1,9 +1,9 @@
 /* eslint-disable consistent-return */
-
 const fs = require('fs');
 const Koa = require('koa');
 const path = require('path');
 const util = require('util');
+const cors = require('koa-cors');
 const serve = require('koa-static');
 const koaBody = require('koa-body');
 const logger = require('koa-logger');
@@ -37,6 +37,11 @@ app.use(serve(path.join(__dirname, '/static')));
 /* multipart */
 app.use(koaBody({ multipart: true }));
 
+/* cors */
+app.use(cors({
+    // origin: 'http://localhost:3000'
+}));
+
 /* router */
 app.use(async (ctx, next) => {
     /* eslint-disable no-case-declarations */
@@ -50,6 +55,7 @@ app.use(async (ctx, next) => {
                 await mkdir(fullPath);
                 files.forEach(async (file) => {
                     const type = file.type.split('/')[0];
+
                     // process file
                     let fileName;
                     switch (type) {
@@ -67,7 +73,6 @@ app.use(async (ctx, next) => {
                         default:
                     }
                     console.log('uploading %s -> %s', file.name, fileName);
-                    response.push(`http://localhost:3007/${dir}/${fileName}`); // ctx.request.URL
 
                     // process thumbnail
                     const thumbName = `${Math.random().toString(36).slice(2)}.jpg`;
@@ -77,7 +82,10 @@ app.use(async (ctx, next) => {
                         case 'video': await helpers.videoThumb(file.path, fullPath); break;
                         default:
                     }
-                    response.push(`http://localhost:3007/${dir}/${thumbName}`); // ctx.request.URL
+                    response.push({
+                        file: `http://localhost:3007/${dir}/${fileName}`, // ctx.request.URL
+                        thumb: `http://localhost:3007/${dir}/${thumbName}` // ctx.request.URL
+                    });
                 });
                 ctx.body = {
                     status: 'success',

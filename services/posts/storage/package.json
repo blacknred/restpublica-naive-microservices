@@ -10,6 +10,7 @@
         "koa": "^2.5.0",
         "koa-better-body": "^3.0.4",
         "koa-body": "*",
+        "koa-cors": "0.0.16",
         "koa-logger": "*",
         "koa-static": "*",
         "sharp": "^0.20.0"

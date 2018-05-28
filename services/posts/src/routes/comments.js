@@ -23,6 +23,7 @@ router.post('/:pid/comments', ensureAuthenticated, comments,
             if (!post) throw { status: 404, message: 'Post not found' };
             if (!post.commentable) throw { status: 403, message: 'Permission denied' };
             const data = await Comment.create(newComment);
+            console.log(data);
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);
