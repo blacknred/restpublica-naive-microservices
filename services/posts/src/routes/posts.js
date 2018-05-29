@@ -49,9 +49,9 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
                     link: req.body.link,
                     type: req.body.linkType,
                     src: req.body.linkSrc,
-                    // title: req.body.linkTitle || null,
+                    title: req.body.linkTitle || null,
                     description: req.body.linkDescription || null,
-                    thumb: req.body.linkImg || null
+                    img: req.body.linkImg || null
                 };
                 await Post.addLink(newLink);
                 break;
@@ -61,12 +61,12 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
                     ends_at: req.body.pollEndsAt || null
                 };
                 const addedPoll = await Post.addPoll(newPoll);
-                const pollOptions = JSON.parse(req.body.pollOptions);
-                pollOptions.forEach(async (opt) => {
+                req.body.pollOptions.forEach(async (opt) => {
                     const newPollOption = {
                         poll_id: addedPoll[0].id,
                         text: opt.text,
-                        img: opt.img || null
+                        img: opt.img || null,
+                        thumb: opt.thumb || null
                     };
                     await Post.addPollOption(newPollOption);
                 });

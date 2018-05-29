@@ -37,19 +37,20 @@ function posts(req, res, next) {
                     .isIn(['embed', 'file', 'page'])
                     .withMessage('Link type is empty or not valid');
                 req.checkBody('linkSrc')
-                    .isAlphanumeric()
-                    .withMessage('Link src must be alphanumeric');
+                    .notEmpty()
+                    .withMessage('Link src must be not empty');
                 if (req.body.linkImg) {
-                    req.checkBody('linkThumb')
+                    req.checkBody('linkImg')
                         .matches(FILEURLPATTERN)
-                        .withMessage('Thumb url is empty or not valid');
+                        .withMessage('Link img is empty or not valid');
                 }
                 break;
             case 'poll':
-                console.log(req.body.pollAnswers);
                 req.checkBody('pollAnswers')
                     .custom(values => values.length > 1 &&
-                        values.some(val => val.text && val.img))
+                        values.some(val => typeof val.text === 'undefined' &&
+                            typeof val.img === 'undefined' &&
+                            typeof val.thumb === 'undefined'))
                     .withMessage('Poll answer variants are empty or not valid');
                 if (req.body.pollEndsAt) {
                     req.checkBody('pollEndsAt')
@@ -60,7 +61,7 @@ function posts(req, res, next) {
             case 'repost':
                 req.checkBody('repostedId')
                     .isInt()
-                    .withMessage('Repost mus have reposted post id');
+                    .withMessage('Repost must have reposted post id');
                 break;
             default:
         }

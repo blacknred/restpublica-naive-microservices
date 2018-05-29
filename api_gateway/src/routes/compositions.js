@@ -115,7 +115,8 @@ router
                 request({ ctx, host: hosts.USERS_API, url: uUrl, r: true }),
                 request({ ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true })
             ]);
-            const profilesId = followingProfiles.data.map(p => p.user_id);
+            let profilesId = followingProfiles.data.map(p => p.user_id);
+            profilesId = `${profilesId},${ctx.state.consumer}`;
             const communitiesId = followingCommunities.data.communities.map(c => c.id);
             pUrl = `${ctx.url}&profiles=${profilesId}&communities=${communitiesId}`;
         }

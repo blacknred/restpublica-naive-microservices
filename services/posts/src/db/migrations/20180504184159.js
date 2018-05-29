@@ -27,7 +27,7 @@ exports.up = (knex) => {
             table.string('type').notNullable();
             table.string('link').notNullable();
             table.string('src').notNullable();
-            table.string('thumb');
+            table.string('img');
             table.string('title');
             table.string('description');
         })
@@ -43,6 +43,7 @@ exports.up = (knex) => {
             table.foreign('poll_id').references('post_polls.id');
             table.text('text').notNullable();
             table.string('img');
+            table.string('thumb');
         })
         .createTable('post_polls_voices', (table) => {
             table.increments();
