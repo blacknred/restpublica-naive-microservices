@@ -56,17 +56,13 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
                 await Post.addLink(newLink);
                 break;
             case 'poll':
-                const newPoll = {
-                    post_id: post[0].id,
-                    ends_at: req.body.pollEndsAt || null
-                };
-                const addedPoll = await Post.addPoll(newPoll);
                 req.body.pollOptions.forEach(async (opt) => {
                     const newPollOption = {
-                        poll_id: addedPoll[0].id,
+                        post_id: post[0].id,
                         text: opt.text,
                         img: opt.img || null,
-                        thumb: opt.thumb || null
+                        thumb: opt.thumb || null,
+                        ends_at: req.body.pollEndsAt || null
                     };
                     await Post.addPollOption(newPollOption);
                 });
@@ -82,8 +78,8 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
         }
         const wordsInDescription = req.body.description.trim().split(' ');
         wordsInDescription.forEach(async (word) => {
-            if (word[0] === '#') {
-                const tagId = await Tag.create(word);
+            if (word.charAt(0) === '#') {
+                const tagId = await Tag.create(word.substr(1));
                 await Tag.addOneToPost(tagId, post[0].id);
             }
         });

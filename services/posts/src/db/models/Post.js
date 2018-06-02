@@ -16,14 +16,6 @@ function isExists(postId) {
         .first();
 }
 
-// function getTags(post) {
-//     return knex('tags')
-//         .select('title')
-//         .leftJoin('posts_tags', 'tags.id', 'posts_tags.tag_id')
-//         .where('posts_tags.post_id', post.id)
-//         .then((rows) => { return { ...post, tags: rows.map(tag => tag.title) }; });
-// }
-
 function getMyLike(post, userId) {
     return knex('likes')
         .select('id')
@@ -69,12 +61,12 @@ function getLastComments(post) {
 function getContent(post, userId) {
     switch (post.type) {
         case 'file':
-            return knex('post_files')
+            return knex('files')
                 .select('*')
                 .where('post_id', post.id)
                 .then((content) => { return { ...post, content }; });
         case 'link':
-            return knex('post_links')
+            return knex('links')
                 .select('*')
                 .where('post_id', post.id)
                 .first()
@@ -82,23 +74,26 @@ function getContent(post, userId) {
         case 'repost':
             return knex('posts')
                 .select(['id', 'slug', 'author_id', 'description', 'type'])
-                .where('post_id', post.id)
+                .where('id', post.id)
                 .first()
                 .then((content) => { return { ...post, content }; })
                 .then(filledPost => getContent(filledPost.content, userId));
         case 'poll':
-            return knex('post_polls')
+            // return knex('post_polls')
+            //     .select('*')
+            //     .where('post_id', post.id)
+            //     .first()
+            //     .then((poll) => {
+            //         post.content = { ...poll, options: [], myVotedOptionId: null };
+            //         return knex('post_polls_options')
+            //             .select('*')
+            //             .where('poll_id', poll.id);
+            //     })
+            return knex('polls_options')
                 .select('*')
                 .where('post_id', post.id)
-                .first()
-                .then((poll) => {
-                    post.content = { ...poll, options: [], myVotedOptionId: null };
-                    return knex('post_polls_options')
-                        .select('*')
-                        .where('poll_id', poll.id);
-                })
                 .map((opt, i) => {
-                    return knex('post_polls_voices')
+                    return knex('polls_voices')
                         .count('*')
                         .where('option_id', opt.id)
                         .first()
@@ -109,7 +104,7 @@ function getContent(post, userId) {
                 })
                 .then(() => {
                     const ids = Object.values(post.content.options.map(opt => opt.id));
-                    return knex('post_polls_voices')
+                    return knex('polls_voices')
                         .select('id')
                         .whereIn('option_id', ids)
                         .andWhere('user_id', userId)
@@ -119,7 +114,7 @@ function getContent(post, userId) {
                             return post;
                         });
                 });
-        default: return null;
+        default: return post;
     }
 }
 
@@ -127,25 +122,19 @@ function getContent(post, userId) {
 
 
 function addFiles(fileObj) {
-    return knex('post_files')
+    return knex('files')
         .insert(fileObj)
         .returning('*');
 }
 
 function addLink(linkObj) {
-    return knex('post_links')
+    return knex('links')
         .insert(linkObj)
         .returning('*');
 }
 
-function addPoll(pollObj) {
-    return knex('post_polls')
-        .insert(pollObj)
-        .returning('*');
-}
-
 function addPollOption(pollOptionObj) {
-    return knex('post_polls_options')
+    return knex('polls_options')
         .insert(pollOptionObj)
         .returning('*');
 }
@@ -190,7 +179,6 @@ function getOne(slug, userId) {
         .then(_row => _row ? getCommentsCount(_row) : _row)
         .then(_row => _row ? getContent(_row, userId) : _row)
         .then(_row => _row ? getMyLike(_row, userId) : _row);
-        // .then(_row => _row ? getTags(_row) : _row);
 }
 
 function update({ updatedPost, postId, userId }) {
@@ -230,14 +218,14 @@ function deleteOne(postId, userId) {
                     .then((post) => {
                         switch (post.type) {
                             case 'file':
-                                return knex('post_files')
+                                return knex('files')
                                     .del()
                                     .where('post_id', postId)
                                     .transacting(trx)
                                     .returning(['file', 'thumb'])
                                     .then(paths => filesToDelete = Object.values(paths[0]));
                             case 'link':
-                                return knex('post_links')
+                                return knex('links')
                                     .del()
                                     .where('post_id', postId)
                                     .transacting(trx);
@@ -247,28 +235,21 @@ function deleteOne(postId, userId) {
                                     .where('post_id', postId)
                                     .transacting(trx);
                             case 'poll':
-                                return knex('post_polls')
+                                // return knex('post_polls')
+                                //     .select('id')
+                                //     .where('post_id', postId)
+                                //     .map((poll) => {
+                                return knex('polls_options')
                                     .select('id')
                                     .where('post_id', postId)
-                                    .map((poll) => {
-                                        return knex('post_polls_options')
-                                            .select('id')
-                                            .where('poll_id', poll.id)
-                                            .map((opt) => {
-                                                return knex('post_polls_voices')
-                                                    .del()
-                                                    .where('option_id', opt.id)
-                                                    .transacting(trx);
-                                            })
-                                            .then(() => {
-                                                return knex('post_polls_options')
-                                                    .del()
-                                                    .where('poll_id', poll.id)
-                                                    .transacting(trx);
-                                            });
+                                    .map((opt) => {
+                                        return knex('polls_voices')
+                                            .del()
+                                            .where('option_id', opt.id)
+                                            .transacting(trx);
                                     })
                                     .then(() => {
-                                        return knex('post_polls')
+                                        return knex('polls_options')
                                             .del()
                                             .where('post_id', postId)
                                             .transacting(trx);
@@ -307,7 +288,6 @@ function getAllTrending({ userId, offset, reduced }) {
         .map(_row => _row ? getCommentsCount(_row) : _row)
         .map(_row => _row ? getContent(_row, userId) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
-        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -333,7 +313,6 @@ function getAllSearched({ query, userId, offset, reduced }) {
         .map(_row => _row ? getContent(_row, userId) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
         .map(_row => _row ? getLastComments(_row) : _row)
-        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -360,7 +339,6 @@ function getAllByTag({ tag, userId, offset, reduced }) {
         .map(_row => _row ? getContent(_row, userId) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
         .map(_row => _row ? getLastComments(_row) : _row)
-        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('posts.id')
@@ -388,7 +366,6 @@ function getAllFeed({ profiles, communities, userId, offset, reduced }) {
         .map(_row => _row ? getContent(_row, userId) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
         .map(_row => _row ? getLastComments(_row) : _row)
-        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -414,7 +391,6 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
         .map(_row => _row ? getContent(_row, userId) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
         .map(_row => _row ? getLastComments(_row) : _row)
-        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -439,7 +415,6 @@ function getAllByCommunity({ communityId, userId, offset, reduced }) {
         .map(_row => _row ? getContent(_row, userId) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
         .map(_row => _row ? getLastComments(_row) : _row)
-        // .map(_row => _row ? getTags(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -454,7 +429,6 @@ module.exports = {
     isExists,
     addFiles,
     addLink,
-    addPoll,
     addPollOption,
     addRepost,
     create,

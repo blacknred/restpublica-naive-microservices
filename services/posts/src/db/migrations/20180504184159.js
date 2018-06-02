@@ -12,7 +12,7 @@ exports.up = (knex) => {
             table.integer('views_cnt').notNullable().defaultTo(0);
             table.timestamps(true, true);
         })
-        .createTable('post_files', (table) => {
+        .createTable('files', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
             table.foreign('post_id').references('posts.id');
@@ -20,7 +20,7 @@ exports.up = (knex) => {
             table.string('file').notNullable();
             table.string('thumb').notNullable();
         })
-        .createTable('post_links', (table) => {
+        .createTable('links', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
             table.foreign('post_id').references('posts.id');
@@ -31,24 +31,19 @@ exports.up = (knex) => {
             table.string('title');
             table.string('description');
         })
-        .createTable('post_polls', (table) => {
+        .createTable('polls_options', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
             table.foreign('post_id').references('posts.id');
-            table.datetime('ends_at');
-        })
-        .createTable('post_polls_options', (table) => {
-            table.increments();
-            table.integer('poll_id').notNullable();
-            table.foreign('poll_id').references('post_polls.id');
             table.text('text').notNullable();
             table.string('img');
             table.string('thumb');
+            table.datetime('ends_at');
         })
-        .createTable('post_polls_voices', (table) => {
+        .createTable('polls_voices', (table) => {
             table.increments();
             table.integer('option_id').notNullable();
-            table.foreign('option_id').references('post_polls_options.id');
+            table.foreign('option_id').references('polls_options.id');
             table.integer('user_id').notNullable();
         })
         .createTable('reposts', (table) => {

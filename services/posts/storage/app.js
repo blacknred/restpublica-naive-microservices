@@ -19,6 +19,7 @@ app.use(logger());
 /* errors */
 app.use(async (ctx, next) => {
     try {
+        ctx.set('Content-Disposition', 'attachment');
         await next();
         const status = ctx.status || 404;
         if (status === 404) ctx.throw(404, 'File Not Found');

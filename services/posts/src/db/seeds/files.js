@@ -54,21 +54,20 @@ const createFile = (knex, i, imgBuffer) => {
     };
     return request.post(conf)
         .then((res) => {
-            const datas = JSON.parse(res);
-            const [file, thumb] = datas.data;
-            return knex('post_files')
+            const data = JSON.parse(res);
+            return knex('files')
                 .insert({
                     post_id: i,
                     mime: 'image/jpg',
-                    file,
-                    thumb
+                    file: data.data[0].file,
+                    thumb: data.data[0].thumb
                 });
         })
         .catch(err => console.log(err));
 };
 
 exports.seed = (knex, Promise) => {
-    return knex('post_files')
+    return knex('files')
         .del()
         .then(() => {
             if (process.env.NODE_ENV === 'test') {

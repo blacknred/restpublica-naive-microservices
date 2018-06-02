@@ -48,9 +48,9 @@ function posts(req, res, next) {
             case 'poll':
                 req.checkBody('pollAnswers')
                     .custom(values => values.length > 1 &&
-                        values.some(val => typeof val.text === 'undefined' &&
-                            typeof val.img === 'undefined' &&
-                            typeof val.thumb === 'undefined'))
+                        values.some(val => val.text &&
+                            typeof val.img !== 'undefined' &&
+                            typeof val.thumb !== 'undefined'))
                     .withMessage('Poll answer variants are empty or not valid');
                 if (req.body.pollEndsAt) {
                     req.checkBody('pollEndsAt')
