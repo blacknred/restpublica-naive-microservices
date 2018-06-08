@@ -8,6 +8,7 @@ const tagsRoutes = require('./routes/tags');
 const { authentication } = require('./auth');
 const postsRoutes = require('./routes/posts');
 const likesRoutes = require('./routes/likes');
+const votesRoutes = require('./routes/votes');
 const commentsRoutes = require('./routes/comments');
 
 const app = express();
@@ -26,6 +27,7 @@ app.get('/v1/ping', res => res.status(200).send('pong'));
 app.use('/v1/posts', postsRoutes);
 app.use('/v1/posts', commentsRoutes);
 app.use('/v1/posts', likesRoutes);
+app.use('/v1/posts', votesRoutes);
 app.use('/v1/tags', tagsRoutes);
 
 /* 404 and errors handling */

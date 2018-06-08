@@ -141,8 +141,8 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
             case 'active': await Subscription.deleteAll(req.user); break;
             default:
         }
-        const newUser = { [req.body.option]: req.body.value };
-        let data = await User.update(newUser, req.user);
+        const updatedValue = { [req.body.option]: req.body.value };
+        let data = await User.update(updatedValue, req.user);
         if (req.body.option === 'avatar') data = data.toString('base64');
         res.status(200).json({ status: 'success', data: { [req.body.option]: data } });
     } catch (err) {

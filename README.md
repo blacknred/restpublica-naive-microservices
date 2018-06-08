@@ -117,6 +117,9 @@ $ docker exec -ti <container-id> psql -U postgres
 | /posts/:pid/likes           | POST        | CREATE      | create a post like    |a
 | /posts/:pid/likes           | GET         | READ        | get post likes        |a
 | /posts/:pid/likes           | DELETE      | DELETE      | delete the like       |a
+| /posts/:pid/votes           | POST        | CREATE      | create a post vote    |a
+| /posts/:pid/votes           | GET         | READ        | get post votes        |a
+| /posts/:pid/votes/:oid      | DELETE      | DELETE      | delete the vote       |a
 | /tags                       | GET         | READ        | get all trending tags |
 | /tags?q=query               | GET         | READ        | get all tags by query |
 

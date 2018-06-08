@@ -167,7 +167,7 @@ router.get('/', communities, async (req, res, next) => {
                     data = await Community.getAllByProfile({ userId: profile, offset, reduced });
             }
         } else data = await Community.getAllTrending({ userId: req.user, offset, reduced });
-        if (data.communities.length > 0) {
+        if (data.communities && data.communities.length > 0) {
             data.communities.forEach((com) => {
                 if (com.avatar) com.avatar = com.avatar.toString('base64');
                 if (com.banner) com.banner = com.banner.toString('base64');

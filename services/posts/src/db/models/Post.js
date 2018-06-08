@@ -69,7 +69,6 @@ function getContent(post, userId) {
             return knex('links')
                 .select('*')
                 .where('post_id', post.id)
-                .first()
                 .then((content) => { return { ...post, content }; });
         case 'repost':
             return knex('posts')
@@ -79,16 +78,7 @@ function getContent(post, userId) {
                 .then((content) => { return { ...post, content }; })
                 .then(filledPost => getContent(filledPost.content, userId));
         case 'poll':
-            // return knex('post_polls')
-            //     .select('*')
-            //     .where('post_id', post.id)
-            //     .first()
-            //     .then((poll) => {
-            //         post.content = { ...poll, options: [], myVotedOptionId: null };
-            //         return knex('post_polls_options')
-            //             .select('*')
-            //             .where('poll_id', poll.id);
-            //     })
+            post.content = [];
             return knex('polls_options')
                 .select('*')
                 .where('post_id', post.id)
@@ -98,22 +88,19 @@ function getContent(post, userId) {
                         .where('option_id', opt.id)
                         .first()
                         .then(({ count }) => {
-                            opt.votes_cnt = count;
-                            post.content.options[i] = opt;
+                            return knex('polls_voices')
+                                .select('id')
+                                .where('option_id', opt.id)
+                                .andWhere('user_id', userId)
+                                .first()
+                                .then((id) => {
+                                    post.content[i] = {
+                                        ...opt, count, my_vote: id ? id.id : null
+                                    };
+                                });
                         });
                 })
-                .then(() => {
-                    const ids = Object.values(post.content.options.map(opt => opt.id));
-                    return knex('polls_voices')
-                        .select('id')
-                        .whereIn('option_id', ids)
-                        .andWhere('user_id', userId)
-                        .first()
-                        .then((id) => {
-                            post.content.myVotedOptionId = id ? id.id : null;
-                            return post;
-                        });
-                });
+                .then(() => post);
         default: return post;
     }
 }
@@ -181,13 +168,14 @@ function getOne(slug, userId) {
         .then(_row => _row ? getMyLike(_row, userId) : _row);
 }
 
-function update({ updatedPost, postId, userId }) {
+function update({ updatedValue, postId, userId }) {
     return knex('posts')
-        .update(updatedPost)
+        .update(updatedValue)
         .update('updated_at', knex.fn.now())
         .where('id', postId)
         .andWhere('author_id', userId)
-        .returning('*');
+        .returning(`${Object.keys(updatedValue)[0]}`)
+        .then(rows => rows[0]);
 }
 
 function deleteOne(postId, userId) {
@@ -235,10 +223,6 @@ function deleteOne(postId, userId) {
                                     .where('post_id', postId)
                                     .transacting(trx);
                             case 'poll':
-                                // return knex('post_polls')
-                                //     .select('id')
-                                //     .where('post_id', postId)
-                                //     .map((poll) => {
                                 return knex('polls_options')
                                     .select('id')
                                     .where('post_id', postId)

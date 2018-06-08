@@ -104,6 +104,9 @@ function subscriptions(req, res, next) {
         req.checkParams('uid')
             .not().isIn([req.user])
             .withMessage('Subscribe to yourself');
+        req.checkBody('userId')
+            .isInt()
+            .withMessage('User id must be integer');
     } else if (req.method === 'DELETE') {
         req.checkParams('sid')
             .isInt()

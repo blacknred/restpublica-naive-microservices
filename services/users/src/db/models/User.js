@@ -76,12 +76,12 @@ function followersCount(user) {
         .then(({ count }) => { return { ...user, followers_cnt: count }; });
 }
 
-function followingCount(user) {
+function followinCount(user) {
     return knex('users_subscriptions')
         .count('*')
         .where('sub_user_id', user.id)
         .first()
-        .then(({ count }) => { return { ...user, following_cnt: count }; });
+        .then(({ count }) => { return { ...user, followin_cnt: count }; });
 }
 
 function getOne(username, authUserId) {
@@ -90,7 +90,7 @@ function getOne(username, authUserId) {
         .where({ username, active: true })
         .first()
         .then(_row => _row ? followersCount(_row) : _row)
-        .then(_row => _row ? followingCount(_row) : _row)
+        .then(_row => _row ? followinCount(_row) : _row)
         .then(_row => _row ? mySubscription(_row, authUserId) : _row);
 }
 

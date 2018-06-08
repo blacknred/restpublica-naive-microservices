@@ -81,6 +81,9 @@ exports.up = (knex) => {
         .alterTable('likes', (table) => {
             table.unique(['post_id', 'user_id']);
         })
+        .alterTable('polls_voices', (table) => {
+            table.unique(['option_id', 'user_id']);
+        })
         .alterTable('tags', (table) => {
             table.unique(['title']);
         })

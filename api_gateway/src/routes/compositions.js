@@ -201,6 +201,22 @@ router
                 .find(y => y.id === x.user_id));
         }
         res();
+    })
+    .get('/posts/:pid/votes', auth, async (ctx) => {
+        /* get post votes */
+        const votes = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
+        const res = () => ctx.body = votes;
+        /* adds */
+        if (votes.status) {
+            // get authors data
+            const userIds = [...new Set(votes.data.votes.map(vote => vote.user_id))];
+            const profiles = await request({
+                ctx, host: hosts.USERS_API, url: `/users?list=${userIds}`, r: true, fallback: res
+            });
+            votes.data.votes = votes.data.votes.map(x => profiles.data.profiles
+                .find(y => y.id === x.user_id));
+        }
+        res();
     });
 
 module.exports = router;

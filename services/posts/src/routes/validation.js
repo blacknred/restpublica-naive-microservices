@@ -2,7 +2,7 @@
 
 function posts(req, res, next) {
     const URLPATTERN = /[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/;
-    const FILEURLPATTERN = /(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|mp4))/;
+    // const FILEURLPATTERN = /(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|mp4))/;
     if (req.method === 'POST') {
         req.checkBody('commentable')
             .isBoolean()
@@ -39,11 +39,11 @@ function posts(req, res, next) {
                 req.checkBody('linkSrc')
                     .notEmpty()
                     .withMessage('Link src must be not empty');
-                if (req.body.linkImg) {
-                    req.checkBody('linkImg')
-                        .matches(FILEURLPATTERN)
-                        .withMessage('Link img is empty or not valid');
-                }
+                // if (req.body.linkImg) {
+                //     req.checkBody('linkImg')
+                //         .matches(FILEURLPATTERN)
+                //         .withMessage('Link img is empty or not valid');
+                // }
                 break;
             case 'poll':
                 req.checkBody('pollAnswers')
@@ -107,23 +107,24 @@ function posts(req, res, next) {
         req.checkParams('pid')
             .isInt()
             .withMessage('Post id must be integer');
-        req.checkBody('commentable')
-            .isBoolean()
-            .withMessage('Commentable must be boolean');
-        req.checkBody('archived')
-            .isBoolean()
-            .withMessage('Archived must be boolean');
-        if (req.body.communityId) {
-            req.checkBody('communityId')
-                .isInt()
-                .withMessage('Community id must be integer');
+        req.checkBody('option')
+            .isIn(['commentable', 'archived', 'description'])
+            .withMessage('Option is not valid');
+        if (req.body.option !== 'description') {
+            req.checkBody('value')
+                .notEmpty()
+                .withMessage('Update value cannot be empty');
         }
-        req.checkBody('description')
-            .notEmpty()
-            .withMessage('Post must have description');
-        if (req.body.tags) {
-            req.checkBody('tags')
-                .matches(/^[0-9a-zA-Z,]+/g).withMessage('Tags must be alphanumeric');
+        if (req.body.option && req.body.value) {
+            switch (req.body.option) {
+                case 'commentable':
+                case 'archived':
+                    req.checkBody('value')
+                        .isBoolean()
+                        .withMessage('Updated value must be boolean');
+                    break;
+                default:
+            }
         }
     } else if (req.method === 'DELETE') {
         req.checkParams('pid').isInt().withMessage('Post id must be integer');
@@ -172,6 +173,27 @@ function likes(req, res, next) {
     return next();
 }
 
+function votes(req, res, next) {
+    req.checkParams('pid')
+        .isInt()
+        .withMessage('Post id must be integer');
+    if (req.method === 'POST') {
+        req.checkBody('optionId')
+            .isInt()
+            .withMessage('Option id must be integer');
+        req.checkBody('userId')
+            .isInt()
+            .withMessage('User id must be integer');
+    } else if (req.method === 'DELETE') {
+        req.checkParams('oid')
+            .isInt()
+            .withMessage('Option id must be integer');
+    }
+    const failures = req.validationErrors();
+    if (failures) throw { status: 422, message: failures };
+    return next();
+}
+
 function tags(req, res, next) {
     if (req.method === 'GET') {
         if (req.query.q) {
@@ -191,5 +213,6 @@ module.exports = {
     posts,
     comments,
     likes,
+    votes,
     tags
 };

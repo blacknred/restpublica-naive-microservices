@@ -35,6 +35,8 @@ router
     .delete('/posts/:pid/comments/:cid', auth, ctx => request({ ctx, host: hosts.POSTS_API }))
     .post('/posts/:pid/likes', auth, ctx => request({ ctx, host: hosts.POSTS_API }))
     .delete('/posts/:pid/likes', auth, ctx => request({ ctx, host: hosts.POSTS_API }))
+    .post('/posts/:pid/votes', auth, ctx => request({ ctx, host: hosts.POSTS_API }))
+    .delete('/posts/:pid/votes/:oid', auth, ctx => request({ ctx, host: hosts.POSTS_API }))
     .get('/tags', ctx => request({ ctx, host: hosts.POSTS_API }))
 
     .post('/plans', auth, admin, ctx => request({ ctx, host: hosts.PARTNERS_API }))

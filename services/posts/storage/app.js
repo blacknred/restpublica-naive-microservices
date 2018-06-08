@@ -1,4 +1,5 @@
 /* eslint-disable consistent-return */
+
 const fs = require('fs');
 const Koa = require('koa');
 const path = require('path');
@@ -67,9 +68,9 @@ app.use(async (ctx, next) => {
                         case 'image':
                             fileName = Math.random().toString(36).slice(2)
                                 + path.extname(file.name);
-                            await helpers.imageToJpg(file.path, path.join(fullPath, fileName));
-                            // const buf = await fs.createReadStream(file.path);
-                            // await buf.pipe(fs.createWriteStream(path.join(fullPath, fileName)));
+                            // await helpers.imageToJpg(file.path, path.join(fullPath, fileName));
+                            const buf = await fs.createReadStream(file.path);
+                            await buf.pipe(fs.createWriteStream(path.join(fullPath, fileName)));
                             break;
                         default:
                     }

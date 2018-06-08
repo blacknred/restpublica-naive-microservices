@@ -3,20 +3,14 @@
 /* eslint-disable no-throw-literal */
 
 const express = require('express');
+const mime = require('mime-types');
 const Tag = require('../db/models/Tag');
 const Post = require('../db/models/Post');
 const { posts } = require('./validation');
 const dbHelpers = require('../db/_helpers');
 const { ensureAuthenticated } = require('../auth');
-const { deleteStorageFiles } = require('./_helpers');
 
 const router = express.Router();
-
-const MIMES = {
-    img: 'image/jpg',
-    gif: 'image/gif',
-    video: 'video/mp4'
-};
 
 /* posts */
 
@@ -37,7 +31,7 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
                 req.body.files.forEach(async (file) => {
                     await Post.addFiles({
                         post_id: post[0].id,
-                        mime: MIMES[req.body.filesType],
+                        mime: mime.lookup(file.file),
                         file: file.file,
                         thumb: file.thumb
                     });
@@ -56,12 +50,12 @@ router.post('/', ensureAuthenticated, posts, async (req, res, next) => {
                 await Post.addLink(newLink);
                 break;
             case 'poll':
-                req.body.pollOptions.forEach(async (opt) => {
+                req.body.pollAnswers.forEach(async (ans) => {
                     const newPollOption = {
                         post_id: post[0].id,
-                        text: opt.text,
-                        img: opt.img || null,
-                        thumb: opt.thumb || null,
+                        text: ans.text,
+                        img: ans.img || null,
+                        thumb: ans.thumb || null,
                         ends_at: req.body.pollEndsAt || null
                     };
                     await Post.addPollOption(newPollOption);
@@ -138,27 +132,22 @@ router.get('/:slug', posts, async (req, res, next) => {
 });
 
 router.put('/:pid', ensureAuthenticated, posts, async (req, res, next) => {
-    // commentable archived description ?communityId ?tags
-    const updatedPost = {
-        community_id: req.body.communityId || null,
-        commentable: req.body.commentable,
-        archived: req.body.archived,
-        description: req.body.description
-    };
+    const updatedValue = { [req.body.option]: req.body.value };
     try {
         const post = await Post.isExists(req.params.pid);
         if (!post) throw { status: 404, message: 'Post not found' };
         if (post.author_id !== req.user) throw { status: 403, message: 'Permission denied' };
-        const data = await Post.update({ updatedPost, postId: req.params.pid, userId: req.user });
-        if (req.body.tags) {
-            const tags = req.body.tags.split(',');
-            await Tag.deleteAllFromPost(data[0].id);
-            tags.forEach(async (tag) => {
-                const tagId = await Tag.create(tag);
-                await Tag.addOneToPost(tagId, data[0].id);
+        const data = await Post.update({ updatedValue, postId: req.params.pid, userId: req.user });
+        if (updatedValue.description) {
+            const wordsInDescription = req.body.value.trim().split(' ');
+            wordsInDescription.forEach(async (word) => {
+                if (word.charAt(0) === '#') {
+                    const tagId = await Tag.create(word.substr(1));
+                    await Tag.addOneToPost(tagId, req.params.pid);
+                }
             });
         }
-        res.status(200).json({ status: 'success', data });
+        res.status(200).json({ status: 'success', data: { [req.body.option]: data } });
     } catch (err) {
         return next(err);
     }
@@ -170,8 +159,8 @@ router.delete('/:pid', ensureAuthenticated, posts, async (req, res, next) => {
         if (!post) throw { status: 404, message: 'Post not found' };
         if (post.author_id !== req.user) throw { status: 403, message: 'Permission denied' };
         const filesToDelete = await Post.deleteOne(req.params.pid, req.user);
-        if (filesToDelete) await deleteStorageFiles(filesToDelete);
-        res.status(200).json({ status: 'success', data: { id: req.params.pid } });
+        const data = { id: req.params.pid, filesToDelete };
+        res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
     }
