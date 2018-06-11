@@ -70,6 +70,7 @@ router.get('/:uid/feed', ensureAuthenticated, subscriptions,
     async (req, res, next) => {
         try {
             const data = await Subscription.getAllFeed(req.user);
+            data.push({ user_id: req.user });
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);

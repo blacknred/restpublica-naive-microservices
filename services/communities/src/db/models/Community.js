@@ -52,20 +52,20 @@ function update(communityObj, communityId) {
 function getOne(name, userId) {
     return knex('communities')
         .select('*')
-        .where('communities.name', name)
-        .andWhere('communities.active', true)
+        .where('name', name)
+        .andWhere('active', true)
         .first()
         .then(_row => _row ? followersCount(_row) : _row)
         .then(_row => _row ? mySubscription(_row, userId) : _row);
 }
 
 
-function getAllByProfile({ userId, offset, reduced }) {
+function getAllByProfile({ profileId, userId, offset, reduced }) {
     return knex('communities')
-        .select(['communities.id', 'title', 'avatar'])
+        .select(['communities.id', 'name', 'title', 'avatar'])
         .rightJoin('communities_subscriptions',
             'communities_subscriptions.community_id', 'communities.id')
-        .where('communities_subscriptions.user_id', userId)
+        .where('communities_subscriptions.user_id', profileId)
         .andWhere('communities_subscriptions.approved', true)
         .andWhere('communities.active', true)
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
@@ -77,7 +77,7 @@ function getAllByProfile({ userId, offset, reduced }) {
                 .count('*')
                 .rightJoin('communities_subscriptions',
                     'communities_subscriptions.community_id', 'communities.id')
-                .where('communities_subscriptions.user_id', userId)
+                .where('communities_subscriptions.user_id', profileId)
                 .andWhere('communities_subscriptions.approved', true)
                 .andWhere('communities.active', true)
                 .first()

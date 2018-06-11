@@ -164,7 +164,9 @@ router.get('/', communities, async (req, res, next) => {
                     data = await Community.getAllFeedByProfile(req.user);
                     break;
                 default:
-                    data = await Community.getAllByProfile({ userId: profile, offset, reduced });
+                    data = await Community.getAllByProfile({
+                        profileId: profile, userId: req.user, offset, reduced
+                    });
             }
         } else data = await Community.getAllTrending({ userId: req.user, offset, reduced });
         if (data.communities && data.communities.length > 0) {

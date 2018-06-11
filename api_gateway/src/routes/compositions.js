@@ -17,8 +17,8 @@ router
         const res = () => ctx.body = profile;
         /* adds */
         if (profile.status) {
-            // get posts count & communities subscriptions count
-            const cUrl = `/communities?profile=${profile.data.id}&mode=count`;
+            // get posts count & preview communities
+            const cUrl = `/communities?profile=${profile.data.id}`;
             const pUrl = `/posts?profile=${profile.data.id}&mode=count`;
             const [postsCnt, communitiesCnt] = await Promise.all([
                 request({ ctx, host: hosts.POSTS_API, url: pUrl, r: true, fallback: res }),
@@ -26,6 +26,7 @@ router
             ]);
             profile.data.posts_cnt = postsCnt.data.count;
             profile.data.communities_cnt = communitiesCnt.data.count;
+            profile.data.preview_communities = communitiesCnt.data.communities;
         }
         res();
     })
@@ -115,8 +116,7 @@ router
                 request({ ctx, host: hosts.USERS_API, url: uUrl, r: true }),
                 request({ ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true })
             ]);
-            let profilesId = followingProfiles.data.map(p => p.user_id);
-            profilesId = `${profilesId},${ctx.state.consumer}`;
+            const profilesId = followingProfiles.data.map(p => p.user_id);
             const communitiesId = followingCommunities.data.communities.map(c => c.id);
             pUrl = `${ctx.url}&profiles=${profilesId}&communities=${communitiesId}`;
         }

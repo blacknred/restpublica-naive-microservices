@@ -83,7 +83,7 @@ function getAllFollowing({ profileId, userId, offset, reduced }) {
 function getAllFeed(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 60);
+        today.getMonth(), today.getDate() - 90);
     return knex('users_subscriptions')
         .select('users_subscriptions.user_id')
         .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
