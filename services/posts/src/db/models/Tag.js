@@ -3,7 +3,7 @@
 const util = require('util');
 const knex = require('./../connection');
 
-const LIMIT = 12;
+const LIMIT = 10;
 
 /* tags */
 

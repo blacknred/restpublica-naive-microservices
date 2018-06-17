@@ -107,7 +107,7 @@ function getAllInList({ list, userId, limiter }) {
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 60);
+        today.getMonth(), today.getDate() - 90);
     return knex('users_subscriptions')
         .select('user_id')
         .where('created_at', '>', lastMonth)
@@ -118,6 +118,7 @@ function getAllTrending({ userId, offset, reduced }) {
         .map((_row) => {
             return knex('users')
                 .select(['id', 'username', 'fullname', 'avatar'])
+                .select(knex.raw('left (description, 30) as description'))
                 .where('id', _row.user_id)
                 .andWhere({ active: true })
                 .first();
@@ -136,6 +137,7 @@ function getAllTrending({ userId, offset, reduced }) {
 function getAllSearched({ query, userId, offset, reduced }) {
     return knex('users')
         .select(['id', 'username', 'fullname', 'avatar'])
+        .select(knex.raw('left (description, 30) as description'))
         .whereRaw('LOWER(username) like ?', `%${query}%`)
         .orWhereRaw('LOWER(fullname) like ?', `%${query}%`)
         .andWhere({ active: true })

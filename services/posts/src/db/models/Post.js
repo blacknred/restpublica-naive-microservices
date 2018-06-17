@@ -272,6 +272,7 @@ function getAllTrending({ userId, offset, reduced }) {
         .map(_row => _row ? getCommentsCount(_row) : _row)
         .map(_row => _row ? getContent(_row, userId) : _row)
         .map(_row => _row ? getMyLike(_row, userId) : _row)
+        .map(_row => _row ? getLastComments(_row) : _row)
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -285,7 +286,6 @@ function getAllTrending({ userId, offset, reduced }) {
 function getAllSearched({ query, userId, offset, reduced }) {
     return knex('posts')
         .select('*')
-        .select(knex.raw('left (description, 40) as description'))
         .whereRaw('LOWER(description) like ?', `%${query}%`)
         .andWhere('archived', false)
         .orderBy('created_at', 'desc')
@@ -363,7 +363,7 @@ function getAllFeed({ profiles, communities, userId, offset, reduced }) {
 
 function getAllByProfile({ profileId, userId, offset, reduced }) {
     return knex('posts')
-        .select(['posts.*', knex.raw('left (description, 40) as description')])
+        .select('posts.*')
         .where('author_id', profileId)
         .andWhere({ archived: profileId === userId ? true || false : false })
         .orderBy('created_at', 'desc')
@@ -387,7 +387,7 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
 
 function getAllByCommunity({ communityId, userId, offset, reduced }) {
     return knex('posts')
-        .select(['posts.*', knex.raw('left (description, 40) as description')])
+        .select('posts.*')
         .where('community_id', communityId)
         .andWhere('archived', false)
         .orderBy('created_at', 'desc')

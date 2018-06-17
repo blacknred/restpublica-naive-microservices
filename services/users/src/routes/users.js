@@ -165,7 +165,7 @@ router.get('/', users, async (req, res, next) => {
         if (query) data = await User.getAllSearched({ query, userId: req.user, offset, reduced });
         else if (list) data = await User.getAllInList({ list, userId: req.user, limiter });
         else data = await User.getAllTrending({ userId: req.user, offset, reduced });
-        if (data.profiles[0].avatar) {
+        if (data.profiles[0] && data.profiles[0].avatar) {
             data.profiles.forEach(user => user.avatar = user.avatar.toString('base64'));
         }
         res.status(200).json({ status: 'success', data });

@@ -100,7 +100,7 @@ function getAllByProfileCount(userId) {
 function getAllFeedByProfile(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 60);
+        today.getMonth(), today.getDate() - 90);
     return knex('communities')
         .select('communities.id')
         .rightJoin('communities_subscriptions',
@@ -146,7 +146,7 @@ function getAllInList({ list, userId, limiter }) {
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const last2Months = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 60);
+        today.getMonth(), today.getDate() - 90);
     return knex('communities_subscriptions')
         .select('community_id')
         .where('created_at', '>', last2Months)

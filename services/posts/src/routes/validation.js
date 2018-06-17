@@ -68,8 +68,8 @@ function posts(req, res, next) {
     } else if (req.method === 'GET') {
         if (req.query.q) {
             req.checkQuery('q')
-                .isLength({ min: 2 })
-                .withMessage('Search query must have at least 2 chars')
+                // .isLength({ min: 2 })
+                // .withMessage('Search query must have at least 2 chars')
                 .matches(/^[a-zA-Z0-9]+$/)
                 .withMessage('Search query must have be alphanumeric');
         }
@@ -198,8 +198,8 @@ function tags(req, res, next) {
     if (req.method === 'GET') {
         if (req.query.q) {
             req.checkQuery('q')
-                .isLength({ min: 2 })
-                .withMessage('Search query must have at least 2 chars')
+                // .isLength({ min: 2 })
+                // .withMessage('Search query must have at least 2 chars')
                 .matches(/^[a-zA-Z0-9]+$/)
                 .withMessage('Search query must have be alphanumeric');
         }
