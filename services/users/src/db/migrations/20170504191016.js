@@ -8,6 +8,7 @@ exports.up = (knex) => {
             table.string('password').notNullable(); // .unique()
             table.string('email').unique().notNullable();
             table.binary('avatar').notNullable();
+            table.binary('banner');
             table.boolean('admin').notNullable().defaultTo(false);
             table.boolean('email_notify').notNullable().defaultTo(true);
             table.enu('feed_rand', [0, 1, 2, 3]).notNullable().defaultTo(1);

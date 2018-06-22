@@ -70,7 +70,7 @@ function posts(req, res, next) {
             req.checkQuery('q')
                 // .isLength({ min: 2 })
                 // .withMessage('Search query must have at least 2 chars')
-                .matches(/^[a-zA-Z0-9]+$/)
+                .matches(/^[a-zA-Z0-9#]+$/)
                 .withMessage('Search query must have be alphanumeric');
         }
         if (req.query.tag) {

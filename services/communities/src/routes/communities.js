@@ -186,7 +186,6 @@ router.get('/:name', async (req, res, next) => {
         const data = await Community.getOne(req.params.name, req.user);
         if (!data) throw { status: 404, message: 'Community not found' };
         const ban = await Ban.isExist(data.id, req.user);
-        console.log(ban);
         if (ban) throw { status: 403, message: `Ban will end ${ban.end_date}` };
         data.avatar = data.avatar.toString('base64');
         if (data.banner) data.banner = data.banner.toString('base64');

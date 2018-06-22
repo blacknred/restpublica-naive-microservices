@@ -309,7 +309,6 @@ function getAllSearched({ query, userId, offset, reduced }) {
 function getAllByTag({ tag, userId, offset, reduced }) {
     return knex('posts')
         .select('posts.*')
-        .select(knex.raw('left (description, 40) as description'))
         .leftJoin('posts_tags', 'posts.id', 'posts_tags.post_id')
         .leftJoin('tags', 'posts_tags.tag_id', 'tags.id')
         .where('tags.title', tag)
@@ -326,7 +325,7 @@ function getAllByTag({ tag, userId, offset, reduced }) {
         .then((posts) => {
             return knex('posts')
                 .count('posts.id')
-                .leftJoin('posts_tags', 'posts.id', 'posts8_tags.post_id')
+                .leftJoin('posts_tags', 'posts.id', 'posts_tags.post_id')
                 .leftJoin('tags', 'posts_tags.tag_id', 'tags.id')
                 .where('tags.title', tag)
                 .andWhere('posts.archived', false)

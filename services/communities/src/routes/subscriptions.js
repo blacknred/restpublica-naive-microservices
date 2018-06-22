@@ -14,8 +14,8 @@ const router = express.Router();
 router.post('/:cid/follow', ensureAuthenticated, subscriptions,
     async (req, res, next) => {
         const newSubscription = {
-            community_id: req.params.uid,
-            user_id: req.user
+            community_id: req.params.cid,
+            user_id: req.user,
         };
         try {
             const community = await Community.isExist({ id: req.params.cid });

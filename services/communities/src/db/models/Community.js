@@ -34,6 +34,16 @@ function followersCount(community) {
         });
 }
 
+function getLastSubscriptions(community) {
+    return knex('communities_subscriptions')
+        .select('user_id')
+        .where('community_id', community.id)
+        .andWhere('approved', true)
+        .orderBy('created_at', 'desc')
+        .limit(5)
+        .then((rows) => { return { ...community, last_members: rows }; });
+}
+
 function create(newCommunity) {
     return knex('communities')
         .insert(newCommunity)
@@ -56,13 +66,14 @@ function getOne(name, userId) {
         .andWhere('active', true)
         .first()
         .then(_row => _row ? followersCount(_row) : _row)
-        .then(_row => _row ? mySubscription(_row, userId) : _row);
+        .then(_row => _row ? mySubscription(_row, userId) : _row)
+        .then(_row => _row ? getLastSubscriptions(_row) : _row);
 }
 
 
 function getAllByProfile({ profileId, userId, offset, reduced }) {
     return knex('communities')
-        .select(['communities.id', 'name', 'title', 'avatar'])
+        .select(['communities.id', 'name', 'title', 'avatar', 'restricted'])
         .rightJoin('communities_subscriptions',
             'communities_subscriptions.community_id', 'communities.id')
         .where('communities_subscriptions.user_id', profileId)
@@ -157,7 +168,7 @@ function getAllTrending({ userId, offset, reduced }) {
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map((_row) => {
             return knex('communities')
-                .select(['id', 'name', 'title', 'avatar'])
+                .select(['id', 'name', 'title', 'avatar', 'restricted'])
                 .where('id', _row.community_id)
                 .andWhere('active', true)
                 .first();
@@ -176,7 +187,7 @@ function getAllTrending({ userId, offset, reduced }) {
 
 function getAllSearched({ query, userId, offset, reduced }) {
     return knex('communities')
-        .select(['id', 'title', 'avatar'])
+        .select(['id', 'title', 'avatar', 'restricted'])
         .whereRaw('LOWER(title) like ?', `%${query}%`)
         .andWhere('active', true)
         .orderBy('created_at', 'DESC')

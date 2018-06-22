@@ -20,13 +20,13 @@ router
             // get posts count & preview communities
             const cUrl = `/communities?profile=${profile.data.id}`;
             const pUrl = `/posts?profile=${profile.data.id}&mode=count`;
-            const [postsCnt, communitiesCnt] = await Promise.all([
+            const [postsCnt, communities] = await Promise.all([
                 request({ ctx, host: hosts.POSTS_API, url: pUrl, r: true, fallback: res }),
                 request({ ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true, fallback: res }),
             ]);
             profile.data.posts_cnt = postsCnt.data.count;
-            profile.data.communities_cnt = communitiesCnt.data.count;
-            profile.data.preview_communities = communitiesCnt.data.communities;
+            profile.data.communities_cnt = communities.data.count;
+            profile.data.preview_communities = communities.data.communities;
         }
         res();
     })
@@ -37,15 +37,20 @@ router
         const res = () => ctx.body = community;
         /* adds */
         if (community.status) {
-            // get posts count & admin data
+            // get posts count & admin data & last members data
             const pUrl = `/posts?community=${community.data.id}&mode=count`;
-            const uUrl = `/users?list=${community.data.admin_id}`;
-            const [postsCnt, admin] = await Promise.all([
+            const uUrl = `/users?list=${[
+                ...community.data.last_members.map(m => m.user_id),
+                community.data.admin_id
+            ]}`;
+            const [postsCnt, users] = await Promise.all([
                 request({ ctx, host: hosts.POSTS_API, url: pUrl, r: true, fallback: res }),
                 request({ ctx, host: hosts.USERS_API, url: uUrl, r: true, fallback: res }),
             ]);
             community.data.posts_cnt = postsCnt.data.count;
-            community.data.admin = admin.data.profiles[0];
+            community.data.admin = users.data.profiles.find(u => u.id === community.data.admin_id);
+            community.data.last_members = users.data.profiles
+                .filter(u => u.id !== community.data.admin_id);
         }
         res();
     })

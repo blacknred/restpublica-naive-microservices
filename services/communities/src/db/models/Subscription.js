@@ -57,11 +57,9 @@ function getAllFollowers({ communityId, userId, adminId, pending, offset, reduce
 function deleteOne({ subscriptionId, communityId, userId }) {
     return knex('communities_subscriptions')
         .del()
-        .leftJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
-        .where('community_id', communityId)
-        .where('communities_subscriptions.id', subscriptionId)
-        .andWhere('communities_subscriptions.community_id', communityId)
-        .andWhere('communities.admin_id', userId);
+        .where('id', subscriptionId)
+        .andWhere('user_id', userId)
+        .andWhere('community_id', communityId);
 }
 
 function deleteAll(communityId, adminId) {
