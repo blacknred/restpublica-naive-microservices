@@ -13,7 +13,7 @@ router
     .post('/users', ctx => request({ ctx, host: hosts.USERS_API }))
     .post('/users/login', ctx => request({ ctx, host: hosts.USERS_API }))
     .get('/users/profile', auth, ctx => request({ ctx, host: hosts.USERS_API }))
-    .get('/users', auth, ctx => request({ ctx, host: hosts.USERS_API }))
+    .get('/users', ctx => request({ ctx, host: hosts.USERS_API }))
     .put('/users', auth, ctx => request({ ctx, host: hosts.USERS_API }))
     .post('/users/:uid/follow', auth, ctx => request({ ctx, host: hosts.USERS_API }))
     .get('/users/:uid/followers', auth, ctx => request({ ctx, host: hosts.USERS_API }))

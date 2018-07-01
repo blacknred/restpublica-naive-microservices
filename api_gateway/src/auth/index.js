@@ -94,7 +94,7 @@ const authentication = async (ctx, next) => {
         // user auth: check user id from users-api
         // and set ctx.state.consumer if ok
         const userToken = ctx.headers.authorization.split(' ')[1];
-        if (typeof userToken === 'undefined') await next();
+        if (!userToken) await next();
         ctx.state.method = 'GET';
         ctx.state.userAuthToken = userToken;
         const res = await request({

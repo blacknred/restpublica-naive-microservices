@@ -111,7 +111,7 @@ function getAllByProfileCount(userId) {
 function getAllFeedByProfile(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 90);
+        today.getMonth(), today.getDate() - 150);
     return knex('communities')
         .select('communities.id')
         .rightJoin('communities_subscriptions',
@@ -157,7 +157,7 @@ function getAllInList({ list, userId, limiter }) {
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const last2Months = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 90);
+        today.getMonth(), today.getDate() - 150);
     return knex('communities_subscriptions')
         .select('community_id')
         .where('created_at', '>', last2Months)
@@ -187,7 +187,7 @@ function getAllTrending({ userId, offset, reduced }) {
 
 function getAllSearched({ query, userId, offset, reduced }) {
     return knex('communities')
-        .select(['id', 'title', 'avatar', 'restricted'])
+        .select(['id', 'name', 'title', 'avatar', 'restricted'])
         .whereRaw('LOWER(title) like ?', `%${query}%`)
         .andWhere('active', true)
         .orderBy('created_at', 'DESC')

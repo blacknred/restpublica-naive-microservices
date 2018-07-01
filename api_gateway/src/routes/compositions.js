@@ -17,16 +17,12 @@ router
         const res = () => ctx.body = profile;
         /* adds */
         if (profile.status) {
-            // get posts count & preview communities
-            const cUrl = `/communities?profile=${profile.data.id}`;
+            // get posts count
             const pUrl = `/posts?profile=${profile.data.id}&mode=count`;
-            const [postsCnt, communities] = await Promise.all([
-                request({ ctx, host: hosts.POSTS_API, url: pUrl, r: true, fallback: res }),
-                request({ ctx, host: hosts.COMMUNITIES_API, url: cUrl, r: true, fallback: res }),
-            ]);
+            const postsCnt = await request({
+                ctx, host: hosts.POSTS_API, url: pUrl, r: true, fallback: res
+            });
             profile.data.posts_cnt = postsCnt.data.count;
-            profile.data.communities_cnt = communities.data.count;
-            profile.data.preview_communities = communities.data.communities;
         }
         res();
     })
@@ -108,13 +104,14 @@ router
         }
         res();
     })
-    .get('/posts', auth, async (ctx) => {
+    .get('/posts', async (ctx, next) => {
         /* get posts */
         let pUrl = ctx.url;
         if (ctx.query.feed) {
-            // in case of feed request get user following profiles &
-            // communities ids -- last week & max 100
-            // TODO: implement ctx.query.feed_rand
+            // in case of feed request:
+            // demand authorization
+            await auth(ctx, next);
+            // get user following profiles & communities ids -- last week & max 100
             const uUrl = `/users/${ctx.state.consumer}/feed`;
             const cUrl = `/communities?profile=${ctx.state.consumer}&mode=feed`;
             const [followingProfiles, followingCommunities] = await Promise.all([
@@ -124,9 +121,11 @@ router
             const profilesId = followingProfiles.data.map(p => p.user_id);
             const communitiesId = followingCommunities.data.communities.map(c => c.id);
             pUrl = `${ctx.url}&profiles=${profilesId}&communities=${communitiesId}`;
+            // TODO: implement ctx.query.feed_rand logic
         }
         const posts = await request({ ctx, host: hosts.POSTS_API, url: pUrl, r: true });
         const res = () => ctx.body = posts;
+
         /* adds */
         if (posts.status) {
             // get authors data of posts and posts' comments
