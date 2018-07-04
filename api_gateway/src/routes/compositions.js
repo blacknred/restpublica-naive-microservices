@@ -50,34 +50,19 @@ router
         }
         res();
     })
-    .get('/communities/:cid/followers', auth, async (ctx) => {
-        /* get followers */
-        const followers =
+    .get('/communities/:cid/(followers|moderators|bans)', async (ctx) => {
+        /* get profiles */
+        const profiles =
             await request({ ctx, host: hosts.COMMUNITIES_API, url: ctx.url, r: true });
-        const res = () => ctx.body = followers;
+        const res = () => ctx.body = profiles;
         /* adds */
-        if (followers.status) {
+        if (profiles.status) {
             // get profiles data
-            const uUrl = `/users?list=${followers.data.subscriptions.map(f => f.user_id)}`;
-            const profiles =
+            const uUrl = `/users?list=${profiles.data.profiles.map(p => p.user_id)}`;
+            const profilesData =
                 await request({ ctx, host: hosts.USERS_API, url: uUrl, r: true, fallback: res });
-            followers.data.subscriptions.forEach(x => x.user = profiles.data.profiles
-                .find(y => y.id === x.user_id));
-        }
-        res();
-    })
-    .get('/communities/:cid/bans', auth, async (ctx) => {
-        /* get banned profiles */
-        const bans = await request({ ctx, host: hosts.COMMUNITIES_API, url: ctx.url, r: true });
-        const res = () => ctx.body = bans;
-        /* adds */
-        if (bans.status) {
-            // get profiles data
-            const uUrl = `/users?list=${bans.data.bans.map(ban => ban.user_id)}`;
-            const profiles =
-                await request({ ctx, host: hosts.USERS_API, url: uUrl, r: true, fallback: res });
-            bans.data.bans.forEach(x => x.user = profiles.data.profiles
-                .find(y => y.id === x.user_id));
+            profiles.data.profiles.forEach(x => Object.assign(x, profilesData.data.profiles
+                .find(y => y.id === x.user_id)));
         }
         res();
     })
@@ -174,50 +159,18 @@ router
         }
         res();
     })
-    .get('/posts/:pid/comments', async (ctx) => {
-        /* get post comments */
-        const comments = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
-        const res = () => ctx.body = comments;
+    .get('/posts/:pid/(comments|likes|votes)', async (ctx) => {
+        /* get data */
+        const data = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
+        const res = () => ctx.body = data;
         /* adds */
-        if (comments.status) {
+        if (data.status) {
             // get authors data
-            const authorsId = [...new Set(comments.data.comments.map(com => com.user_id))];
+            const authorsId = [...new Set(data.data.comments.map(com => com.user_id))];
             const profiles = await request({
                 ctx, host: hosts.USERS_API, url: `/users?list=${authorsId}`, r: true, fallback: res
             });
-            comments.data.comments.forEach(x => x.author = profiles.data.profiles
-                .find(y => y.id === x.user_id));
-        }
-        res();
-    })
-    .get('/posts/:pid/likes', auth, async (ctx) => {
-        /* get post likes */
-        const likes = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
-        const res = () => ctx.body = likes;
-        /* adds */
-        if (likes.status) {
-            // get authors data
-            const userIds = [...new Set(likes.data.likes.map(like => like.user_id))];
-            const profiles = await request({
-                ctx, host: hosts.USERS_API, url: `/users?list=${userIds}`, r: true, fallback: res
-            });
-            likes.data.likes = likes.data.likes.map(x => profiles.data.profiles
-                .find(y => y.id === x.user_id));
-        }
-        res();
-    })
-    .get('/posts/:pid/votes', auth, async (ctx) => {
-        /* get post votes */
-        const votes = await request({ ctx, host: hosts.POSTS_API, url: ctx.url, r: true });
-        const res = () => ctx.body = votes;
-        /* adds */
-        if (votes.status) {
-            // get authors data
-            const userIds = [...new Set(votes.data.votes.map(vote => vote.user_id))];
-            const profiles = await request({
-                ctx, host: hosts.USERS_API, url: `/users?list=${userIds}`, r: true, fallback: res
-            });
-            votes.data.votes = votes.data.votes.map(x => profiles.data.profiles
+            data.data.data.forEach(x => x.author = profiles.data.profiles
                 .find(y => y.id === x.user_id));
         }
         res();

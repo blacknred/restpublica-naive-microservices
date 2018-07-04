@@ -48,7 +48,7 @@ function users(req, res, next) {
         }
     } else if (req.method === 'PUT') {
         req.checkBody('option')
-            .isIn(['username', 'email', 'fullname', 'description', 'active',
+            .isIn(['username', 'email', 'fullname', 'description', 'active', 'banner',
                 'password', 'avatar', 'email_notify', 'feed_rand', 'last_post_at'])
             .withMessage('Option is not valid');
         req.checkBody('value')
@@ -62,9 +62,10 @@ function users(req, res, next) {
                         .withMessage('Email value must be valid');
                     break;
                 case 'avatar':
+                case 'banner':
                     req.checkBody('value')
                         .custom(value => value.replace(/\n/g, '').match(BASE64PATTERN))
-                        .withMessage('Avatar value must be base64');
+                        .withMessage(`${req.body.option} value must be base64`);
                     break;
                 case 'active':
                 case 'email_notify':

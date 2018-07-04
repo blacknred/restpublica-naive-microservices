@@ -29,7 +29,7 @@ router.post('/:cid/follow', ensureAuthenticated, subscriptions,
     }
 );
 
-router.get('/:cid/followers', ensureAuthenticated, subscriptions,
+router.get('/:cid/participants', ensureAuthenticated, subscriptions,
     async (req, res, next) => {
         const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
             --req.query.offset : 0;
@@ -38,11 +38,31 @@ router.get('/:cid/followers', ensureAuthenticated, subscriptions,
         try {
             const community = await Community.isExist({ id: req.params.cid });
             if (!community) throw { status: 404, message: 'Community not found' };
-            const data = await Subscription.getAllFollowers({
+            const data = await Subscription.getAllParticipants({
                 communityId: req.params.cid,
                 userId: req.user,
                 adminId: community.admin_id,
                 pending,
+                offset,
+                reduced
+            });
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.get('/:cid/moderators', ensureAuthenticated, subscriptions,
+    async (req, res, next) => {
+        const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
+            --req.query.offset : 0;
+        const reduced = req.useragent.isMobile || req.query.reduced || false;
+        try {
+            const community = await Community.isExist({ id: req.params.cid });
+            if (!community) throw { status: 404, message: 'Community not found' };
+            const data = await Subscription.getAllModerators({
+                communityId: req.params.cid,
                 offset,
                 reduced
             });

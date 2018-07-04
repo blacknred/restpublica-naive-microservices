@@ -16,6 +16,11 @@ const { ensureAuthenticated } = require('../auth');
 
 const router = express.Router();
 
+const REDUCED_DIMENTIONS = {
+    avatar: { width: 128, height: 128 },
+    banner: { width: 600, height: 300 }
+};
+
 
 /* user */
 
@@ -45,6 +50,7 @@ router.post('/', users, async (req, res, next) => {
         newUser.avatar = await helpers.createAvatar(newUser.fullname);
         const data = await User.create(newUser);
         data.avatar = data.avatar.toString('base64');
+        if (data.banner) data.banner = data.banner.toString('base64');
         data.token = await encodeToken(data.id);
         res.status(200).json({ status: 'success', data });
     } catch (err) {
@@ -93,6 +99,7 @@ router.get('/profile', ensureAuthenticated, async (req, res, next) => {
     try {
         const data = await User.getUser(req.user);
         data.avatar = data.avatar.toString('base64');
+        if (data.banner) data.banner = data.banner.toString('base64');
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
@@ -121,9 +128,10 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
                 }
                 break;
             case 'avatar':
+            case 'banner':
                 const sanitisedValue = req.body.value.replace(/\n/g, '');
                 const bin = await new Buffer(sanitisedValue, 'base64');
-                await resizeImg(bin, { width: 128, height: 128 })
+                await resizeImg(bin, REDUCED_DIMENTIONS[req.body.option])
                     .then(buf => req.body.value = buf);
                 // TODO: resize image with gm
                 // await gm(bin, 'img.png')
@@ -143,7 +151,7 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
         }
         const updatedValue = { [req.body.option]: req.body.value };
         let data = await User.update(updatedValue, req.user);
-        if (req.body.option === 'avatar') data = data.toString('base64');
+        if (req.body.option.match(/(avatar|banner)/)) data = data.toString('base64');
         res.status(200).json({ status: 'success', data: { [req.body.option]: data } });
     } catch (err) {
         return next(err);
@@ -165,8 +173,11 @@ router.get('/', users, async (req, res, next) => {
         if (query) data = await User.getAllSearched({ query, userId: req.user, offset, reduced });
         else if (list) data = await User.getAllInList({ list, userId: req.user, limiter });
         else data = await User.getAllTrending({ userId: req.user, offset, reduced });
-        if (data.profiles[0] && data.profiles[0].avatar) {
-            data.profiles.forEach(user => user.avatar = user.avatar.toString('base64'));
+        if (data.profiles[0]) {
+            data.profiles.forEach((user) => {
+                user.avatar = user.avatar.toString('base64');
+                if (user.banner) user.banner = user.banner.toString('base64');
+            });
         }
         res.status(200).json({ status: 'success', data });
     } catch (err) {
@@ -179,6 +190,7 @@ router.get('/:name', async (req, res, next) => {
         const data = await User.getOne(req.params.name, req.user);
         if (!data) throw { status: 404, message: 'Profile not found' };
         if (data.avatar) data.avatar = data.avatar.toString('base64');
+        if (data.banner) data.banner = data.banner.toString('base64');
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);

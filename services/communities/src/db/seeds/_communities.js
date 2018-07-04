@@ -3,13 +3,11 @@ const helpers = require('../_helpers');
 const routeHelpers = require('../../routes/_helpers');
 
 function createCommunity(knex, name, adminId) {
-    let avatar;
-    return routeHelpers.createAvatar(name)
-        .then((res) => {
-            avatar = res;
-            return routeHelpers.createBanner();
-        })
-        .then((banner) => {
+    return Promise.all([
+        routeHelpers.createAvatar(name),
+        routeHelpers.createBanner()
+    ])
+        .then(([avatar, banner]) => {
             return knex('communities')
                 .insert({
                     name: name.split(' ')[0].toLowerCase(),
@@ -35,8 +33,8 @@ exports.seed = (knex, Promise) => {
                 names = ['Chelsea', 'Winter'];
                 admins = [1, 2];
             } else {
-                names = helpers.genUniqueNamesArr(10);
-                admins = helpers.genUniqueNumbersArr(10, 40);
+                names = helpers.genUniqueNamesArr(15);
+                admins = helpers.genUniqueNumbersArr(15, 40);
             }
             names.forEach((name, i) => {
                 records.push(createCommunity(knex, name, admins[i]));

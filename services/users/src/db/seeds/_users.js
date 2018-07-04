@@ -8,8 +8,11 @@ const salt = bcrypt.genSaltSync();
 const createUser = (knex, username) => {
     const hash = bcrypt.hashSync('password5', salt);
     const fullname = faker.name.findName();
-    return routeHelpers.createAvatar(fullname)
-        .then((avatar) => {
+    return Promise.all([
+        routeHelpers.createAvatar(fullname),
+        routeHelpers.createBanner()
+    ])
+        .then(([avatar, banner]) => {
             return knex('users')
                 .insert({
                     username,
@@ -18,6 +21,7 @@ const createUser = (knex, username) => {
                     password: hash,
                     email: faker.internet.email(),
                     avatar,
+                    banner,
                     last_post_at: new Date()
                 });
         })
@@ -32,7 +36,7 @@ exports.seed = (knex, Promise) => {
             let usernames;
             if (process.env.NODE_ENV === 'test') usernames = ['mark', 'hugo', 'ania'];
             else usernames = helpers.genUniqueNamesArr(40);
-            usernames.forEach(username => records.push(createUser(knex, username)));
+            usernames.forEach((username, i) => records.push(createUser(knex, username, i)));
             return Promise.all(records);
         })
         .catch(err => console.log(err));

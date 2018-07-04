@@ -258,7 +258,7 @@ function deleteOne(postId, userId) {
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 150);
+        today.getMonth(), today.getDate() - 30);
     return knex('posts')
         .select('*')
         .select(knex.raw('left (description, 40) as description'))

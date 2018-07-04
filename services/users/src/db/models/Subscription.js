@@ -16,6 +16,14 @@ function mySubscription(user, authUserId) {
         .then(id => Object.assign(user, { my_subscription: id ? id.id : null }));
 }
 
+function followersCount(user) {
+    return knex('users_subscriptions')
+        .count('*')
+        .where('user_id', user.user_id)
+        .first()
+        .then(({ count }) => { return { ...user, followers_cnt: count }; });
+}
+
 function isExist(subscriptionId) {
     return knex('users_subscriptions')
         .select('sub_user_id')
@@ -36,8 +44,9 @@ function create(newSubscription) {
 
 function getAllFollowers({ profileId, userId, offset, reduced }) {
     return knex('users_subscriptions')
-        .select(['users_subscriptions.id', 'users.username',
-            'users.fullname', 'users.avatar'])
+        .select(['users_subscriptions.id', 'users_subscriptions.sub_user_id as user_id',
+            'users.username', 'users.fullname', 'users.avatar'])
+        .select(knex.raw('left (users.description, 30) as description'))
         .rightJoin('users', 'users.id', 'users_subscriptions.sub_user_id')
         .where('users_subscriptions.user_id', profileId)
         .andWhere('users.active', true)
@@ -46,21 +55,23 @@ function getAllFollowers({ profileId, userId, offset, reduced }) {
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? mySubscription(_row, userId) : _row)
-        .then((subscriptions) => {
+        .map(_row => _row ? followersCount(_row) : _row)
+        .then((profiles) => {
             return knex('users_subscriptions')
                 .count('*')
                 .rightJoin('users', 'users.id', 'users_subscriptions.sub_user_id')
                 .where('users_subscriptions.user_id', profileId)
                 .andWhere('users.active', true)
                 .first()
-                .then(({ count }) => { return { count, subscriptions }; });
+                .then(({ count }) => { return { count, profiles }; });
         });
 }
 
 function getAllFollowing({ profileId, userId, offset, reduced }) {
     return knex('users_subscriptions')
-        .select(['users_subscriptions.id', 'users.username',
-            'users.fullname', 'users.avatar'])
+        .select(['users_subscriptions.id', 'users_subscriptions.user_id as user_id',
+            'users.username', 'users.fullname', 'users.avatar'])
+        .select(knex.raw('left (users.description, 30) as description'))
         .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
         .where('users_subscriptions.sub_user_id', profileId)
         .andWhere('users.active', true)
@@ -69,21 +80,22 @@ function getAllFollowing({ profileId, userId, offset, reduced }) {
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map(_row => _row ? mySubscription(_row, userId) : _row)
-        .then((subscriptions) => {
+        .map(_row => _row ? followersCount(_row) : _row)
+        .then((profiles) => {
             return knex('users_subscriptions')
                 .count('*')
                 .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
                 .where('users_subscriptions.sub_user_id', profileId)
                 .andWhere('users.active', true)
                 .first()
-                .then(({ count }) => { return { count, subscriptions }; });
+                .then(({ count }) => { return { count, profiles }; });
         });
 }
 
 function getAllFeed(userId) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 90);
+        today.getMonth(), today.getDate() - 30);
     return knex('users_subscriptions')
         .select('users_subscriptions.user_id')
         .rightJoin('users', 'users.id', 'users_subscriptions.user_id')

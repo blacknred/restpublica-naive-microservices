@@ -73,7 +73,7 @@ function getOne(name, userId) {
 
 function getAllByProfile({ profileId, userId, offset, reduced }) {
     return knex('communities')
-        .select(['communities.id', 'name', 'title', 'avatar', 'restricted'])
+        .select(['communities.id', 'name', 'title', 'avatar', 'restricted', 'admin_id'])
         .rightJoin('communities_subscriptions',
             'communities_subscriptions.community_id', 'communities.id')
         .where('communities_subscriptions.user_id', profileId)
@@ -126,7 +126,7 @@ function getAllFeedByProfile(userId) {
 
 function getAllByAdmin({ userId, offset, reduced }) {
     return knex('communities')
-        .select(['id', 'title', 'avatar', 'last_post_at'])
+        .select(['id', 'title', 'avatar', 'last_post_at', 'admin_id'])
         .where('admin_id', userId)
         .andWhere('active', true)
         .orderBy('created_at', 'ASC')
@@ -156,11 +156,11 @@ function getAllInList({ list, userId, limiter }) {
 
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
-    const last2Months = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 150);
+    const lastMonth = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 30);
     return knex('communities_subscriptions')
         .select('community_id')
-        .where('created_at', '>', last2Months)
+        .where('created_at', '>', lastMonth)
         .andWhere('approved', true)
         .groupBy('community_id')
         .orderByRaw('COUNT(community_id) DESC')
@@ -168,7 +168,7 @@ function getAllTrending({ userId, offset, reduced }) {
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
         .map((_row) => {
             return knex('communities')
-                .select(['id', 'name', 'title', 'avatar', 'restricted'])
+                .select(['id', 'name', 'title', 'avatar', 'restricted', 'admin_id'])
                 .where('id', _row.community_id)
                 .andWhere('active', true)
                 .first();
@@ -178,7 +178,7 @@ function getAllTrending({ userId, offset, reduced }) {
         .then((communities) => {
             return knex('communities_subscriptions')
                 .countDistinct('community_id')
-                .where('created_at', '>', last2Months)
+                .where('created_at', '>', lastMonth)
                 .andWhere('approved', true)
                 .first()
                 .then(({ count }) => { return { count, communities }; });
@@ -187,7 +187,7 @@ function getAllTrending({ userId, offset, reduced }) {
 
 function getAllSearched({ query, userId, offset, reduced }) {
     return knex('communities')
-        .select(['id', 'name', 'title', 'avatar', 'restricted'])
+        .select(['id', 'name', 'title', 'avatar', 'restricted', 'admin_id'])
         .whereRaw('LOWER(title) like ?', `%${query}%`)
         .andWhere('active', true)
         .orderBy('created_at', 'DESC')

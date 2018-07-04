@@ -6,6 +6,7 @@ const createSubscription = (knex, id, userId) => {
         .insert({
             community_id: id,
             user_id: userId,
+            type: 'participant',
             approved: true,
             created_at: faker.date.past()
         })

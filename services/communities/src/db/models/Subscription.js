@@ -28,29 +28,46 @@ function create(newSubscription) {
     return knex.raw(query).then(({ rows }) => rows[0].id);
 }
 
-function getAllFollowers({ communityId, userId, adminId, pending, offset, reduced }) {
-    const isAdmin = userId === adminId;
+function getAllParticipants({ communityId, userId, adminId, pending, offset, reduced }) {
+    // eslint-disable-next-line
+    const approved = (userId !== adminId) ? true : pending ? false : (true || false);
     return knex('communities_subscriptions')
-        .select(['communities_subscriptions.id', 'user_id'])
+        .select(['communities_subscriptions.id as subscription_id', 'user_id'])
         .rightJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
         .where('communities.id', communityId)
         .andWhere('user_id', '!=', userId)
-        // eslint-disable-next-line
-        .andWhere({ approved: !isAdmin ? true : pending ? false : true || false })
+        .andWhere({ approved })
         .orderBy('communities_subscriptions.created_at', 'DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .then((subscriptions) => {
+        .then((profiles) => {
             return knex('communities_subscriptions')
                 .count('*')
                 .rightJoin('communities', 'communities.id',
                     'communities_subscriptions.community_id')
                 .where('communities.id', communityId)
                 .andWhere('user_id', '!=', userId)
-                // eslint-disable-next-line
-                .andWhere({ approved: !isAdmin ? true : pending ? false : true || false })
+                .andWhere({ approved })
                 .first()
-                .then(({ count }) => { return { count, subscriptions }; });
+                .then(({ count }) => { return { count, profiles }; });
+        });
+}
+
+function getAllModerators({ communityId, offset, reduced }) {
+    return knex('communities_subscriptions')
+        .select(['communities_subscriptions.id as subscription_id', 'user_id'])
+        .where('communities.id', communityId)
+        .andWhere('type', 'moderator')
+        .orderBy('communities_subscriptions.created_at', 'DESC')
+        .limit(reduced ? MOBILE_LIMIT : LIMIT)
+        .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
+        .then((profiles) => {
+            return knex('communities_subscriptions')
+                .count('*')
+                .where('communities.id', communityId)
+                .andWhere('type', 'moderator')
+                .first()
+                .then(({ count }) => { return { count, profiles }; });
         });
 }
 
@@ -73,7 +90,8 @@ function deleteAll(communityId, adminId) {
 module.exports = {
     isExist,
     create,
-    getAllFollowers,
+    getAllParticipants,
+    getAllModerators,
     deleteOne,
     deleteAll
 };

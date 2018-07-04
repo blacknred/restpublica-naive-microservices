@@ -36,13 +36,13 @@ function getAll({ communityId, offset, reduced }) {
         .andWhere('end_date', '>', today)
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .then((bans) => {
+        .then((profiles) => {
             return knex('communities_bans')
                 .count('*')
                 .where('community_id', communityId)
                 .andWhere('end_date', '>', today)
                 .first()
-                .then(({ count }) => { return { count, bans }; });
+                .then(({ count }) => { return { count, profiles }; });
         });
 }
 

@@ -16,12 +16,12 @@ function getAll({ postId, offset, reduced }) {
                 .whereIn('option_id', ids)
                 .limit(reduced ? MOBILE_LIMIT : LIMIT)
                 .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-                .then((votes) => {
+                .then((data) => {
                     return knex('polls_voices')
                         .count('*')
                         .whereIn('option_id', ids)
                         .first()
-                        .then(({ count }) => { return { count, votes }; });
+                        .then(({ count }) => { return { count, data }; });
                 });
         });
 }

@@ -41,20 +41,22 @@ const fetchImg = (image) => {
 
 const createFile = (knex, i, imgBuffer) => {
     const conf = {
-        url: STORAGE_HOST,
+        method: 'POST',
+        uri: STORAGE_HOST,
         formData: {
             file: {
                 value: imgBuffer,
                 options: {
-                    filename: 'file.jpg',
+                    filename: `file${imgBuffer.length}.jpg`,
                     contentType: 'image/jpg'
                 }
-            }
-        }
+            },
+        },
+        json: true
     };
-    return request.post(conf)
-        .then((res) => {
-            const data = JSON.parse(res);
+    return request(conf)
+        .then((data) => {
+            console.log(data.data[0].file);
             return knex('files')
                 .insert({
                     post_id: i,
@@ -63,7 +65,7 @@ const createFile = (knex, i, imgBuffer) => {
                     thumb: data.data[0].thumb
                 });
         })
-        .catch(err => console.log(err));
+        .catch(err => console.log(''));
 };
 
 exports.seed = (knex, Promise) => {

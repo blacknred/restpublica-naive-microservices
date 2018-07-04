@@ -52,7 +52,7 @@ app.use(async (ctx, next) => {
             const response = [];
             const dir = Math.random().toString(36).slice(2);
             const fullPath = path.join(__dirname, 'static', dir);
-            const files = Object.values(ctx.request.body.files || {});
+            const files = Object.values(ctx.request.files);
             try {
                 await mkdir(fullPath);
                 files.forEach(async (file) => {

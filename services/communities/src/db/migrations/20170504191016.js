@@ -19,6 +19,7 @@ exports.up = (knex) => {
             table.integer('community_id').notNullable();
             table.foreign('community_id').references('communities.id');
             table.integer('user_id').notNullable();
+            table.enu('type', ['participant', 'moderator']).notNullable();
             table.boolean('approved').notNullable().defaultTo(false);
             table.datetime('created_at').notNullable().defaultTo(knex.fn.now());
         })

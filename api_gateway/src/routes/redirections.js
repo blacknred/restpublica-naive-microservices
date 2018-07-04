@@ -17,7 +17,7 @@ router
     .put('/users', auth, ctx => request({ ctx, host: hosts.USERS_API }))
     .post('/users/:uid/follow', auth, ctx => request({ ctx, host: hosts.USERS_API }))
     .get('/users/:uid/followers', auth, ctx => request({ ctx, host: hosts.USERS_API }))
-    .get('/users/:uid/following', auth, ctx => request({ ctx, host: hosts.USERS_API }))
+    .get('/users/:uid/followin', auth, ctx => request({ ctx, host: hosts.USERS_API }))
     .delete('/users/:uid/follow/:sid', auth, ctx => request({ ctx, host: hosts.USERS_API }))
 
     .post('/communities', auth, ctx => request({ ctx, host: hosts.COMMUNITIES_API }))

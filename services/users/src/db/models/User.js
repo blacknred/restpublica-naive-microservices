@@ -39,7 +39,7 @@ function create(newUser) {
 function getUser(userId) {
     return knex('users')
         .select(['username', 'fullname', 'description', 'email',
-            'avatar', 'feed_rand', 'email_notify'])
+            'avatar', 'banner', 'feed_rand', 'email_notify'])
         .where('id', userId)
         .andWhere({ active: true })
         .first();
@@ -86,7 +86,7 @@ function followinCount(user) {
 
 function getOne(username, authUserId) {
     return knex('users')
-        .select(['id', 'username', 'fullname', 'description', 'avatar'])
+        .select(['id', 'username', 'fullname', 'description', 'avatar', 'banner'])
         .where({ username, active: true })
         .first()
         .then(_row => _row ? followersCount(_row) : _row)
@@ -97,9 +97,11 @@ function getOne(username, authUserId) {
 function getAllInList({ list, userId, limiter }) {
     return knex('users')
         .select('id')
-        .select(limiter || ['username', 'avatar'])
+        .select(limiter || ['username', 'avatar', 'fullname'])
+        .select(knex.raw('left (description, 30) as description'))
         .whereIn('id', list)
         .andWhere({ active: true })
+        .map(_row => _row ? followersCount(_row) : _row)
         .map(_row => _row && !limiter ? mySubscription(_row, userId) : _row)
         .then((profiles) => { return { profiles }; });
 }
@@ -107,7 +109,7 @@ function getAllInList({ list, userId, limiter }) {
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 150);
+        today.getMonth(), today.getDate() - 30);
     return knex('users_subscriptions')
         .select('user_id')
         .where('created_at', '>', lastMonth)

@@ -12,12 +12,12 @@ function getAll({ postId, offset, reduced }) {
         .where('post_id', postId)
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .then((likes) => {
+        .then((data) => {
             return knex('likes')
                 .count('*')
                 .where('post_id', postId)
                 .first()
-                .then(({ count }) => { return { count, likes }; });
+                .then(({ count }) => { return { count, data }; });
         });
 }
 

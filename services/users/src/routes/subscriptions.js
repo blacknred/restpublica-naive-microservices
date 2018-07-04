@@ -40,7 +40,7 @@ router.get('/:uid/followers', ensureAuthenticated, subscriptions,
             if (!user) throw { status: 404, message: 'Profile not found' };
             const data = await Subscription.getAllFollowers(
                 { profileId: req.params.uid, userId: req.user, offset, reduced });
-            data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
+            data.profiles.forEach(u => u.avatar = u.avatar.toString('base64'));
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);
@@ -48,7 +48,7 @@ router.get('/:uid/followers', ensureAuthenticated, subscriptions,
     }
 );
 
-router.get('/:uid/following', ensureAuthenticated, subscriptions,
+router.get('/:uid/followin', ensureAuthenticated, subscriptions,
     async (req, res, next) => {
         const offset = req.query.offset && /^\+?\d+$/.test(req.query.offset) ?
             --req.query.offset : 0;
@@ -58,7 +58,7 @@ router.get('/:uid/following', ensureAuthenticated, subscriptions,
             if (!user) throw { status: 404, message: 'Profile not found' };
             const data = await Subscription.getAllFollowing(
                 { profileId: req.params.uid, userId: req.user, offset, reduced });
-            data.subscriptions.forEach(u => u.avatar = u.avatar.toString('base64'));
+            data.profiles.forEach(u => u.avatar = u.avatar.toString('base64'));
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);

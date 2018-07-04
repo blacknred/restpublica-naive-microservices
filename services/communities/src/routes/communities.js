@@ -140,7 +140,7 @@ router.get('/', communities, async (req, res, next) => {
         --req.query.offset : 0;
     const query = req.query.q ? req.query.q.toLowerCase() : null;
     const list = req.query.list ? req.query.list.split(',') : null;
-    const admin = req.query.admin === req.user ? req.user : null;
+    const admin = req.query.admin || null;
     const profile = req.query.profile || null;
     const mode = req.query.mode || null;
     const limiter = req.query.lim || null;

@@ -20,12 +20,12 @@ function getAll({ postId, offset, reduced }) {
         .orderBy('created_at', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .then((comments) => {
+        .then((data) => {
             return knex('comments')
                 .count('*')
                 .where('post_id', postId)
                 .first()
-                .then(({ count }) => { return { count, comments }; });
+                .then(({ count }) => { return { count, data }; });
         });
 }
 
