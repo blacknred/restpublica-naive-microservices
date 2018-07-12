@@ -206,16 +206,16 @@ services:
     links:
       - posts-service
 
-  web-client:
-    container_name: web-client
-    build: ./clients/web/
-    volumes:
-      - './clients/web:/usr/src/app'
-      - './clients/web/package.json:/usr/src/package.json'
-    ports:
-      - '3000:3000'
-    environment:
-      - NODE_ENV=${NODE_ENV}
-    depends_on:
-      api-gateway:
-        condition: service_started
+  # web-client:
+  #   container_name: web-client
+  #   build: ./clients/web/
+  #   volumes:
+  #     - './clients/web:/usr/src/app'
+  #     - './clients/web/package.json:/usr/src/package.json'
+  #   ports:
+  #     - '3000:3000'
+  #   environment:
+  #     - NODE_ENV=${NODE_ENV}
+  #   depends_on:
+  #     api-gateway:
+  #       condition: service_started

@@ -95,7 +95,7 @@ $ docker exec -ti <container-id> psql -U postgres
 | /communities/:cid/moderators   | GET         | READ        | get the com-ty moderators |a
 | /communities/:cid/follow/sid   | DELETE      | DELETE      | delete the subscription   |a
 | /communities/:cid/ban          | POST        | CREATE      | create a ban              |a
-| /communities/:cid/bans         |  GET         | READ       | get all bans              |a
+| /communities/:cid/bans         |  GET        | READ        | get all bans              |a
 
 #### (3) Posts API - http://localhost:3006/v1/
 
