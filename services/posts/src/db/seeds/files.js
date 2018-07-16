@@ -11,7 +11,7 @@ const IMG_COUNT = 500;
 const FETCH_FROM_DIR = false;
 const DIR = path.join(__dirname, 'static');
 
-const STORAGE = 'http://files-storage:3007';
+const STORAGE = `http://files-storage:3007?seedFrom=${process.env.NODE_ENV}`;
 const IMG_SIZES = ['600x600', '600x700', '600x800'];
 const IMG_COLLECTIONS = ['1111575', '582659', '494266'];
 const IMG_SRC = 'https://source.unsplash.com/collection';

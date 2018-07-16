@@ -3,7 +3,7 @@ const debug = require('debug')('posts-api');
 const http = require('http');
 
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
-// process.env.S3_HOST = 'll';
+
 function normalizePort(val) {
     const port = parseInt(val, 10);
     if (isNaN(port)) { return val; }

@@ -4,6 +4,7 @@ const fs = require('fs');
 const Koa = require('koa');
 const path = require('path');
 const util = require('util');
+const hosts = require('./hosts');
 const cors = require('koa-cors');
 const serve = require('koa-static');
 const koaBody = require('koa-body');
@@ -12,10 +13,6 @@ const helpers = require('./_helpers');
 
 const mkdir = util.promisify(fs.mkdir);
 
-const STORAGE = process.env.NODE_ENV === 'development' ?
-    'http://127.0.0.1:3007' :
-    'http://207.154.198.212/s3';
-
 const app = new Koa();
 
 /* logs */
@@ -23,6 +20,7 @@ app.use(logger());
 
 /* errors */
 app.use(async (ctx, next) => {
+    console.log(__dirname);
     try {
         ctx.set('Content-Disposition', 'attachment');
         await next();
@@ -55,6 +53,8 @@ app.use(async (ctx, next) => {
             const dir = Math.random().toString(36).slice(2);
             const fullPath = path.join(__dirname, 'static', dir);
             const files = Object.values(ctx.request.files);
+            const seedFrom = ctx.query.seedFrom;
+            console.log(seedFrom);
             try {
                 await mkdir(fullPath);
                 files.forEach(async (file) => {
@@ -86,9 +86,11 @@ app.use(async (ctx, next) => {
                         case 'video': await helpers.videoThumb(file.path, fullPath); break;
                         default:
                     }
+
+                    // form response
                     response.push({
-                        file: `${STORAGE}/${dir}/${fileName}`,
-                        thumb: `${STORAGE}/${dir}/${thumbName}`
+                        file: `${hosts[seedFrom || process.env.NODE_ENV]}/${dir}/${fileName}`,
+                        thumb: `${hosts[seedFrom || process.env.NODE_ENV]}/${dir}/${thumbName}`
                     });
                 });
                 ctx.body = {
