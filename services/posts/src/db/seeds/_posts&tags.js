@@ -42,13 +42,20 @@ const createPost = (knex, i) => {
     // save post/tag relation
     if (isTagged) {
         const tagsCount = Math.floor(Math.random() * (3)) + 1;
-        tagsIndexes = helpers.genUniqueNumbersArr(tagsCount, tags.count);
-        post.description = faker.lorem.sentences() + tagsIndexes.map(index => ` ${tags[index]}`);
+        tagsIndexes = helpers.genUniqueNumbersArr(tagsCount, tags.length);
+        post.description = faker.lorem.sentences() + tagsIndexes.map(index => ` #${tags[index]}`);
     } else post.description = faker.lorem.sentences();
 
     return knex('posts')
         .insert(post)
-        .then(() => isTagged && tagsIndexes.map(index => createTagMapping(knex, index, i)))
+        .then(() => {
+            if (isTagged) {
+                const records = [];
+                tagsIndexes.forEach(index => records.push(createTagMapping(knex, index, i)));
+                return Promise.all(records);
+            }
+            return true;
+        })
         .catch(err => console.log(err));
 };
 
@@ -58,7 +65,7 @@ exports.seed = (knex, Promise) => {
         .then(() => {
             // seed tags
             const records = [];
-            if (process.env.NODE_ENV === 'isTest') tags = ['politic', 'netflix', 'thetruth'];
+            if (isTest) tags = ['politic', 'netflix', 'thetruth'];
             else tags = helpers.genUniqueTitlesArr(30);
             tags.forEach(tag => records.push(createTag(knex, tag)));
             return Promise.all(records);
