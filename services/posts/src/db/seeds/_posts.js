@@ -4,14 +4,6 @@ const helpers = require('../_helpers');
 const isTest = process.env.NODE_ENV === 'test';
 let tags;
 
-const createTag = (knex, title) => {
-    return knex('tags')
-        .insert({
-            title
-        })
-        .catch(err => console.log(err));
-};
-
 const createTagMapping = (knex, id, postId) => {
     return knex('posts_tags')
         .insert({
@@ -28,6 +20,7 @@ const createPost = (knex, i) => {
         slug: helpers.genSlug(),
         author_id: Math.floor(Math.random() * (isTest ? 3 : 40)) + 1,
         type: 'file',
+        description: faker.lorem.sentences(),
         views_cnt: Math.floor(Math.random() * (isTest ? 30 : 500)) + 1,
         created_at: faker.date.past()
     };
@@ -36,25 +29,21 @@ const createPost = (knex, i) => {
     }
 
     // if with tags
-    // one or many tags
-    // add tag/tags to description
-    // save post
-    // save post/tag relation
     if (isTagged) {
         const tagsCount = Math.floor(Math.random() * (3)) + 1;
         tagsIndexes = helpers.genUniqueNumbersArr(tagsCount, tags.length);
-        post.description = faker.lorem.sentences() + tagsIndexes.map(index => ` #${tags[index]}`);
-    } else post.description = faker.lorem.sentences();
-
+        post.description += ' ';
+        post.description += tagsIndexes.map(index => `#${tags[index - 1]}`).join(' ');
+        console.log(i, tagsCount, tagsIndexes, post.description);
+    }
     return knex('posts')
         .insert(post)
         .then(() => {
+            const records = [];
             if (isTagged) {
-                const records = [];
                 tagsIndexes.forEach(index => records.push(createTagMapping(knex, index, i)));
-                return Promise.all(records);
             }
-            return true;
+            return Promise.all(records);
         })
         .catch(err => console.log(err));
 };
@@ -62,18 +51,12 @@ const createPost = (knex, i) => {
 exports.seed = (knex, Promise) => {
     return knex('posts')
         .del()
-        .then(() => {
-            // seed tags
+        .then(() => knex('tags').select('*'))
+        .then((tgs) => {
+            tags = tgs.map(tag => tag.title);
+            console.log(tags);
             const records = [];
-            if (isTest) tags = ['politic', 'netflix', 'thetruth'];
-            else tags = helpers.genUniqueTitlesArr(30);
-            tags.forEach(tag => records.push(createTag(knex, tag)));
-            return Promise.all(records);
-        })
-        .then(() => {
-            // seed posts
-            const records = [];
-            for (let i = 0; i < (isTest ? 10 : 500); i++) {
+            for (let i = 1; i <= (isTest ? 10 : 500); i++) {
                 records.push(createPost(knex, i));
             }
             return Promise.all(records);
