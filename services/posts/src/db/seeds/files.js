@@ -43,7 +43,7 @@ const fetchImg = () => {
     };
     return request(conf)
         .then((res) => {
-            console.log(conf.url, res.body.length);
+            // console.log(conf.url, res.body.length);
             fetchedImgs.push(res.body);
             return null;
         })

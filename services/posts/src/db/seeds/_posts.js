@@ -34,7 +34,7 @@ const createPost = (knex, i) => {
         tagsIndexes = helpers.genUniqueNumbersArr(tagsCount, tags.length);
         post.description += ' ';
         post.description += tagsIndexes.map(index => `#${tags[index - 1]}`).join(' ');
-        console.log(i, tagsCount, tagsIndexes, post.description);
+        // console.log(i, tagsCount, tagsIndexes, post.description);
     }
     return knex('posts')
         .insert(post)
@@ -54,7 +54,7 @@ exports.seed = (knex, Promise) => {
         .then(() => knex('tags').select('*'))
         .then((tgs) => {
             tags = tgs.map(tag => tag.title);
-            console.log(tags);
+            // console.log(tags);
             const records = [];
             for (let i = 1; i <= (isTest ? 10 : 500); i++) {
                 records.push(createPost(knex, i));

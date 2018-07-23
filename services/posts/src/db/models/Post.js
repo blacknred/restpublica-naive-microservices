@@ -301,6 +301,7 @@ function getAllSearched({ query, userId, offset, reduced }) {
             return knex('posts')
                 .count('*')
                 .whereRaw('LOWER(description) like ?', `%${query}%`)
+                .andWhere('archived', false)
                 .first()
                 .then(({ count }) => { return { count, posts }; });
         });
@@ -338,6 +339,7 @@ function getAllFeed({ profiles, communities, userId, offset, reduced }) {
     return knex('posts')
         .select('*')
         .whereIn('author_id', profiles)
+        .andWhere('archived', false)
         .orWhereIn('community_id', communities)
         .andWhere('archived', false)
         .orderBy('created_at', 'desc')
@@ -353,6 +355,7 @@ function getAllFeed({ profiles, communities, userId, offset, reduced }) {
             return knex('posts')
                 .count('*')
                 .whereIn('author_id', profiles)
+                .andWhere('archived', false)
                 .orWhereIn('community_id', communities)
                 .andWhere('archived', false)
                 .first()
@@ -364,10 +367,14 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
     return knex('posts')
         .select('posts.*')
         .where('author_id', profileId)
-        .andWhere({ archived: profileId === userId ? true || false : false })
         .orderBy('created_at', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT / 2 : LIMIT / 2))
+        .modify((queryBuilder) => {
+            if (parseInt(profileId, 10) !== userId) {
+                queryBuilder.andWhere('archived', false);
+            }
+         })
         .map(_row => _row ? getLikesCount(_row) : _row)
         .map(_row => _row ? getRepostsCount(_row) : _row)
         .map(_row => _row ? getCommentsCount(_row) : _row)
@@ -378,7 +385,11 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
             return knex('posts')
                 .count('*')
                 .where('author_id', profileId)
-                .andWhere({ archived: profileId === userId ? true || false : false })
+                .modify((queryBuilder) => {
+                    if (parseInt(profileId, 10) !== userId) {
+                    queryBuilder.andWhere('archived', false);
+                    }
+                 })
                 .first()
                 .then(({ count }) => { return { count, posts }; });
         });

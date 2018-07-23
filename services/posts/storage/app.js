@@ -20,7 +20,6 @@ app.use(logger());
 
 /* errors */
 app.use(async (ctx, next) => {
-    console.log(__dirname);
     try {
         ctx.set('Content-Disposition', 'attachment');
         await next();
