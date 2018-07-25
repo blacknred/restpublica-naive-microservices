@@ -11,7 +11,7 @@ const MOBILE_LIMIT = 6;
 function mySubscription(user, authUserId) {
     return knex('users_subscriptions')
         .select('id')
-        .where({ user_id: user.id, sub_user_id: authUserId })
+        .where({ user_id: user.user_id, sub_user_id: authUserId })
         .first()
         .then(id => Object.assign(user, { my_subscription: id ? id.id : null }));
 }

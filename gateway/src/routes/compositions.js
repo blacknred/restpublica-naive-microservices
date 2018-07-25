@@ -50,7 +50,7 @@ router
         }
         res();
     })
-    .get('/communities/:cid/(followers|moderators|bans)', async (ctx) => {
+    .get('/communities/:cid/(participants|moderators|bans)', async (ctx) => {
         /* get profiles */
         const profiles =
             await request({ ctx, host: hosts.COMMUNITIES_API, url: ctx.url, r: true });

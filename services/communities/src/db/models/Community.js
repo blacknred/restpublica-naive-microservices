@@ -126,7 +126,7 @@ function getAllFeedByProfile(userId) {
 
 function getAllByAdmin({ userId, offset, reduced }) {
     return knex('communities')
-        .select(['id', 'title', 'avatar', 'last_post_at', 'admin_id'])
+        .select(['id', 'title', 'avatar', 'name', 'restricted', 'last_post_at', 'admin_id'])
         .where('admin_id', userId)
         .andWhere('active', true)
         .orderBy('created_at', 'ASC')

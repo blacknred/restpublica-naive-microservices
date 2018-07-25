@@ -56,6 +56,7 @@ function getAllParticipants({ communityId, userId, adminId, pending, offset, red
 function getAllModerators({ communityId, offset, reduced }) {
     return knex('communities_subscriptions')
         .select(['communities_subscriptions.id as subscription_id', 'user_id'])
+        .rightJoin('communities', 'communities.id', 'communities_subscriptions.community_id')
         .where('communities.id', communityId)
         .andWhere('type', 'moderator')
         .orderBy('communities_subscriptions.created_at', 'DESC')
@@ -64,6 +65,8 @@ function getAllModerators({ communityId, offset, reduced }) {
         .then((profiles) => {
             return knex('communities_subscriptions')
                 .count('*')
+                .rightJoin('communities', 'communities.id',
+                    'communities_subscriptions.community_id')
                 .where('communities.id', communityId)
                 .andWhere('type', 'moderator')
                 .first()

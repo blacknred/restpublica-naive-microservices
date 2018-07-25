@@ -9,7 +9,7 @@ const hosts = require('../conf');
 const { genApiSecret } = require('./local');
 const { request } = require('../routes/_helpers');
 
-const DEFAULT_MAX_REQUESTS_COUNT = process.env.MAX_REQUESTS_COUNT || 30;
+const DEFAULT_MAX_REQUESTS_COUNT = process.env.MAX_REQUESTS_COUNT || 40;
 
 /* Get max requests count */
 const getMaxRequestsCount = async (ctx) => {

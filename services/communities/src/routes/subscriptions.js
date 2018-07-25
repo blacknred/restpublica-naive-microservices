@@ -16,6 +16,7 @@ router.post('/:cid/follow', ensureAuthenticated, subscriptions,
         const newSubscription = {
             community_id: req.params.cid,
             user_id: req.user,
+	    type: req.type || 'participant'
         };
         try {
             const community = await Community.isExist({ id: req.params.cid });
@@ -66,6 +67,11 @@ router.get('/:cid/moderators', ensureAuthenticated, subscriptions,
                 offset,
                 reduced
             });
+            const { count } = data;
+            data.count = parseInt(count, 10) + 1;
+            if (offset === 0) {
+                data.profiles.push({ subscription_id: null, user_id: community.admin_id });
+            }
             res.status(200).json({ status: 'success', data });
         } catch (err) {
             return next(err);
