@@ -16,7 +16,7 @@ router.post('/:cid/follow', ensureAuthenticated, subscriptions,
         const newSubscription = {
             community_id: req.params.cid,
             user_id: req.user,
-	    type: req.type || 'participant'
+            type: req.type || 'participant'
         };
         try {
             const community = await Community.isExist({ id: req.params.cid });
