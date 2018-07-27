@@ -8,6 +8,7 @@ const redis = require('redis');
 const bluebird = require('bluebird');
 
 const client = redis.createClient(6379, 'redis-cache');
+client.auth(process.env.REDIS_PASSWORD);
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 // time-span to count the failed requests in sec

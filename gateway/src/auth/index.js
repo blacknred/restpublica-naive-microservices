@@ -44,7 +44,11 @@ const getMaxRequestsCount = async (ctx) => {
 /* Implement rate-limiting */
 const rateLimiting = async (ctx, next) => {
     const opts = {
-        db: new Redis(6379, 'redis-cache'),
+        db: new Redis({
+            port: 6379,
+            host: 'redis-cache',
+            password: process.env.REDIS_PASSWORD,
+        }),
         duration: 60000,
         id: ctx.ip,
         max: await getMaxRequestsCount(ctx)

@@ -125,6 +125,8 @@ router.get('/:slug', posts, async (req, res, next) => {
     try {
         const data = await Post.getOne(req.params.slug, req.user);
         if (!data) throw { status: 404, message: 'Post not found' };
+        const updatedValue = { views_cnt: parseInt(data.views_cnt, 10) + 1 };
+        await Post.update({ updatedValue, postId: data.id, userId: req.user });
         res.json({ status: 'success', data });
     } catch (err) {
         return next(err);

@@ -4,9 +4,9 @@ services:
 
   redis-cache:
     container_name: redis-cache
-    image: redis:alpine
+    build: ./gateway/redis
     volumes:
-      - ./gateway/redis-data:/data
+      - ./gateway/redis/redis-data:/data
     ports:
       - '6379:6379'
     healthcheck:
@@ -172,6 +172,7 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV}
       - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+      - REDIS_PASSWORD=default-password
     depends_on:
       redis-cache:
         condition: service_started

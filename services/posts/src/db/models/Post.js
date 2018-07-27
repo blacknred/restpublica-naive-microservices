@@ -261,9 +261,11 @@ function getAllTrending({ userId, offset, reduced }) {
         today.getMonth(), today.getDate() - 30);
     return knex('posts')
         .select('*')
-        .select(knex.raw('left (description, 40) as description'))
+        .select(knex.raw('left (description, 80) as description'))
         .where('created_at', '>', lastMonth)
         .andWhere('archived', false)
+        .andWhere('type', '!=', 'poll')
+        .andWhere('type', '!=', 'repost')
         .orderBy('views_cnt', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
