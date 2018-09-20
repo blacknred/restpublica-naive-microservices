@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const debug = require('debug')('partners-api');
 const useragent = require('express-useragent');
 const expressValidator = require('express-validator');
+
 const dbInit = require('./db/db_init');
 const appsRoutes = require('./routes/apps');
 const { authentication } = require('./auth');

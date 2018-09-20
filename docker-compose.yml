@@ -1,4 +1,4 @@
-version: '2.1'
+version: '3'
 
 services:
 
@@ -9,16 +9,6 @@ services:
       - ./gateway/redis/redis-data:/data
     ports:
       - '6379:6379'
-    healthcheck:
-      test: exit 0
-
-  partners-db:
-    container_name: partners-db
-    build: ./services/partners/src/db
-    volumes:
-      - ./services/partners/src/db/mongo-data:/data/db
-    ports:
-      - '27017:27017'
     healthcheck:
       test: exit 0
 
@@ -61,36 +51,34 @@ services:
     healthcheck:
       test: exit 0
 
+  partners-db:  
+    container_name: partners-db
+    build: ./services/partners/src/db
+    volumes:
+      - ./services/partners/src/db/mongo-data:/data/db
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test: exit 0
+  
+  notifications-db:
+    container_name: notifications-db
+    build: ./services/notifications/src/db
+    volumes:
+      - ./services/notifications/src/db/mongo-data:/data/db
+    ports:
+      - '27018:27017'
+    healthcheck:
+      test: exit 0
+
   files-storage:
     container_name: files-storage
-    build: ./services/posts/storage/
+    build: ./services/storage/
     volumes:
-      - './services/posts/storage:/usr/src/app'
-      - './services/posts/storage/package.json:/usr/src/package.json'
+      - './services/storage:/usr/src/app'
+      - './services/storage/package.json:/usr/src/package.json'
     ports:
-      - '3007:3007'
-      
-  partners-service:
-    container_name: partners-service
-    build: ./services/partners/
-    volumes:
-      - './services/partners:/usr/src/app'
-      - './services/partners/package.json:/usr/src/package.json'
-    ports:
-      - '3008:3008'
-    environment:
-      - DATABASE_URL=mongodb://partners-db:27017/partners_dev
-      - DATABASE_TEST_URL=mongodb://partners-db:27017/partners_test
-      - NODE_ENV=${NODE_ENV}
-      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
-    depends_on:
-      partners-db:
-        condition: service_healthy
-      redis-cache:
-        condition: service_started
-    links:
-      - partners-db
-      - redis-cache
+      - '3007:3000'
 
   users-service:
     container_name: users-service
@@ -99,17 +87,16 @@ services:
       - './services/users:/usr/src/app'
       - './services/users/package.json:/usr/src/package.json'
     ports:
-      - '3004:3004'
+      - '3004:3000'
     environment:
       - DATABASE_URL=postgres://postgres:postgres@users-db:5432/users_dev
       - DATABASE_TEST_URL=postgres://postgres:postgres@users-db:5432/users_test
       - NODE_ENV=${NODE_ENV}
-      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe
+      - TOKEN_SECRET_2=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
     depends_on:
-      users-db:
-        condition: service_healthy
-      redis-cache:
-        condition: service_started
+      - users-db
+      - redis-cache
     links:
       - users-db
       - redis-cache
@@ -121,17 +108,16 @@ services:
       - './services/communities:/usr/src/app'
       - './services/communities/package.json:/usr/src/package.json'
     ports:
-      - '3005:3005'
+      - '3005:3000'
     environment:
       - DATABASE_URL=postgres://postgres:postgres@communities-db:5432/communities_dev
       - DATABASE_TEST_URL=postgres://postgres:postgres@communities-db:5432/communities_test
       - NODE_ENV=${NODE_ENV}
-      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe
+      - TOKEN_SECRET_2=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
     depends_on:
-      communities-db:
-        condition: service_healthy
-      redis-cache:
-        condition: service_started
+      - communities-db
+      - redis-cache
     links:
       - communities-db
       - redis-cache
@@ -143,22 +129,62 @@ services:
       - './services/posts:/usr/src/app'
       - './services/posts/package.json:/usr/src/package.json'
     ports:
-      - '3006:3006'
+      - '3006:3000'
     environment:
       - DATABASE_URL=postgres://postgres:postgres@posts-db:5432/posts_dev
       - DATABASE_TEST_URL=postgres://postgres:postgres@posts-db:5432/posts_test
       - NODE_ENV=${NODE_ENV}
-      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe
+      - TOKEN_SECRET_2=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
     depends_on:
-      posts-db:
-        condition: service_healthy
-      files-storage:
-        condition: service_started
-      redis-cache:
-        condition: service_started
+      - posts-db
+      - files-storage
+      - redis-cache
     links:
       - posts-db
       - files-storage
+      - redis-cache
+
+  partners-service: 
+    container_name: partners-service
+    build: ./services/partners/
+    volumes:
+      - './services/partners:/usr/src/app'
+      - './services/partners/package.json:/usr/src/package.json'
+    ports:
+      - '3008:3000'
+    environment:
+      - DATABASE_URL=mongodb://partners-db:27017/partners_dev
+      - DATABASE_TEST_URL=mongodb://partners-db:27017/partners_test
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe
+      - TOKEN_SECRET_2=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+    depends_on:
+      - partners-db
+      - redis-cache
+    links:
+      - partners-db
+      - redis-cache
+
+  notifications-service:
+    container_name: notifications-service
+    build: ./services/notifications/
+    volumes:
+      - './services/notifications:/usr/src/app'
+      - './services/notifications/package.json:/usr/src/package.json'
+    ports:
+      - '3009:3000'
+    environment:
+      - DATABASE_URL=mongodb://notifications-db:27018/notifications_dev
+      - DATABASE_TEST_URL=mongodb://notifications-db:27018/notifications_test
+      - NODE_ENV=${NODE_ENV}
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe
+      - TOKEN_SECRET_2=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+    depends_on:
+      - notifications-db
+      - redis-cache
+    links:
+      - notifications-db
       - redis-cache
 
   gateway:
@@ -168,42 +194,24 @@ services:
       - './gateway:/usr/src/app'
       - './gateway/package.json:/usr/src/package.json'
     ports:
-      - '3003:3003'
+      - '3003:3000'
     environment:
       - NODE_ENV=${NODE_ENV}
-      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
+      - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe
+      - TOKEN_SECRET_2=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe
       - REDIS_PASSWORD=default-password
     depends_on:
-      redis-cache:
-        condition: service_started
-      users-service:
-        condition: service_started
-      communities-service:
-        condition: service_started
-      posts-service:
-        condition: service_started
-      partners-service:
-        condition: service_started
+      - redis-cache
+      - users-service
+      - communities-service
+      - posts-service
+      - partners-service
+      - notifications-service
     links:
       - redis-cache
       - users-service
       - communities-service
       - posts-service
       - partners-service
-
-  swagger:
-    container_name: swagger
-    build: ./services/posts/swagger/
-    volumes:
-      - './services/posts/swagger:/usr/src/app'
-      - './services/posts/swagger/package.json:/usr/src/package.json'
-    ports:
-      - '3009:3009'
-    environment:
-      - NODE_ENV=${NODE_ENV}
-    depends_on:
-      posts-service:
-        condition: service_started
-    links:
-      - posts-service
+      - notifications-service
 

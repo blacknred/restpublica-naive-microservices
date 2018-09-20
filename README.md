@@ -3,21 +3,24 @@
 
 ## Architecture
 
-| Name            | Microservice  | Container             | Stack            | Ports |
-|-----------------|---------------|-----------------------|------------------|-------|
-| API Gateway     | -             | api-gateway           | Node, Koa        | 3003  |
-| Redis Cache     | -             | redis-cache           | Node, Redis      | 6379  |
-| Users API       | Users         | users-service         | Node, Express    | 3004  |
-| Users DB        | Users         | users-db              | Postgres         | 5433  |
-| Communities API | Communities   | communities-service   | Node, Express    | 3005  |
-| Communities DB  | Communities   | communities-db        | Postgres         | 5434  |
-| Posts API       | Posts         | posts-service         | Node, Express    | 3006  |
-| Posts DB        | Posts         | posts-db              | Postgres         | 5435  |
-| Mock Storage    | Posts         | files-storage         | Node, Koa        | 3007  |
-| Swagger         | Posts         | swagger               | Node, Swagger UI | 3009  |
-| Partners API    | Partners      | partners-service      | Node, Express    | 3008  |
-| Partners DB     | Partners      | partners-db           | Mongo            | 27017 |
-| ~~`Notifications`~~ | Notifications | notifications-service |                  | 3010  |
+| Name              | Microservice  | Container             | Stack         | Ports |
+|-------------------|---------------|-----------------------|---------------|-------|
+| API Gateway       | -             | api-gateway           | Node, Koa     | 3003  |
+| Redis Cache       | -             | redis-cache           | Node, Redis   | 6379  |
+| Mock Storage      | Posts         | files-storage         | Node, Koa     | 3007  |
+| Users API         | Users         | users-service         | Node, Express | 3004  |
+| Users DB          | Users         | users-db              | Postgres      | 5433  |
+| Communities API   | Communities   | communities-service   | Node, Express | 3005  |
+| Communities DB    | Communities   | communities-db        | Postgres      | 5434  |
+| Posts API         | Posts         | posts-service         | Node, Express | 3006  |
+| Posts DB          | Posts         | posts-db              | Postgres      | 5435  |
+| Partners API      | Partners      | partners-service      | Node, Express | 3008  |
+| Partners DB       | Partners      | partners-db           | Mongo         | 27017 |
+| Notifications API | Motifications | notifications-service | Node, Express | 3009  |
+| Notifications DB  | Notifications | notifications-db      | Mongo         | 27017 |
+
+<!-- | Messages API      | Messages      | messages-service      |               | 3010  |
+| Messages DB       | Messages      | messages-db           |               | 27018 | -->
 
 #### API Gateway - http://localhost:3003
 
@@ -38,11 +41,7 @@ Mock storage with API for CREATE, DELETE and GET static posts files
 
 Cache layer for rate/limit API policy and service registry
 
-#### Swagger - http://localhost:3009/docs
-
-Posts API documentation at the above URL
-
-#### Users, Communities, Posts and Partners Databases
+#### Users, Communities, Posts, Partners and Notifications Databases
 
 To access, get the container id from `docker ps` and then open `psql`:
 
@@ -72,7 +71,8 @@ $ docker exec -ti <container-id> psql -U postgres
 | /users/:uid/followers   | GET         | READ        | get a profile followers      |a
 | /users/:uid/following   | GET         | READ        | get a profile following      |a
 | /users/:uid/feed        | GET         | READ        | get a profile following ids  |a
-| /users/:uid/follow/:sid | DELETE      | DELETE      | delete the subscription      |a
+| /users/:uid/follow      | DELETE      | DELETE      | delete the subscription      |a
+| /users/:uid/updates      | DELETE      | DELETE      | delete the subscription      |a
 
 #### (2) Communities API - http://localhost:3005/v1
 
@@ -97,30 +97,32 @@ $ docker exec -ti <container-id> psql -U postgres
 
 #### (3) Posts API - http://localhost:3006/v1/
 
-| Endpoint                    | HTTP Method | CRUD Method | Result                |
-|-----------------------------|-------------|-------------|-----------------------|
-| /posts                      | POST        | CREATE      | add a post            |a
-| /posts                      | GET         | READ        | get trending posts    | 
-| /posts?tag=tag              | GET         | READ        | get posts by tag      | 
-| /posts?q=query              | GET         | READ        | get posts by search   | 
-| /posts?profile=pid&mode=    | GET         | READ        | get posts by user     | 
-| /posts?community=cid&?mode= | GET         | READ        | get community posts   |
-| /posts?feed=true            | GET         | READ        | get community posts   |a
-| /posts/:slug                | GET         | READ        | get the post          | 
-| /posts/:pid                 | PUT         | UPDATE      | update the post       |a
-| /posts/:pid                 | DELETE      | DELETE      | delete the post       |a
-| /posts/:pid/comments        | POST        | CREATE      | create a comment      |a
-| /posts/:pid/comments        | GET         | READ        | get post comments     | 
-| /posts/:pid/comments/:cid   | PUT         | UPDATE      | update the comment    |a
-| /posts/:pid/comments/:cid   | DELETE      | DELETE      | delete the comment    |a
-| /posts/:pid/likes           | POST        | CREATE      | create a post like    |a
-| /posts/:pid/likes           | GET         | READ        | get post likes        |a
-| /posts/:pid/likes           | DELETE      | DELETE      | delete the like       |a
-| /posts/:pid/votes           | POST        | CREATE      | create a post vote    |a
-| /posts/:pid/votes           | GET         | READ        | get post votes        |a
-| /posts/:pid/votes/:oid      | DELETE      | DELETE      | delete the vote       |a
-| /tags                       | GET         | READ        | get all trending tags |
-| /tags?q=query               | GET         | READ        | get all tags by query |
+| Endpoint                       | HTTP Method | CRUD Method | Result                |
+|--------------------------------|-------------|-------------|-----------------------|
+| /posts                         | POST        | CREATE      | add a post            |a
+| /posts                         | GET         | READ        | get trending posts    | 
+| /posts?tag=tag                 | GET         | READ        | get posts by tag      | 
+| /posts?q=query                 | GET         | READ        | get posts by search   | 
+| /posts?profile=pid&mode=       | GET         | READ        | get posts by user     | 
+| /posts?community=cid&?mode=    | GET         | READ        | get community posts   |
+| /posts?feed=true               | GET         | READ        | get community posts   |a
+| /posts/:slug                   | GET         | READ        | get the post          | 
+| /posts/:pid                    | PUT         | UPDATE      | update the post       |a
+| /posts/:pid                    | DELETE      | DELETE      | delete the post       |a
+| /posts/:pid/comments           | POST        | CREATE      | create a comment      |a
+| /posts/:pid/comments           | GET         | READ        | get post comments     | 
+| /posts/:pid/comments/:cid      | PUT         | UPDATE      | update the comment    |a
+| /posts/:pid/comments/:cid      | DELETE      | DELETE      | delete the comment    |a
+| /posts/:pid/comments/:cid/like | POST        | CREATE      | create a comment like |a
+| /posts/:pid/comments/:cid/like | DELETE      | DELETE      | delete comment like   |a
+| /posts/:pid/likes              | POST        | CREATE      | create a post like    |a
+| /posts/:pid/likes              | GET         | READ        | get post likes        |a
+| /posts/:pid/likes              | DELETE      | DELETE      | delete the like       |a
+| /posts/:pid/votes              | POST        | CREATE      | create a post vote    |a
+| /posts/:pid/votes              | GET         | READ        | get post votes        |a
+| /posts/:pid/votes/:oid         | DELETE      | DELETE      | delete the vote       |a
+| /tags                          | GET         | READ        | get all trending tags |
+| /tags?q=query                  | GET         | READ        | get all tags by query |
 
 #### (4) Partners API - http://localhost:3008/v1/
 
@@ -139,7 +141,15 @@ $ docker exec -ti <container-id> psql -U postgres
 | /apps/:aid     | PUT         | UPDATE      | update an app |a
 | /apps/:aid     | DELETE      | DELETE      | delete an app |a
 
-<!-- #### (5) Notifications - http://localhost:3010 -->
+#### (5) Notifications API - http://localhost:3009/v1/
+
+| Endpoint | HTTP Method | CRUD Method | Result                   |
+|----------|-------------|-------------|--------------------------|
+| /ping    | GET         | READ        | `pong`                   |a
+| /        | POST        | CREATE      | add a notification       |aa
+| /        | GET         | READ        | get all notifications    |a
+| /:nid    | DELETE      | DELETE      | delete the notification  |a
+| /        | DELETE      | DELETE      | delete all notifications |a
 
 
 ## Run the project
@@ -203,30 +213,4 @@ To access, get the container id from `docker ps` and then open `psql`:
 
 ```sh
 $ docker exec -ti <container-id> psql -U postgres
-```
-
-#### Commands
-
-To stop the containers:
-
-```sh
-$ docker-compose stop
-```
-
-To bring down the containers:
-
-```sh
-$ docker-compose down
-```
-
-Want to force a build?
-
-```sh
-$ docker-compose build --no-cache
-```
-
-Remove images:
-
-```sh
-$ docker rmi $(docker images -q)
 ```

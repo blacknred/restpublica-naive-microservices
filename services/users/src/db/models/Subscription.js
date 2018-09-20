@@ -92,20 +92,6 @@ function getAllFollowing({ profileId, userId, offset, reduced }) {
         });
 }
 
-function getAllFeed(userId) {
-    const today = new Date();
-    const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 30);
-    return knex('users_subscriptions')
-        .select('users_subscriptions.user_id')
-        .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
-        .where('users_subscriptions.sub_user_id', userId)
-        .andWhere('users.last_post_at', '>', lastMonth)
-        .orderBy('users.last_post_at', 'DESC')
-        .limit(100);
-}
-
-
 function deleteOne(subscriptionId, userId) {
     return knex('users_subscriptions')
         .del()
@@ -120,13 +106,25 @@ function deleteAll(userId) {
         .andWhere('user_id', userId);
 }
 
+function getAllFeed(userId) {
+    const today = new Date();
+    const period = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 60);
+    return knex('users_subscriptions')
+        .select('users_subscriptions.user_id')
+        .rightJoin('users', 'users.id', 'users_subscriptions.user_id')
+        .where('users_subscriptions.sub_user_id', userId)
+        .andWhere('users.last_post_at', '>', period)
+        .orderBy('users.last_post_at', 'DESC')
+        .limit(100);
+}
 
 module.exports = {
     isExist,
     create,
+    deleteOne,
+    deleteAll,
     getAllFollowers,
     getAllFollowing,
-    getAllFeed,
-    deleteOne,
-    deleteAll
+    getAllFeed
 };

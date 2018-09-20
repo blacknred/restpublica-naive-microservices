@@ -1,5 +1,4 @@
 /* eslint-disable global-require */
-/* eslint-disable no-unused-vars */
 
 const debug = require('debug')('partners-api:mongoose');
 const mongoose = require('mongoose');

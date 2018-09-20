@@ -1,5 +1,5 @@
 const CronJob = require('cron').CronJob;
-const debug = require('debug')('gateway:CRON');
+const debug = require('debug')('gateway:JSCRON');
 const { request } = require('../routes/_helpers');
 const hosts = require('../conf');
 

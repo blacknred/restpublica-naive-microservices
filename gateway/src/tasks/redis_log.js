@@ -1,5 +1,5 @@
 const CronJob = require('cron').CronJob;
-const debug = require('debug')('gateway:CRON');
+const debug = require('debug')('gateway:JSCRON');
 const redis = require('redis');
 const bluebird = require('bluebird');
 

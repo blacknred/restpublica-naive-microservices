@@ -1,6 +1,7 @@
 const helpers = require('../_helpers');
 
-const isTest = process.env.NODE_ENV === 'test';
+const ISTEST = process.env.NODE_ENV === 'test';
+const TAGS_CNT = 30;
 
 const createTag = (knex, title) => {
     return knex('tags')
@@ -14,8 +15,8 @@ exports.seed = (knex, Promise) => {
         .then(() => {
             const records = [];
             let tags;
-            if (isTest) tags = ['politic', 'netflix', 'thetruth'];
-            else tags = helpers.genUniqueTitlesArr(30);
+            if (ISTEST) tags = ['politic', 'netflix', 'thetruth'];
+            else tags = helpers.genUniqueTitlesArr(TAGS_CNT);
             tags.forEach(tag => records.push(createTag(knex, tag)));
             return Promise.all(records);
         })

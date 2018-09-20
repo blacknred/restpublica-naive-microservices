@@ -50,12 +50,20 @@ function getCommentsCount(post) {
 }
 
 function getLastComments(post) {
+    const comments = [];
     return knex('comments')
         .select('*')
         .where('post_id', post.id)
         .orderBy('created_at', 'desc')
         .limit(3)
-        .then((rows) => { return { ...post, comments: rows }; });
+        .map((row) => {
+            return knex('comments_likes')
+                .count('*')
+                .where('comment_id', row.id)
+                .first()
+                .then(({ count }) => { comments.push({ ...row, likes_cnt: count }); });
+        })
+        .then(() => { return { ...post, comments }; });
 }
 
 function getContent(post, userId) {
@@ -257,12 +265,12 @@ function deleteOne(postId, userId) {
 
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
-    const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 30);
+    const period = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 60);
     return knex('posts')
         .select('*')
         .select(knex.raw('left (description, 80) as description'))
-        .where('created_at', '>', lastMonth)
+        .where('created_at', '>', period)
         .andWhere('archived', false)
         .andWhere('type', '!=', 'poll')
         .andWhere('type', '!=', 'repost')
@@ -278,7 +286,7 @@ function getAllTrending({ userId, offset, reduced }) {
         .then((posts) => {
             return knex('posts')
                 .count('*')
-                .where('created_at', '>', lastMonth)
+                .where('created_at', '>', period)
                 .andWhere('archived', false)
                 .first()
                 .then(({ count }) => { return { count, posts }; });
@@ -376,7 +384,7 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
             if (parseInt(profileId, 10) !== userId) {
                 queryBuilder.andWhere('archived', false);
             }
-         })
+        })
         .map(_row => _row ? getLikesCount(_row) : _row)
         .map(_row => _row ? getRepostsCount(_row) : _row)
         .map(_row => _row ? getCommentsCount(_row) : _row)
@@ -389,9 +397,9 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
                 .where('author_id', profileId)
                 .modify((queryBuilder) => {
                     if (parseInt(profileId, 10) !== userId) {
-                    queryBuilder.andWhere('archived', false);
+                        queryBuilder.andWhere('archived', false);
                     }
-                 })
+                })
                 .first()
                 .then(({ count }) => { return { count, posts }; });
         });

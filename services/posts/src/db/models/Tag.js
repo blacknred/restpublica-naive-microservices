@@ -49,11 +49,11 @@ function postsCount(tag) {
 
 function getAllTrending(offset) {
     const today = new Date();
-    const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 30);
+    const period = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 60);
     return knex('posts_tags')
         .select('posts_tags.tag_id')
-        .where('posts_tags.created_at', '>', lastMonth)
+        .where('posts_tags.created_at', '>', period)
         .groupBy('posts_tags.tag_id')
         .orderByRaw('COUNT(posts_tags.tag_id) DESC')
         .limit(LIMIT)

@@ -5,6 +5,8 @@ const routeHelpers = require('../../routes/_helpers');
 
 const salt = bcrypt.genSaltSync();
 
+const USERS_CNT = 40;
+
 const createUser = (knex, username) => {
     const hash = bcrypt.hashSync('password5', salt);
     const fullname = faker.name.findName();
@@ -35,7 +37,7 @@ exports.seed = (knex, Promise) => {
             const records = [];
             let usernames;
             if (process.env.NODE_ENV === 'test') usernames = ['mark', 'hugo', 'ania'];
-            else usernames = helpers.genUniqueNamesArr(40);
+            else usernames = helpers.genUniqueNamesArr(USERS_CNT);
             usernames.forEach((username, i) => records.push(createUser(knex, username, i)));
             return Promise.all(records);
         })

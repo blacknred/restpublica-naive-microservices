@@ -1,0 +1,31 @@
+{
+    "name": "restpublica-notifications-api-microservice",
+    "version": "0.1.1",
+    "scripts": {
+        "start": "DEBUG=notifications-api* gulp --gulpfile app/gulpfile.js",
+        "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
+    },
+    "dependencies": {
+        "bcryptjs": "^2.3.0",
+        "body-parser": "^1.18.3",
+        "debug": "^2.6.6",
+        "express": "*",
+        "express-useragent": "^1.0.12",
+        "express-validator": "^5.3.0",
+        "jwt-simple": "^0.5.2",
+        "moment": "^2.22.2",
+        "mongoose": "^5.2.15",
+        "morgan": "^1.9.1"
+    },
+    "devDependencies": {
+        "chai": "^3.5.0",
+        "chai-http": "^3.0.0",
+        "eslint": "^3.18.0",
+        "eslint-config-airbnb-base": "^11.1.1",
+        "eslint-plugin-import": "^2.14.0",
+        "gulp": "^3.9.1",
+        "gulp-eslint": "^3.0.1",
+        "gulp-nodemon": "^2.2.1",
+        "mocha": "^3.2.0"
+    }
+}

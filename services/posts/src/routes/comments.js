@@ -4,10 +4,47 @@
 const express = require('express');
 const Comment = require('../db/models/Comment');
 const Post = require('../db/models/Post');
-const { comments } = require('./validation');
+const { comments, commentsLikes } = require('./validation');
 const { ensureAuthenticated } = require('../auth');
 
 const router = express.Router();
+
+/* comments likes */
+
+router.post('/:pid/comments/cid/like', ensureAuthenticated, commentsLikes,
+    async (req, res, next) => {
+        const newCommentLike = {
+            comment_id: req.params.cid,
+            user_id: req.user,
+        };
+        try {
+            const post = await Post.isExists(req.params.pid);
+            if (!post) throw { status: 404, message: 'Post not found' };
+            const comment = await Comment.isExists(req.params.cid);
+            if (!comment) throw { status: 404, message: 'Comment not found' };
+            const data = await Comment.createLike(newCommentLike);
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.delete('/:pid/comments/:cid/like', ensureAuthenticated, commentsLikes,
+    async (req, res, next) => {
+        try {
+            const post = await Post.isExists(req.params.pid);
+            if (!post) throw { status: 404, message: 'Post not found' };
+            const comment = await Comment.isExists(req.params.cid);
+            if (!comment) throw { status: 404, message: 'Comment not found' };
+            const data = await Comment.deleteLike(req.params.cid, req.user);
+            if (!data) throw { status: 404, message: 'Like not found' };
+            res.status(200).json({ status: 'success', data });
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
 
 /* comments */
 
@@ -70,6 +107,8 @@ router.put('/:pid/comments/:cid', ensureAuthenticated, comments,
 router.delete('/:pid/comments/:cid', ensureAuthenticated, comments,
     async (req, res, next) => {
         try {
+            const post = await Post.isExists(req.params.pid);
+            if (!post) throw { status: 404, message: 'Post not found' };
             const comment = await Comment.isExists(req.params.cid);
             if (!comment) throw { status: 404, message: 'Comment not found' };
             if (comment.user_id !== req.user) {

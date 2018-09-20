@@ -174,6 +174,23 @@ router
                 .find(y => y.id === x.user_id));
         }
         res();
+    })
+    .get('/notifications)', async (ctx) => {
+        /* get data */
+        const data = await request({ ctx, host: hosts.NOTIFICATIONS_API, url: ctx.url, r: true });
+        const res = () => ctx.body = data;
+        /* adds */
+
+        // if (data.status) {
+        //     // get authors data
+        //     const authorsId = [...new Set(data.data.comments.map(com => com.user_id))];
+        //     const profiles = await request({
+        //     ctx, host: hosts.USERS_API, url: `/users?list=${authorsId}`, r: true, fallback: res
+        //     });
+        //     data.data.data.forEach(x => x.author = profiles.data.profiles
+        //         .find(y => y.id === x.user_id));
+        // }
+        res();
     });
 
 module.exports = router;

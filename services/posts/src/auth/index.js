@@ -10,6 +10,7 @@ function authentication(req, res, next) {
     if (!token) {
         return res.status(401).json({ status: 'No access token' });
     }
+
     // decode the token
     decodeToken(token, (err, payload) => {
         if (err) {

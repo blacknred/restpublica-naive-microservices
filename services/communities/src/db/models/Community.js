@@ -110,15 +110,15 @@ function getAllByProfileCount(userId) {
 
 function getAllFeedByProfile(userId) {
     const today = new Date();
-    const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 150);
+    const period = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 60);
     return knex('communities')
         .select('communities.id')
         .rightJoin('communities_subscriptions',
             'communities_subscriptions.community_id', 'communities.id')
         .where('communities_subscriptions.user_id', userId)
         .andWhere('communities_subscriptions.approved', true)
-        .andWhere('communities.last_post_at', '>', lastMonth)
+        .andWhere('communities.last_post_at', '>', period)
         .orderBy('communities.last_post_at', 'DESC')
         .limit(100)
         .then((communities) => { return { communities }; });
@@ -156,11 +156,11 @@ function getAllInList({ list, userId, limiter }) {
 
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
-    const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 30);
+    const period = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 60);
     return knex('communities_subscriptions')
         .select('community_id')
-        .where('created_at', '>', lastMonth)
+        .where('created_at', '>', period)
         .andWhere('approved', true)
         .groupBy('community_id')
         .orderByRaw('COUNT(community_id) DESC')
@@ -178,7 +178,7 @@ function getAllTrending({ userId, offset, reduced }) {
         .then((communities) => {
             return knex('communities_subscriptions')
                 .countDistinct('community_id')
-                .where('created_at', '>', lastMonth)
+                .where('created_at', '>', period)
                 .andWhere('approved', true)
                 .first()
                 .then(({ count }) => { return { count, communities }; });

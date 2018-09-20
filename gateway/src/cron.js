@@ -1,6 +1,6 @@
 const path = require('path');
-const debug = require('debug')('gateway:CRON');
 const fs = require('fs');
+const debug = require('debug')('gateway:JSCRON');
 
 /* Js cron */
 

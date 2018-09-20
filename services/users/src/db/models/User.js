@@ -108,11 +108,11 @@ function getAllInList({ list, userId, limiter }) {
 
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
-    const lastMonth = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 30);
+    const period = new Date(today.getFullYear(),
+        today.getMonth(), today.getDate() - 60);
     return knex('users_subscriptions')
         .select('user_id')
-        .where('created_at', '>', lastMonth)
+        .where('created_at', '>', period)
         .groupBy('user_id')
         .orderByRaw('COUNT(user_id) DESC')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
@@ -130,7 +130,7 @@ function getAllTrending({ userId, offset, reduced }) {
         .then((profiles) => {
             return knex('users_subscriptions')
                 .countDistinct('user_id')
-                .where('created_at', '>', lastMonth)
+                .where('created_at', '>', period)
                 .first()
                 .then(({ count }) => { return { count, profiles }; });
         });

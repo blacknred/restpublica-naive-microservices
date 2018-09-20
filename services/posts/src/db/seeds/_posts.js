@@ -1,7 +1,9 @@
 const faker = require('faker');
 const helpers = require('../_helpers');
 
-const isTest = process.env.NODE_ENV === 'test';
+const ISTEST = process.env.NODE_ENV === 'test';
+const POSTS_CNT = 500;
+const USERS_CNT = 40;
 let tags;
 
 const createTagMapping = (knex, id, postId) => {
@@ -18,14 +20,14 @@ const createPost = (knex, i) => {
     let tagsIndexes;
     const post = {
         slug: helpers.genSlug(),
-        author_id: Math.floor(Math.random() * (isTest ? 3 : 40)) + 1,
+        author_id: Math.floor(Math.random() * (ISTEST ? 3 : USERS_CNT)) + 1,
         type: 'file',
         description: faker.lorem.sentences(),
-        views_cnt: Math.floor(Math.random() * (isTest ? 30 : 500)) + 1,
+        views_cnt: Math.floor(Math.random() * (ISTEST ? 30 : POSTS_CNT)) + 1,
         created_at: faker.date.past()
     };
     if (i % 3 === 0) {
-        post.community_id = Math.floor(Math.random() * (isTest ? 2 : 10)) + 1;
+        post.community_id = Math.floor(Math.random() * (ISTEST ? 2 : 10)) + 1;
     }
 
     // if with tags
@@ -49,17 +51,21 @@ const createPost = (knex, i) => {
 };
 
 exports.seed = (knex, Promise) => {
-    return knex('posts')
+    return knex('posts_tags')
         .del()
-        .then(() => knex('tags').select('*'))
-        .then((tgs) => {
-            tags = tgs.map(tag => tag.title);
-            // console.log(tags);
-            const records = [];
-            for (let i = 1; i <= (isTest ? 10 : 500); i++) {
-                records.push(createPost(knex, i));
-            }
-            return Promise.all(records);
+        .then(() => {
+            return knex('posts')
+                .del()
+                .then(() => knex('tags').select('*'))
+                .then((tgs) => {
+                    tags = tgs.map(tag => tag.title);
+                    // console.log(tags);
+                    const records = [];
+                    for (let i = 1; i <= (ISTEST ? 10 : POSTS_CNT); i++) {
+                        records.push(createPost(knex, i));
+                    }
+                    return Promise.all(records);
+                });
         })
         .catch(err => console.log(err));
 };

@@ -6,7 +6,7 @@ const createSubscription = (knex, id, subId) => {
         .insert({
             user_id: id,
             sub_user_id: subId,
-            created_at: faker.date.past()
+            created_at: faker.date.past(),
         })
         .catch(err => console.log(err));
 };

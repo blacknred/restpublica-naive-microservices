@@ -4,15 +4,15 @@ const fs = require('fs');
 const Koa = require('koa');
 const path = require('path');
 const util = require('util');
-const hosts = require('./hosts');
-const cors = require('koa-cors');
+const cors = require('kcors');
 const serve = require('koa-static');
 const koaBody = require('koa-body');
 const logger = require('koa-logger');
+
+const hosts = require('./hosts');
 const helpers = require('./_helpers');
 
 const mkdir = util.promisify(fs.mkdir);
-
 const app = new Koa();
 
 /* logs */
@@ -118,3 +118,4 @@ app.use(async (ctx, next) => {
 });
 
 module.exports = app;
+

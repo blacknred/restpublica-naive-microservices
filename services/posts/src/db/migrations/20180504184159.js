@@ -61,6 +61,12 @@ exports.up = (knex) => {
             table.text('body').notNullable();
             table.timestamps(true, true);
         })
+        .createTable('comments_likes', (table) => {
+            table.increments();
+            table.integer('comment_id').notNullable();
+            table.foreign('comment_id').references('comments.id');
+            table.integer('user_id').notNullable();
+        })
         .createTable('likes', (table) => {
             table.increments();
             table.integer('post_id').notNullable();
@@ -81,6 +87,9 @@ exports.up = (knex) => {
         .alterTable('likes', (table) => {
             table.unique(['post_id', 'user_id']);
         })
+        .alterTable('comments_likes', (table) => {
+            table.unique(['comment_id', 'user_id']);
+        })
         .alterTable('polls_voices', (table) => {
             table.unique(['option_id', 'user_id']);
         })
@@ -97,6 +106,7 @@ exports.down = (knex) => {
         .dropTable('posts')
         .dropTable('likes')
         .dropTable('comments')
+        .dropTable('comments_likes')
         .dropTable('post_files')
         .dropTable('post_links')
         .dropTable('post_polls')

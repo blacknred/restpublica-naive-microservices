@@ -15,7 +15,7 @@ router.post('/:pid/likes', ensureAuthenticated, likes,
     async (req, res, next) => {
         const newLike = {
             post_id: req.params.pid,
-            user_id: req.body.userId
+            user_id: req.user
         };
         try {
             const post = await Post.isExists(req.params.pid);

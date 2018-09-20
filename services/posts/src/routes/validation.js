@@ -159,6 +159,23 @@ function comments(req, res, next) {
     return next();
 }
 
+function commentsLikes(req, res, next) {
+    req.checkParams('pid')
+        .isInt()
+        .withMessage('Post id must be integer');
+    req.checkParams('cid')
+        .isInt()
+        .withMessage('Comment id must be integer');
+    if (req.method === 'POST') {
+        req.checkBody('userId')
+            .isInt()
+            .withMessage('User id must be integer');
+    }
+    const failures = req.validationErrors();
+    if (failures) throw { status: 422, message: failures };
+    return next();
+}
+
 function likes(req, res, next) {
     req.checkParams('pid')
         .isInt()
@@ -212,6 +229,7 @@ function tags(req, res, next) {
 module.exports = {
     posts,
     comments,
+    commentsLikes,
     likes,
     votes,
     tags

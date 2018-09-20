@@ -2,6 +2,9 @@ const faker = require('faker');
 const helpers = require('../_helpers');
 const routeHelpers = require('../../routes/_helpers');
 
+const COMMUNITIES_CNT = 15;
+const USERS_CNT = 40;
+
 function createCommunity(knex, name, adminId) {
     return Promise.all([
         routeHelpers.createAvatar(name),
@@ -33,8 +36,8 @@ exports.seed = (knex, Promise) => {
                 names = ['Chelsea', 'Winter'];
                 admins = [1, 2];
             } else {
-                names = helpers.genUniqueNamesArr(15);
-                admins = helpers.genUniqueNumbersArr(20, 40);
+                names = helpers.genUniqueNamesArr(COMMUNITIES_CNT);
+                admins = helpers.genUniqueNumbersArr((USERS_CNT / 2), USERS_CNT);
             }
             names.forEach((name, i) => {
                 records.push(createCommunity(knex, name, admins[i]));

@@ -1,5 +1,5 @@
 const CronJob = require('cron').CronJob;
-const debug = require('debug')('gateway:CRON');
+const debug = require('debug')('gateway:JSCRON');
 const conf = require('../conf');
 
 // TODO: log stream to Logger microservise
@@ -20,6 +20,7 @@ module.exports = new CronJob({
             conf.COMMUNITIES_API = `http://communities-service:3005${version}`;
             conf.POSTS_API = `http://posts-service:3006${version}`;
             conf.PARTNERS_API = `http://partners-service:3008${version}`;
+            conf.NOTIFICATIONS_API = `http://notifications-service:3009${version}`;
             conf.STORAGE = 'http://files-storage:3007';
             log('success');
         } catch (err) {
