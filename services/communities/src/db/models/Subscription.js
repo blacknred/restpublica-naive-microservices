@@ -1,6 +1,5 @@
-/* eslint-disable no-confusing-arrow */
-
 const util = require('util');
+
 const knex = require('../db/../connection');
 
 const LIMIT = 12;
@@ -49,7 +48,7 @@ function getAllParticipants({ communityId, userId, adminId, pending, offset, red
                 .andWhere('user_id', '!=', userId)
                 .andWhere({ approved })
                 .first()
-                .then(({ count }) => { return { count, profiles }; });
+                .then(({ count }) => ({ count, profiles }));
         });
 }
 
@@ -70,7 +69,7 @@ function getAllModerators({ communityId, offset, reduced }) {
                 .where('communities.id', communityId)
                 .andWhere('type', 'moderator')
                 .first()
-                .then(({ count }) => { return { count, profiles }; });
+                .then(({ count }) => ({ count, profiles }));
         });
 }
 

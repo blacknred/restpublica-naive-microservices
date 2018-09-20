@@ -2,10 +2,11 @@
 /* eslint-disable no-throw-literal */
 
 const express = require('express');
-const Subscription = require('../db/models/Subscription');
-const Community = require('../db/models/Community');
+
 const { subscriptions } = require('./validation');
 const { ensureAuthenticated } = require('../auth');
+const Community = require('../db/models/Community');
+const Subscription = require('../db/models/Subscription');
 
 const router = express.Router();
 

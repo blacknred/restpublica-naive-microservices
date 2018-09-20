@@ -1,18 +1,18 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
-/* eslint-disable no-return-assign */
 /* eslint-disable no-throw-literal */
 /* eslint-disable no-case-declarations */
 
 // const gm = require('gm');
 const express = require('express');
 const resizeImg = require('resize-img');
-const Community = require('../db/models/Community');
-const Subscription = require('../db/models/Subscription');
+
+const helpers = require('./_helpers');
 const Ban = require('../db/models/Ban');
 const { communities } = require('./validation');
-const helpers = require('./_helpers');
 const { ensureAuthenticated } = require('../auth');
+const Community = require('../db/models/Community');
+const Subscription = require('../db/models/Subscription');
 
 const router = express.Router();
 
@@ -38,7 +38,7 @@ router.post('/', ensureAuthenticated, communities, async (req, res, next) => {
         if (req.body.avatar) {
             const bin = await new Buffer(req.body.avatar, 'base64');
             await resizeImg(bin, { width: 128, height: 128 })
-                .then(buf => newCommunity.avatar = buf);
+                .then((buf) => { newCommunity.avatar = buf; });
             // TODO: resize image with gm
             // await gm(bin, 'img.png')
             //     .resize(128, 128)
@@ -53,7 +53,7 @@ router.post('/', ensureAuthenticated, communities, async (req, res, next) => {
         if (req.body.banner) {
             const bin = await new Buffer(req.body.banner, 'base64');
             await resizeImg(bin, { width: 800, height: 200 })
-                .then(buf => newCommunity.banner = buf);
+                .then((buf) => { newCommunity.banner = buf; });
             // TODO: resize image with gm
             // await gm(bin, 'img.png')
             //     .resize(800, 200)
@@ -65,7 +65,7 @@ router.post('/', ensureAuthenticated, communities, async (req, res, next) => {
         }
         const data = await Community.createCommunity(newCommunity);
         data.avatar = data.avatar.toString('base64');
-        if (data.banner) data.bunner = data.banner.toString('base64');
+        if (data.banner) data.banner = data.banner.toString('base64');
         res.status(200).json({ status: 'success', data });
     } catch (err) {
         return next(err);
@@ -98,7 +98,7 @@ router.put('/:cid', ensureAuthenticated, communities, async (req, res, next) => 
                 const bin = await new Buffer(req.body.value, 'base64');
                 await resizeImg(bin, req.body.option === 'avatar' ?
                     { width: 128, height: 128 } : { width: 800, height: 200 })
-                    .then(buf => req.body.value = buf);
+                    .then((buf) => { req.body.value = buf; });
                 // TODO: resize image with gm
                 // await gm(bin, 'img.png')
                 //     .resize(128, 128)

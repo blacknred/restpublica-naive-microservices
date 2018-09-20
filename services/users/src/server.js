@@ -1,5 +1,5 @@
 const http = require('http');
-const debug = require('debug')('users-api');
+const debug = require('debug')('users-api:server');
 
 const app = require('./app');
 

@@ -2,10 +2,11 @@
 /* eslint-disable no-throw-literal */
 
 const express = require('express');
+
 const Ban = require('../db/models/Ban');
-const Community = require('../db/models/Community');
 const { bans } = require('./validation');
 const { ensureAuthenticated } = require('../auth');
+const Community = require('../db/models/Community');
 
 const router = express.Router();
 

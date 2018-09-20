@@ -1,4 +1,5 @@
 const util = require('util');
+
 const knex = require('../../db/connection');
 
 const LIMIT = 12;
@@ -42,7 +43,7 @@ function getAll({ communityId, offset, reduced }) {
                 .where('community_id', communityId)
                 .andWhere('end_date', '>', today)
                 .first()
-                .then(({ count }) => { return { count, profiles }; });
+                .then(({ count }) => ({ count, profiles }));
         });
 }
 
