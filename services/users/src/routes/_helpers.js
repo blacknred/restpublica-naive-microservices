@@ -1,4 +1,3 @@
-/* eslint-disable */
 const faker = require('faker');
 const fetch = require('node-fetch');
 

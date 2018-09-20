@@ -1,13 +1,13 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
-/* eslint-disable no-return-assign */
 /* eslint-disable no-throw-literal */
 
 const express = require('express');
+
 const User = require('../db/models/User');
-const Subscription = require('../db/models/Subscription');
 const { subscriptions } = require('./validation');
 const { ensureAuthenticated } = require('../auth');
+const Subscription = require('../db/models/Subscription');
 
 const router = express.Router();
 
@@ -40,7 +40,7 @@ router
                 if (!user) throw { status: 404, message: 'Profile not found' };
                 const data = await Subscription.getAllFollowers(
                     { profileId: req.params.uid, userId: req.user, offset, reduced });
-                data.profiles.forEach(u => u.avatar = u.avatar.toString('base64'));
+                data.profiles.forEach((u) => { u.avatar = u.avatar.toString('base64'); });
                 res.status(200).json({ status: 'success', data });
             } catch (err) {
                 return next(err);
@@ -57,7 +57,7 @@ router
                 if (!user) throw { status: 404, message: 'Profile not found' };
                 const data = await Subscription.getAllFollowing(
                     { profileId: req.params.uid, userId: req.user, offset, reduced });
-                data.profiles.forEach(u => u.avatar = u.avatar.toString('base64'));
+                data.profiles.forEach((u) => { u.avatar = u.avatar.toString('base64'); });
                 res.status(200).json({ status: 'success', data });
             } catch (err) {
                 return next(err);

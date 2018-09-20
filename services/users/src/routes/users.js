@@ -1,18 +1,18 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
-/* eslint-disable no-return-assign */
 /* eslint-disable no-throw-literal */
 /* eslint-disable no-case-declarations */
 
 // const gm = require('gm');
 const express = require('express');
 const resizeImg = require('resize-img');
-const { encodeToken } = require('../auth/local');
-const User = require('../db/models/User');
-const Subscription = require('../db/models/Subscription');
-const { users } = require('./validation');
+
 const helpers = require('./_helpers');
+const { users } = require('./validation');
+const User = require('../db/models/User');
+const { encodeToken } = require('../auth/local');
 const { ensureAuthenticated } = require('../auth');
+const Subscription = require('../db/models/Subscription');
 
 const router = express.Router();
 
@@ -132,7 +132,7 @@ router.put('/', ensureAuthenticated, users, async (req, res, next) => {
                 const sanitisedValue = req.body.value.replace(/\n/g, '');
                 const bin = await new Buffer(sanitisedValue, 'base64');
                 await resizeImg(bin, REDUCED_DIMENTIONS[req.body.option])
-                    .then(buf => req.body.value = buf);
+                    .then((buf) => { req.body.value = buf; });
                 // TODO: resize image with gm
                 // await gm(bin, 'img.png')
                 //     .resize(128, 128)
