@@ -1,4 +1,5 @@
 const util = require('util');
+
 const knex = require('./../connection');
 
 const LIMIT = 12;
@@ -17,7 +18,7 @@ function getAll({ postId, offset, reduced }) {
                 .count('*')
                 .where('post_id', postId)
                 .first()
-                .then(({ count }) => { return { count, data }; });
+                .then(({ count }) => ({ count, data }));
         });
 }
 
@@ -30,14 +31,14 @@ function create(newLike) {
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query).then(({ rows }) => { return { id: rows[0].id }; });
+    return knex.raw(query).then(({ rows }) => ({ id: rows[0].id }));
 }
 
 function deleteOne(postId, userId) {
     return knex('likes')
         .del()
         .where({ post_id: postId, user_id: userId })
-        .then(() => { return { id: postId }; });
+        .then(() => ({ id: postId }));
 }
 
 module.exports = {

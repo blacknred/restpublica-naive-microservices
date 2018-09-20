@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const debug = require('debug')('posts-api');
 const useragent = require('express-useragent');
 const expressValidator = require('express-validator');
+
 const tagsRoutes = require('./routes/tags');
 const { authentication } = require('./auth');
 const postsRoutes = require('./routes/posts');

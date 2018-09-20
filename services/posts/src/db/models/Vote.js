@@ -1,4 +1,5 @@
 const util = require('util');
+
 const knex = require('./../connection');
 
 const LIMIT = 12;
@@ -21,7 +22,7 @@ function getAll({ postId, offset, reduced }) {
                         .count('*')
                         .whereIn('option_id', ids)
                         .first()
-                        .then(({ count }) => { return { count, data }; });
+                        .then(({ count }) => ({ count, data }));
                 });
         });
 }
@@ -35,7 +36,7 @@ function create(newVote) {
         insert.toString(),
         update.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query).then(({ rows }) => { return { id: rows[0].id }; });
+    return knex.raw(query).then(({ rows }) => ({ id: rows[0].id }));
 }
 
 function deleteOne(postId, userId) {
@@ -48,7 +49,7 @@ function deleteOne(postId, userId) {
                 .where('user_id', userId)
                 .del();
         })
-        .then(() => { return { id: postId }; });
+        .then(() => ({ id: postId }));
 }
 
 module.exports = {

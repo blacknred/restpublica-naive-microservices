@@ -100,8 +100,8 @@ function getAllByProfileCount(userId) {
         .where('communities_subscriptions.user_id', userId)
         .andWhere('communities_subscriptions.approved', true)
         .andWhere('communities.active', true)
-        .first()
-        .then(({ count }) => ({ count }));
+        .first();
+        // .then(({ count }) => ({ count }));
 }
 
 function getAllFeedByProfile(userId) {

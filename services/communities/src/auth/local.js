@@ -1,5 +1,5 @@
-const jwt = require('jwt-simple');
 const moment = require('moment');
+const jwt = require('jwt-simple');
 
 module.exports = function decodeToken(token, callback) {
     const payload = jwt.decode(token, process.env.TOKEN_SECRET);

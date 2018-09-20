@@ -1,11 +1,10 @@
-/* eslint-disable no-param-reassign */
-/* eslint-disable no-confusing-arrow */
-/* eslint-disable no-return-assign */
+/* eslint-disable no-case-declarations */
 
 const knex = require('./../connection');
 
 const LIMIT = 12;
 const MOBILE_LIMIT = 6;
+const OBSERVABLE_PERIOD = 60;
 
 /* posts */
 
@@ -22,7 +21,7 @@ function getMyLike(post, userId) {
         .where('post_id', post.id)
         .andWhere('user_id', userId)
         .first()
-        .then((id) => { return { ...post, my_like_id: id ? id.id : null }; });
+        .then(id => ({ ...post, my_like_id: id ? id.id : null }));
 }
 
 function getLikesCount(post) {
@@ -30,7 +29,7 @@ function getLikesCount(post) {
         .count()
         .where('post_id', post.id)
         .first()
-        .then(({ count }) => { return { ...post, likes_cnt: count }; });
+        .then(({ count }) => ({ ...post, likes_cnt: count }));
 }
 
 function getRepostsCount(post) {
@@ -38,7 +37,7 @@ function getRepostsCount(post) {
         .count('*')
         .where('post_id', post.id)
         .first()
-        .then(({ count }) => { return { ...post, reposts_cnt: count }; });
+        .then(({ count }) => ({ ...post, reposts_cnt: count }));
 }
 
 function getCommentsCount(post) {
@@ -46,11 +45,10 @@ function getCommentsCount(post) {
         .count('*')
         .where('post_id', post.id)
         .first()
-        .then(({ count }) => { return { ...post, comments_cnt: count }; });
+        .then(({ count }) => ({ ...post, comments_cnt: count }));
 }
 
 function getLastComments(post) {
-    const comments = [];
     return knex('comments')
         .select('*')
         .where('post_id', post.id)
@@ -61,9 +59,9 @@ function getLastComments(post) {
                 .count('*')
                 .where('comment_id', row.id)
                 .first()
-                .then(({ count }) => { comments.push({ ...row, likes_cnt: count }); });
+                .then(({ count }) => ({ ...row, likes_cnt: count }));
         })
-        .then(() => { return { ...post, comments }; });
+        .then(comments => ({ ...post, comments }));
 }
 
 function getContent(post, userId) {
@@ -72,21 +70,21 @@ function getContent(post, userId) {
             return knex('files')
                 .select('*')
                 .where('post_id', post.id)
-                .then((content) => { return { ...post, content }; });
+                .then(content => ({ ...post, content }));
         case 'link':
             return knex('links')
                 .select('*')
                 .where('post_id', post.id)
-                .then((content) => { return { ...post, content }; });
+                .then(content => ({ ...post, content }));
         case 'repost':
             return knex('posts')
                 .select(['id', 'slug', 'author_id', 'description', 'type'])
                 .where('id', post.id)
                 .first()
-                .then((content) => { return { ...post, content }; })
+                .then(content => ({ ...post, content }))
                 .then(filledPost => getContent(filledPost.content, userId));
         case 'poll':
-            post.content = [];
+            const content = [];
             return knex('polls_options')
                 .select('*')
                 .where('post_id', post.id)
@@ -102,13 +100,13 @@ function getContent(post, userId) {
                                 .andWhere('user_id', userId)
                                 .first()
                                 .then((id) => {
-                                    post.content[i] = {
+                                    content[i] = {
                                         ...opt, count, my_vote: id ? id.id : null
                                     };
                                 });
                         });
                 })
-                .then(() => post);
+                .then(() => ({ ...post, content }));
         default: return post;
     }
 }
@@ -145,16 +143,16 @@ function getAllCountByProfile(profileId, userId) {
         .count('*')
         .where('author_id', profileId)
         .andWhere({ archived: profileId === userId ? true || false : false })
-        .first()
-        .then(({ count }) => { return { count }; });
+        .first();
+        // .then(({ count }) => ({ count }));
 }
 
 function getAllCountByCommunity(communityId) {
     return knex('posts')
         .count('*')
         .where('community_id', communityId)
-        .andWhere('archived', false)
-        .then(({ count }) => { return { count }; });
+        .andWhere('archived', false);
+        // .then(({ count }) => ({ count }));
 }
 
 function create(newPost) {
@@ -169,11 +167,11 @@ function getOne(slug, userId) {
         .where({ slug, archived: false })
         .orWhere({ slug, author_id: userId })
         .first()
-        .then(_row => _row ? getLikesCount(_row) : _row)
-        .then(_row => _row ? getRepostsCount(_row) : _row)
-        .then(_row => _row ? getCommentsCount(_row) : _row)
-        .then(_row => _row ? getContent(_row, userId) : _row)
-        .then(_row => _row ? getMyLike(_row, userId) : _row);
+        .then(_row => (_row ? getLikesCount(_row) : _row))
+        .then(_row => (_row ? getRepostsCount(_row) : _row))
+        .then(_row => (_row ? getCommentsCount(_row) : _row))
+        .then(_row => (_row ? getContent(_row, userId) : _row))
+        .then(_row => (_row ? getMyLike(_row, userId) : _row));
 }
 
 function update({ updatedValue, postId, userId }) {
@@ -219,7 +217,7 @@ function deleteOne(postId, userId) {
                                     .where('post_id', postId)
                                     .transacting(trx)
                                     .returning(['file', 'thumb'])
-                                    .then(paths => filesToDelete = Object.values(paths[0]));
+                                    .then((paths) => { filesToDelete = Object.values(paths[0]); });
                             case 'link':
                                 return knex('links')
                                     .del()
@@ -266,7 +264,7 @@ function deleteOne(postId, userId) {
 function getAllTrending({ userId, offset, reduced }) {
     const today = new Date();
     const period = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 60);
+        today.getMonth(), today.getDate() - OBSERVABLE_PERIOD);
     return knex('posts')
         .select('*')
         .select(knex.raw('left (description, 80) as description'))
@@ -277,19 +275,19 @@ function getAllTrending({ userId, offset, reduced }) {
         .orderBy('views_cnt', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .map(_row => _row ? getLikesCount(_row) : _row)
-        .map(_row => _row ? getRepostsCount(_row) : _row)
-        .map(_row => _row ? getCommentsCount(_row) : _row)
-        .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getMyLike(_row, userId) : _row)
-        .map(_row => _row ? getLastComments(_row) : _row)
+        .map(_row => (_row ? getLikesCount(_row) : _row))
+        .map(_row => (_row ? getRepostsCount(_row) : _row))
+        .map(_row => (_row ? getCommentsCount(_row) : _row))
+        .map(_row => (_row ? getContent(_row, userId) : _row))
+        .map(_row => (_row ? getMyLike(_row, userId) : _row))
+        .map(_row => (_row ? getLastComments(_row) : _row))
         .then((posts) => {
             return knex('posts')
                 .count('*')
                 .where('created_at', '>', period)
                 .andWhere('archived', false)
                 .first()
-                .then(({ count }) => { return { count, posts }; });
+                .then(({ count }) => ({ count, posts }));
         });
 }
 
@@ -301,19 +299,19 @@ function getAllSearched({ query, userId, offset, reduced }) {
         .orderBy('created_at', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .map(_row => _row ? getLikesCount(_row) : _row)
-        .map(_row => _row ? getRepostsCount(_row) : _row)
-        .map(_row => _row ? getCommentsCount(_row) : _row)
-        .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getMyLike(_row, userId) : _row)
-        .map(_row => _row ? getLastComments(_row) : _row)
+        .map(_row => (_row ? getLikesCount(_row) : _row))
+        .map(_row => (_row ? getRepostsCount(_row) : _row))
+        .map(_row => (_row ? getCommentsCount(_row) : _row))
+        .map(_row => (_row ? getContent(_row, userId) : _row))
+        .map(_row => (_row ? getMyLike(_row, userId) : _row))
+        .map(_row => (_row ? getLastComments(_row) : _row))
         .then((posts) => {
             return knex('posts')
                 .count('*')
                 .whereRaw('LOWER(description) like ?', `%${query}%`)
                 .andWhere('archived', false)
                 .first()
-                .then(({ count }) => { return { count, posts }; });
+                .then(({ count }) => ({ count, posts }));
         });
 }
 
@@ -327,12 +325,12 @@ function getAllByTag({ tag, userId, offset, reduced }) {
         .orderBy('posts.created_at', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .map(_row => _row ? getLikesCount(_row) : _row)
-        .map(_row => _row ? getRepostsCount(_row) : _row)
-        .map(_row => _row ? getCommentsCount(_row) : _row)
-        .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getMyLike(_row, userId) : _row)
-        .map(_row => _row ? getLastComments(_row) : _row)
+        .map(_row => (_row ? getLikesCount(_row) : _row))
+        .map(_row => (_row ? getRepostsCount(_row) : _row))
+        .map(_row => (_row ? getCommentsCount(_row) : _row))
+        .map(_row => (_row ? getContent(_row, userId) : _row))
+        .map(_row => (_row ? getMyLike(_row, userId) : _row))
+        .map(_row => (_row ? getLastComments(_row) : _row))
         .then((posts) => {
             return knex('posts')
                 .count('posts.id')
@@ -341,7 +339,7 @@ function getAllByTag({ tag, userId, offset, reduced }) {
                 .where('tags.title', tag)
                 .andWhere('posts.archived', false)
                 .first()
-                .then(({ count }) => { return { count, posts }; });
+                .then(({ count }) => ({ count, posts }));
         });
 }
 
@@ -355,12 +353,12 @@ function getAllFeed({ profiles, communities, userId, offset, reduced }) {
         .orderBy('created_at', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .map(_row => _row ? getLikesCount(_row) : _row)
-        .map(_row => _row ? getRepostsCount(_row) : _row)
-        .map(_row => _row ? getCommentsCount(_row) : _row)
-        .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getMyLike(_row, userId) : _row)
-        .map(_row => _row ? getLastComments(_row) : _row)
+        .map(_row => (_row ? getLikesCount(_row) : _row))
+        .map(_row => (_row ? getRepostsCount(_row) : _row))
+        .map(_row => (_row ? getCommentsCount(_row) : _row))
+        .map(_row => (_row ? getContent(_row, userId) : _row))
+        .map(_row => (_row ? getMyLike(_row, userId) : _row))
+        .map(_row => (_row ? getLastComments(_row) : _row))
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -369,7 +367,7 @@ function getAllFeed({ profiles, communities, userId, offset, reduced }) {
                 .orWhereIn('community_id', communities)
                 .andWhere('archived', false)
                 .first()
-                .then(({ count }) => { return { count, posts }; });
+                .then(({ count }) => ({ count, posts }));
         });
 }
 
@@ -385,12 +383,12 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
                 queryBuilder.andWhere('archived', false);
             }
         })
-        .map(_row => _row ? getLikesCount(_row) : _row)
-        .map(_row => _row ? getRepostsCount(_row) : _row)
-        .map(_row => _row ? getCommentsCount(_row) : _row)
-        .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getMyLike(_row, userId) : _row)
-        .map(_row => _row ? getLastComments(_row) : _row)
+        .map(_row => (_row ? getLikesCount(_row) : _row))
+        .map(_row => (_row ? getRepostsCount(_row) : _row))
+        .map(_row => (_row ? getCommentsCount(_row) : _row))
+        .map(_row => (_row ? getContent(_row, userId) : _row))
+        .map(_row => (_row ? getMyLike(_row, userId) : _row))
+        .map(_row => (_row ? getLastComments(_row) : _row))
         .then((posts) => {
             return knex('posts')
                 .count('*')
@@ -401,7 +399,7 @@ function getAllByProfile({ profileId, userId, offset, reduced }) {
                     }
                 })
                 .first()
-                .then(({ count }) => { return { count, posts }; });
+                .then(({ count }) => ({ count, posts }));
         });
 }
 
@@ -413,19 +411,19 @@ function getAllByCommunity({ communityId, userId, offset, reduced }) {
         .orderBy('created_at', 'desc')
         .limit(reduced ? MOBILE_LIMIT : LIMIT)
         .offset(offset * (reduced ? MOBILE_LIMIT : LIMIT))
-        .map(_row => _row ? getLikesCount(_row) : _row)
-        .map(_row => _row ? getRepostsCount(_row) : _row)
-        .map(_row => _row ? getCommentsCount(_row) : _row)
-        .map(_row => _row ? getContent(_row, userId) : _row)
-        .map(_row => _row ? getMyLike(_row, userId) : _row)
-        .map(_row => _row ? getLastComments(_row) : _row)
+        .map(_row => (_row ? getLikesCount(_row) : _row))
+        .map(_row => (_row ? getRepostsCount(_row) : _row))
+        .map(_row => (_row ? getCommentsCount(_row) : _row))
+        .map(_row => (_row ? getContent(_row, userId) : _row))
+        .map(_row => (_row ? getMyLike(_row, userId) : _row))
+        .map(_row => (_row ? getLastComments(_row) : _row))
         .then((posts) => {
             return knex('posts')
                 .count('*')
                 .where('community_id', communityId)
                 .andWhere('archived', false)
                 .first()
-                .then(({ count }) => { return { count, posts }; });
+                .then(({ count }) => ({ count, posts }));
         });
 }
 

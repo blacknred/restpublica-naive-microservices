@@ -1,5 +1,5 @@
 const app = require('./app');
-const debug = require('debug')('posts-api');
+const debug = require('debug')('posts-api:server');
 const http = require('http');
 
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
@@ -12,6 +12,7 @@ function normalizePort(val) {
 }
 
 const port = normalizePort(process.env.PORT || '3006');
+
 app.set('port', port);
 
 function onError(error) {

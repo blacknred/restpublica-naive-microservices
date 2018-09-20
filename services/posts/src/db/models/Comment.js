@@ -1,6 +1,5 @@
-/* eslint-disable no-param-reassign */
-
 const util = require('util');
+
 const knex = require('./../connection');
 
 const LIMIT = 12;
@@ -27,14 +26,14 @@ function getAll({ postId, offset, reduced }) {
                 .count('*')
                 .where('comment_id', row.id)
                 .first()
-                .then(({ count }) => { row.likes_cnt = count; });
+                .then(({ count }) => ({ ...row, likes_cnt: count }));
         })
         .then((data) => {
             return knex('comments')
                 .count('*')
                 .where('post_id', postId)
                 .first()
-                .then(({ count }) => { return { count, data }; });
+                .then(({ count }) => ({ count, data }));
         });
 }
 
@@ -72,14 +71,14 @@ function createLike(newLike) {
         insert.toString(),
         updates.toString().replace(/^update\s.*\sset\s/i, '')
     );
-    return knex.raw(query).then(({ rows }) => { return { id: rows[0].id }; });
+    return knex.raw(query).then(({ rows }) => ({ id: rows[0].id }));
 }
 
 function deleteLike(commentId, userId) {
     return knex('comments_likes')
         .del()
         .where({ comment_id: commentId, user_id: userId })
-        .then(() => { return { id: commentId }; });
+        .then(() => ({ id: commentId }));
 }
 
 module.exports = {
@@ -88,7 +87,6 @@ module.exports = {
     getAll,
     update,
     deleteOne,
-
     createLike,
     deleteLike
 };

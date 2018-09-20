@@ -1,4 +1,5 @@
 /* eslint-disable consistent-return */
+
 const decodeToken = require('./local');
 
 function authentication(req, res, next) {

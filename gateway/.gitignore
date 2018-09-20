@@ -1,2 +1,5 @@
-logs/*.log
-redis/redis-data/*.*
+logs/*
+!logs/.gitkeep
+
+redis-data/*
+!redis-data/.gitkeep

@@ -1,6 +1,7 @@
 /* eslint-disable consistent-return */
 
 const express = require('express');
+
 const Tag = require('../db/models/Tag');
 const { tags } = require('./validation');
 
@@ -21,6 +22,5 @@ router.get('/', tags, async (req, res, next) => {
         return next(err);
     }
 });
-
 
 module.exports = router;

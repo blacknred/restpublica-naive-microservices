@@ -1,9 +1,9 @@
-/* eslint-disable no-confusing-arrow */
-
 const util = require('util');
+
 const knex = require('./../connection');
 
 const LIMIT = 10;
+const OBSERVABLE_PERIOD = 60;
 
 /* tags */
 
@@ -42,15 +42,13 @@ function postsCount(tag) {
         .countDistinct('post_id')
         .where('tag_id', tag.id)
         .first()
-        .then(({ count }) => {
-            return Object.assign(tag, { posts_cnt: count });
-        });
+        .then(({ count }) => ({ ...tag, posts_cnt: count }));
 }
 
 function getAllTrending(offset) {
     const today = new Date();
     const period = new Date(today.getFullYear(),
-        today.getMonth(), today.getDate() - 60);
+        today.getMonth(), today.getDate() - OBSERVABLE_PERIOD);
     return knex('posts_tags')
         .select('posts_tags.tag_id')
         .where('posts_tags.created_at', '>', period)
@@ -59,14 +57,14 @@ function getAllTrending(offset) {
         .limit(LIMIT)
         .offset(offset * LIMIT)
         .map((_row) => {
-            if (!_row) return _row;
+            // if (!_row) return _row;
             return knex('tags')
                 .select('tags.*')
                 .leftJoin('posts_tags', 'posts_tags.tag_id', 'tags.id')
                 .where('posts_tags.tag_id', _row.tag_id)
                 .first();
         })
-        .map(_row => _row ? postsCount(_row) : _row);
+        .map(_row => (_row ? postsCount(_row) : _row));
 }
 
 function getAllSearched(pattern, offset) {
@@ -75,9 +73,8 @@ function getAllSearched(pattern, offset) {
         .whereRaw('LOWER(title) like ?', `%${pattern}%`)
         .limit(LIMIT)
         .offset(LIMIT * offset)
-        .map(_row => _row ? postsCount(_row) : _row);
+        .map(_row => (_row ? postsCount(_row) : _row));
 }
-
 
 module.exports = {
     create,
