@@ -1,2 +1,2 @@
-logs/*
-redis-data/
+logs/*.log
+redis-data/*.*

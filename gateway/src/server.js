@@ -1,7 +1,8 @@
 const http = require('http');
-const jsCron = require('./cron');
-const debug = require('debug')('server');
+const debug = require('debug')('gateway:server');
+
 const app = require('./app');
+const jsCron = require('./cron');
 
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
@@ -29,7 +30,6 @@ function onListening() {
     const addr = server.address();
     const bind = typeof addr === 'string' ? `Pipe ${port}` : `Port ${port}`;
     debug(`Listening on ${bind}`);
-    console.log(`Listening on ${bind}`);
     // TODO: separate JSCron to Cron microservice
     jsCron();
 }

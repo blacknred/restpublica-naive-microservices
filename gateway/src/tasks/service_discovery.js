@@ -1,9 +1,9 @@
 const CronJob = require('cron').CronJob;
-const debug = require('debug')('gateway:JSCRON');
+const debug = require('debug')('gateway:JSCRON-Service discovery');
+
 const conf = require('../conf');
 
 // TODO: log stream to Logger microservise
-const log = status => debug('Service discovery: %s', status);
 
 module.exports = new CronJob({
     cronTime: '60 * * * * *',
@@ -22,12 +22,12 @@ module.exports = new CronJob({
             conf.PARTNERS_API = `http://partners-service:3008${version}`;
             conf.NOTIFICATIONS_API = `http://notifications-service:3009${version}`;
             conf.STORAGE = 'http://files-storage:3007';
-            log('success');
+            debug('success');
         } catch (err) {
-            log(`failed with ${err.message}`);
+            debug(`failed with ${err.message}`);
         }
     },
-    onComplete: () => log('stopped'),
+    onComplete: () => debug('stopped'),
     start: true,
     timeZone: 'Europe/Minsk'
 });

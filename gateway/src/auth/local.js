@@ -1,5 +1,5 @@
-const jwt = require('jwt-simple');
 const moment = require('moment');
+const jwt = require('jwt-simple');
 const bcrypt = require('bcryptjs');
 
 function genToken(userId = 0) {

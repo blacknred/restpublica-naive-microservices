@@ -1,10 +1,10 @@
 const CronJob = require('cron').CronJob;
-const debug = require('debug')('gateway:JSCRON');
-const { request } = require('../routes/_helpers');
+const debug = require('debug')('gateway:JSCRON-Deleting inactive users and communities');
+
 const hosts = require('../conf');
+const { request } = require('../routes/_helpers');
 
 // TODO: log stream to Logger microservise
-const log = status => debug('Deleting inactive users and communities: %s', status);
 
 module.exports = new CronJob({
     cronTime: '00 60 * * * *',
@@ -26,9 +26,7 @@ module.exports = new CronJob({
                 request(ctx, hosts.USERS_API, '/users', true),
                 request(ctx, hosts.COMMUNITIES_API, '/communities', true)
             ]);
-            console.log(deletedUsers, deletedCommunities);
-            if (deletedUsers.data) {
-                console.log(deletedUsers.data);
+            if (deletedUsers && deletedUsers.data) {
                 deletedUsers.data.forEach(async (user) => {
                     // get communities where users are admins
                     ctx.method = 'GET';
@@ -46,17 +44,16 @@ module.exports = new CronJob({
                     // TODO: delete users posts, likes, comments
                 });
             }
-            if (deletedCommunities.data) {
-                console.log(deletedCommunities.data);
+            if (deletedCommunities && deletedCommunities.data) {
                 // TODO: if posts has relation on removed communities set community_id to null
             }
             delete ctx.state.method;
-            log('success');
+            debug('success');
         } catch (err) {
-            log(`failed with ${err.message}`);
+            debug(`failed with ${err.message}`);
         }
     },
-    onComplete: () => log('stopped'),
+    onComplete: () => debug('stopped'),
     start: false,
     timeZone: 'America/Los_Angeles'
 });

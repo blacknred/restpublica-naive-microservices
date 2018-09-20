@@ -5,11 +5,15 @@ const cors = require('kcors');
 const koaBody = require('koa-body');
 const morgan = require('koa-morgan');
 const helmet = require('koa-helmet');
-const routes = require('./routes/index');
+const debug = require('debug')('gateway');
 const userAgent = require('koa-useragent');
 const rfs = require('rotating-file-stream');
-const debug = require('debug')('api-gateway');
-const { rateLimiting, authentication } = require('./auth');
+
+const {
+    rateLimiting,
+    authentication
+} = require('./auth');
+const routes = require('./routes/index');
 
 const app = new Koa();
 
@@ -40,14 +44,18 @@ if (process.env.NODE_ENV !== 'test') {
     }));
     app.use(morgan(format));
 }
-// CORS
+
+// Cors
 app.use(cors({
     exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset']
 }));
+
 // Prevent bruteforce
 app.use(helmet());
+
 // Body
 app.use(koaBody({ formLimit: '2mb', jsonLimit: '2mb' }));
+
 // Errors
 app.use(async (ctx, next) => {
     try {
@@ -64,12 +72,16 @@ app.use(async (ctx, next) => {
         };
     }
 });
+
 // User Agent
 app.use(userAgent);
+
 // Rate-limiting
 app.use(rateLimiting);
+
 // Authentication
 app.use(authentication);
+
 // Router
 app.use(routes.routes());
 

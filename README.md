@@ -5,8 +5,8 @@
 
 | Name              | Microservice  | Container             | Stack         | Ports |
 |-------------------|---------------|-----------------------|---------------|-------|
-| API Gateway       | -             | api-gateway           | Node, Koa     | 3003  |
-| Redis Cache       | -             | redis-cache           | Node, Redis   | 6379  |
+| API Gateway       | -             | gateway               | Node, Koa     | 3003  |
+| Redis Cache       | -             | redis-cache           | Redis         | 6379  |
 | Mock Storage      | Posts         | files-storage         | Node, Koa     | 3007  |
 | Users API         | Users         | users-service         | Node, Express | 3004  |
 | Users DB          | Users         | users-db              | Postgres      | 5433  |
@@ -16,7 +16,7 @@
 | Posts DB          | Posts         | posts-db              | Postgres      | 5435  |
 | Partners API      | Partners      | partners-service      | Node, Express | 3008  |
 | Partners DB       | Partners      | partners-db           | Mongo         | 27017 |
-| Notifications API | Motifications | notifications-service | Node, Express | 3009  |
+| Notifications API | Notifications | notifications-service | Node, Express | 3009  |
 | Notifications DB  | Notifications | notifications-db      | Mongo         | 27017 |
 
 <!-- | Messages API      | Messages      | messages-service      |               | 3010  |
@@ -25,7 +25,7 @@
 #### API Gateway - http://localhost:3003
 
 Limit, Filter, Secure
-Entry point API for microservices:
+Entry points API for microservices:
 * Cluster support to spawn multiple processes
 * Logging
 * Js cron

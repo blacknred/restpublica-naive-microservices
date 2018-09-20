@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const debug = require('debug')('users-api');
 const useragent = require('express-useragent');
 const expressValidator = require('express-validator');
+
 const { authentication } = require('./auth');
 const usersRoutes = require('./routes/users');
 const subscriptionsRoutes = require('./routes/subscriptions');
@@ -39,7 +40,6 @@ app.use((err, req, res, next) => {
         message: err.message
     });
 });
-
 
 module.exports = app;
 
