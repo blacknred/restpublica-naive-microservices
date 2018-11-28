@@ -4,6 +4,7 @@ module.exports = {
     development: {
         client: 'pg',
         connection: process.env.DATABASE_URL,
+        acquireConnectionTimeout: 100000,
         migrations: {
             directory: path.join(__dirname, 'src', 'db', 'migrations')
         },

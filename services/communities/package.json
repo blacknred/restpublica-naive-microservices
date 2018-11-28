@@ -9,16 +9,16 @@
         "bcryptjs": "^2.3.0",
         "body-parser": "^1.18.3",
         "debug": "^2.6.6",
-        "express": "^4.15.2",
+        "express": "^4.16.4",
         "express-useragent": "^1.0.12",
         "express-validator": "^5.3.0",
         "faker": "*",
         "gm": "^1.23.1",
-        "jwt-simple": "^0.5.2",
+        "jwt-simple": "^0.5.5",
         "knex": "0.13.0",
         "moment": "^2.22.2",
         "morgan": "^1.9.1",
-        "node-fetch": "^2.2.0",
+        "node-fetch": "^2.3.0",
         "pg": "^6.1.4",
         "resize-img": "^1.1.2"
     },
@@ -30,7 +30,7 @@
         "eslint-plugin-import": "^2.14.0",
         "gulp": "^3.9.1",
         "gulp-eslint": "^3.0.1",
-        "gulp-nodemon": "^2.2.1",
+        "gulp-nodemon": "^2.4.1",
         "mocha": "^3.2.0"
     }
 }

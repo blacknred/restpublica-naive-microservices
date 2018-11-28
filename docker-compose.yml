@@ -59,8 +59,8 @@ services:
     ports:
       - '27017:27017'
     healthcheck:
-      test: exit 0
-  
+      test: exit 0    
+
   notifications-db:
     container_name: notifications-db
     build: ./services/notifications/src/db
@@ -175,8 +175,8 @@ services:
     ports:
       - '3009:3000'
     environment:
-      - DATABASE_URL=mongodb://notifications-db:27018/notifications_dev
-      - DATABASE_TEST_URL=mongodb://notifications-db:27018/notifications_test
+      - DATABASE_URL=mongodb://notifications-db:27017/notifications_dev
+      - DATABASE_TEST_URL=mongodb://notifications-db:27017/notifications_test
       - NODE_ENV=${NODE_ENV}
       - TOKEN_SECRET=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe
       - TOKEN_SECRET_2=\x02\xf3\xf7r\t\x9f\xee\xbbu\xb1\xe1\x90\xfe'\xab\xa6L6\xdd\x8d[\xccO\xfe

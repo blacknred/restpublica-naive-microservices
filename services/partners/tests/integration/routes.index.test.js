@@ -11,7 +11,7 @@ describe('routes : index', () => {
     describe('GET /ping', () => {
         it('should return "pong"', () => {
             chai.request(server)
-                .get('api/v1/users/ping')
+                .get('api/v1/partners/ping')
                 .end((err, res) => {
                     should.not.exist(err);
                     res.type.should.eql('text/html');

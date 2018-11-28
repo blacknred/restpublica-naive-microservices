@@ -1,2 +1,1 @@
-pg-data/*
-!pg-data/.gitkeep
+pg-data/

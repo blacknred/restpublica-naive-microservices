@@ -5,8 +5,8 @@ const useragent = require('express-useragent');
 const debug = require('debug')('notifications-api');
 const expressValidator = require('express-validator');
 
-const routes = require('./routes');
 const dbInit = require('./db/db_init');
+const routes = require('./routes');
 const { authentication } = require('./auth');
 
 const app = express();

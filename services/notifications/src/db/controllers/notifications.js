@@ -1,6 +1,6 @@
 const Notification = require('mongoose').model('Notification');
 
-/* notifications */
+/* notices */
 
 const create = noteObj => new Notification(noteObj).save();
 

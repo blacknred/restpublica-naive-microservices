@@ -11,7 +11,7 @@ const IMG_COUNT = 500;
 const FETCH_FROM_DIR = false;
 const DIR = path.join(__dirname, 'static');
 
-const STORAGE = `http://files-storage:3007?seedFrom=${process.env.NODE_ENV}`;
+const STORAGE = `http://files-storage:3000?seedFrom=${process.env.NODE_ENV}`;
 const IMG_SIZES = ['600x600', '600x700', '600x800'];
 const IMG_COLLECTIONS = ['1111575', '582659', '494266'];
 const IMG_SRC = 'https://source.unsplash.com/collection';
@@ -39,11 +39,17 @@ const fetchImg = () => {
             `${IMG_SIZES[Math.floor(Math.random() * IMG_SIZES.length)]}/` +
             `?sig=${Math.floor(Math.random() * IMG_COUNT)}`,
         encoding: null,
-        resolveWithFullResponse: true
+        resolveWithFullResponse: true,
+        headers: {
+            Connection: 'keep-alive',
+            'Accept-Encoding': '',
+            'Accept-Language': 'en-US,en;q=0.8'
+        },
+        gzip: true,
     };
     return request(conf)
         .then((res) => {
-            // console.log(conf.url, res.body.length);
+            console.log(conf.url, res.body.length);
             fetchedImgs.push(res.body);
             return null;
         })
@@ -65,7 +71,13 @@ const createFile = (knex, i, imgBuffer) => {
                 }
             },
         },
-        json: true
+        json: true,
+        headers: {
+            Connection: 'keep-alive',
+            'Accept-Encoding': '',
+            'Accept-Language': 'en-US,en;q=0.8'
+        },
+        gzip: true,
     };
     return request(conf)
         .then((data) => {
@@ -77,7 +89,7 @@ const createFile = (knex, i, imgBuffer) => {
                     thumb: data.data[0].thumb
                 });
         })
-        .catch(err => console.log(''));
+        .catch(err => console.log(err));
 };
 
 exports.seed = (knex, Promise) => {

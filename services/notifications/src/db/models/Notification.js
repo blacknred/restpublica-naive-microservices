@@ -2,8 +2,7 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
-const Notification = new Schema({
-    // limit: {
+// limit: {
     //     type: Number,
     //     min: 50,
     //     index: true,
@@ -39,6 +38,7 @@ const Notification = new Schema({
     //         'Please fill a valid email address']
     // },
 
+const Notification = new Schema({
     type: {
         type: String,
         enum: [
@@ -70,9 +70,8 @@ const Notification = new Schema({
     },
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now()
     }
-
 });
 
 module.exports = mongoose.model('Notification', Notification);

@@ -12,10 +12,10 @@ const db = mongoose.connection;
 
 /* db setup */
 
-module.exports = () => {
-    Notification.collection.drop();
+module.exports = async () => {
+    await Notification.collection.drop();
     db.on('error', err => console.log(err));
-    db.on('open', async () => {
+    db.on('open', () => {
         debug(`Connected to Database: ${DB_URI}`);
         // seeds if needed
         if (process.env.NODE_ENV !== 'production') {
