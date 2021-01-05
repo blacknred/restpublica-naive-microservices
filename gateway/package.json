@@ -6,7 +6,7 @@
         "test": "./node_modules/mocha/bin/_mocha 'app/tests/**/*.test.js'"
     },
     "dependencies": {
-        "axios": "^0.18.0",
+        "axios": "^0.21.1",
         "bcryptjs": "^2.3.0",
         "bluebird": "^3.5.3",
         "cron": "^1.5.0",
