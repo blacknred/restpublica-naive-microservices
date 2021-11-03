@@ -20,7 +20,7 @@
         "pg": "^6.1.5",
         "request": "^2.88.0",
         "request-promise": "^4.2.2",
-        "validator": "^9.4.1"
+        "validator": "^13.7.0"
     },
     "devDependencies": {
         "chai": "^3.5.0",
